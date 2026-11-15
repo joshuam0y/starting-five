@@ -141,6 +141,17 @@
       + (ovrs && ovrs.length ? ovrs.map(sqEmoji).join('') + '\n' : '')
       + pct.toFixed(1) + '% of a perfect five' + (r ? ' | #' + r.rank + ' of ' + r.played : '');
   };
+  // "beat my score": every Daily share links to #/daily/beat/<daily #>/<name>/<percent>. Opening it keeps the challenge for
+  // that day only; the hub shows it over the Play button and the end screen says who won.
+  const BEATKEY = 'a13-dy-beat';
+  const beatName = () => String((UI.profile.signedIn() && UI.profile.account()) || 'a friend').replace(/[^A-Za-z0-9_ -]/g, '').slice(0, 16) || 'a friend';
+  const beatHash = (day, pct) => '#/daily/beat/' + dayNo(day) + '/' + encodeURIComponent(beatName()) + '/' + pct.toFixed(1);
+  const beatNow = day => { const c = ls.get(BEATKEY, null); return c && c.n === dayNo(day) && c.name && c.pct != null ? c : null; };
+  const beatLine = (day, pct) => {
+    const c = beatNow(day); if (!c || pct == null) return '';
+    const mine = Math.round(pct * 10) / 10, theirs = Number(c.pct);
+    return mine > theirs ? 'YOU BEAT ' + c.name.toUpperCase() + "'S " + theirs.toFixed(1) + '%' : mine < theirs ? c.name.toUpperCase() + ' WINS WITH ' + theirs.toFixed(1) + '%' : 'A TIE WITH ' + c.name.toUpperCase();
+  };
   async function shareCard(o, text, hash) {
     const all = text + '\n' + (/^#\/[a-z]/.test(hash || '') ? location.host + '/' + hash.slice(2) : (location.host + location.pathname + (hash || '')).replace(/index\.html$/, ''));   // a plain path (/daily): some apps break the # in a link
     try { await navigator.clipboard.writeText(all); UI.toast('Copied. Paste it anywhere.'); }
@@ -796,7 +807,7 @@
       <section class="rk-score">${five.length === 5 ? fiveCards(five, true) : ''}<small>YOUR LINEUP SCORE</small><b>${Number(sv.score).toFixed(1)}</b>${pct == null ? '' : `<div class="rk-pct"><b>${pct.toFixed(1)}%</b> OF A PERFECT FIVE</div>`}<div class="rk-streak" id="rkStreak"></div><div class="rk-tier on rk-tier-pg" id="rkTierPg"></div><div class="rk-std" id="rkReach"></div><div class="rk-std" id="rkStd"></div>${five.length === 5 ? '' : '<span class="muted">' + (sv.names ? esc(sv.names.join(', ')) : 'Played on another device.') + '</span>'}</section>
       <div class="ch-go"><a class="btn btn-gold" href="#/daily">SEE THE BOARD</a>${pct == null ? '' : '<button type="button" class="btn" id="dlShare">SHARE YOUR SCORE</button>'}</div>`;
     const sk = streakNow(), el = UI.$('#rkStreak', app); if (el && sk.n) el.innerHTML = '<b>' + sk.n + '</b> DAY DAILY STREAK';
-    const doShare = async btn => { if (btn) btn.disabled = true; await shareCard({}, dailyShareText(day, TH.title, sv.ovrs, pct), '#/daily'); if (btn) btn.disabled = false; };
+    const doShare = async btn => { if (btn) btn.disabled = true; await shareCard({}, dailyShareText(day, TH.title, sv.ovrs, pct), beatHash(day, pct)); if (btn) btn.disabled = false; };
     const sh = UI.$('#dlShare', app); if (sh) sh.addEventListener('click', () => doShare(sh));
     // the same reveal as right after a game, rebuilt from the saved names: the five players are looked up in the day's ten
     if (pct != null && five.length === 5 && sv.score != null) resultPop({ app, era: 'ALL', day, TH, five, score: Number(sv.score), pct, byId, doShare });
@@ -856,13 +867,13 @@
       const perfectScore = dailyPerfect(era, day);
       const pct = score != null && perfectScore > 0 ? Math.min(100, 100 * score / perfectScore) : null;
       app.innerHTML = `${hdr}
-        <section class="rk-score">${fiveCards(five, true)}<small>YOUR LINEUP SCORE</small><b>${score == null ? '-' : score.toFixed(1)}</b>${pct == null ? '' : `<div class="rk-pct"><b>${pct.toFixed(1)}%</b> OF A PERFECT FIVE</div>`}<div class="rk-streak" id="rkStreak"></div><div class="rk-tier on rk-tier-pg" id="rkTierPg"></div><div class="rk-std" id="rkReach"></div><div class="rk-std" id="rkStd"></div><span class="muted">The house scored ${hs == null ? '-' : hs.toFixed(1)}. ${score != null && hs != null ? (score > hs ? 'You beat the house.' : score < hs ? 'The house won this one.' : 'A tie.') : ''}</span></section>
+        <section class="rk-score">${fiveCards(five, true)}<small>YOUR LINEUP SCORE</small><b>${score == null ? '-' : score.toFixed(1)}</b>${pct == null ? '' : `<div class="rk-pct"><b>${pct.toFixed(1)}%</b> OF A PERFECT FIVE</div>`}${!isPr && beatLine(day, pct) ? '<div class="dy-beat-res">' + esc(beatLine(day, pct)) + '</div>' : ''}<div class="rk-streak" id="rkStreak"></div><div class="rk-tier on rk-tier-pg" id="rkTierPg"></div><div class="rk-std" id="rkReach"></div><div class="rk-std" id="rkStd"></div><span class="muted">The house scored ${hs == null ? '-' : hs.toFixed(1)}. ${score != null && hs != null ? (score > hs ? 'You beat the house.' : score < hs ? 'The house won this one.' : 'A tie.') : ''}</span></section>
         <details class="rk-det rk-house"><summary>WHAT EACH PLAYER COST, AND THE HOUSE'S FIVE</summary><div class="vs-sides vs-compact">${sideBox(0, 'YOU')}${sideBox(1, 'THE HOUSE')}</div></details>
         <div id="rkSub" class="rkn"><span class="muted">Sending your score...</span></div>
         <div id="rkFr"></div>
         <div class="ch-go">${isPr ? `<a class="btn btn-gold" href="#/daily/practice/${esc(prKey)}/${Date.now()}">PLAY AGAIN</a><a class="btn" href="#/daily/practice">ARCHIVE</a>` : `<a class="btn btn-gold" href="#/daily">SEE THE BOARD</a>${pct == null ? '' : '<button type="button" class="btn" id="dlShare">SHARE YOUR SCORE</button>'}`}</div>`;
       const dsh = UI.$('#dlShare', app);
-      const doShare = async btn => { btn.disabled = true; const r = await shareCard({ k: 'DAILY #' + dayNo(day), title: 'OF A PERFECT FIVE', color: '#d4af37', big: pct.toFixed(1) + '%', sub: TH.title, name: UI.profile.account() || '' }, dailyShareText(day, TH.title, five.map(ovrOf), pct), '#/daily'); btn.disabled = false;  };
+      const doShare = async btn => { btn.disabled = true; const r = await shareCard({ k: 'DAILY #' + dayNo(day), title: 'OF A PERFECT FIVE', color: '#d4af37', big: pct.toFixed(1) + '%', sub: TH.title, name: UI.profile.account() || '' }, dailyShareText(day, TH.title, five.map(ovrOf), pct), beatHash(day, pct)); btn.disabled = false;  };
       if (dsh) dsh.addEventListener('click', () => doShare(dsh));
       if (pct != null) resultPop({ app, era, day, TH, five, score, pct, byId, doShare });   // the result pops up with the share button every time this screen opens
       const paintStreak = () => { const sk = UI.$('#rkStreak', app), n = streakNow(); if (sk && n.n) sk.innerHTML = '<b>' + n.n + '</b> DAY DAILY STREAK' + (n.best > n.n ? ' | BEST ' + n.best : ''); };
@@ -1328,6 +1339,7 @@
         ${info && info.tag ? `<p class="dy-tag">${esc(info.tag)}</p>` : ''}
         ${played && pct ? `<div class="dy-mine"><small>YOUR SCORE</small><b>${pct}</b><span>of a perfect five</span></div>`
           : `<div class="dy-rules"><span><b>$${DAILY.budget}</b> BUDGET</span><span><b>${DAILY.pool}</b> PLAYERS</span><span><b>5</b> TO PICK</span></div>`}
+        ${(() => { const c = beatNow(day); if (!c) return ''; const r = played && pct ? beatLine(day, parseFloat(pct)) : ''; return `<div class="dy-beat">${r ? esc(r) : `BEAT <b>${esc(c.name.toUpperCase())}</b>'S <b>${esc(Number(c.pct).toFixed(1))}%</b>`}</div>`; })()}
         <a class="btn btn-gold btn-big dy-play" href="#/daily/play">${played ? "SEE TODAY'S RESULT" : done ? "FINISH TODAY'S AUCTION" : "PLAY TODAY'S AUCTION"}</a>
         <button type="button" class="dy-how" id="dyHow">HOW TO PLAY</button>
         <p class="dy-meta">${sk.n ? '<b>' + sk.n + '</b> DAY STREAK' + (sk.done ? '' : ' | PLAY TO KEEP IT') + ' | ' : ''}NEW THEME IN ${left}</p>
@@ -1373,8 +1385,14 @@
           if (!board.isConnected) return;
           if (!fr) { board.innerHTML = msg('Friends boards arrive with the latest SQL.'); return; }
           const set = new Set(fr.concat(me || [])), list = (rows || []).filter(r => set.has(r.username)), mine = ls.get(dKey(day), null);
-          if (!list.length) { board.innerHTML = msg(fr.length ? 'None of your friends have played today.' : 'No friends yet. Add some from their profiles.'); return; }
-          board.innerHTML = mine && mine.fin ? fivesHtml(list, perf, me) : todayTbl(list) + msg("Play today's auction to see the fives your friends built.");
+          // the friends league: this week's points for you and your friends (resets Monday), then today's fives
+          let wk = null;
+          try { wk = (await UI.profile.rpc('lb_daily_week_friends')) || []; }
+          catch (e) { try { wk = ((await UI.profile.rpc('lb_daily_week', { p_limit: 100 })) || []).filter(r => set.has(r.username)); } catch (x) { wk = null; } }
+          if (!board.isConnected) return;
+          const league = wk && wk.length && fr.length ? '<h3 class="dy-h3">FRIENDS LEAGUE | THIS WEEK</h3>' + table(['#', 'PLAYER', 'DAYS', 'AVERAGE', 'POINTS'], wk.map((x, i) => [i + 1, nameCell(x, me), x.days, f1(x.avg_pct) + '%', '<b>' + f1(x.total) + '</b>'])) + '<p class="muted rk-sub">Every daily percentage added up, Monday to Sunday. Resets Monday.</p>' : '';
+          if (!list.length) { board.innerHTML = league + msg(fr.length ? 'None of your friends have played today.' : 'No friends yet. Add some from their profiles.'); return; }
+          board.innerHTML = league + '<h3 class="dy-h3">TODAY</h3>' + (mine && mine.fin ? fivesHtml(list, perf, me) : todayTbl(list) + msg("Play today's auction to see the fives your friends built."));
           return;
         }
         board.innerHTML = msg('Loading...');
@@ -1399,6 +1417,12 @@
   }
   P.daily = function (app, arg) {
     const part = String(arg || '').split('/');
+    if (part[0] === 'beat') {   // a friend's challenge link: keep it for that day, then show the hub
+      const n = parseInt(part[1], 10), name = decodeURIComponent(part[2] || '').replace(/[^A-Za-z0-9_ -]/g, '').slice(0, 16), pct = parseFloat(part[3]);
+      if (n > 0 && name && pct >= 0 && pct <= 100) ls.set(BEATKEY, { n, name, pct });
+      history.replaceState(null, '', location.pathname + location.search + '#/daily');
+      return dailyHub(app);
+    }
     if (part[0] === 'play') return dailyPage(app, 'ALL');
     if (part[0] === 'practice') return part[1] ? practicePlay(app, decodeURIComponent(part[1]), part[2] || '') : practicePage(app);
     return dailyHub(app);

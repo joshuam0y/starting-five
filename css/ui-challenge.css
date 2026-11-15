@@ -1312,3 +1312,9 @@ a.pr-i:hover { border-color: var(--gold); }
 .fr-five li .ch-ovr { text-align: center; min-width: 0; }
 .fr-five li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fr-five li small { color: var(--muted); font-family: var(--display); }
+
+/* a friend's challenge on the Daily hub and the result */
+.dy-beat { margin: 8px 0 0; padding: 8px 14px; border: 1px dashed var(--gold); font-family: var(--display); letter-spacing: .12em; font-size: 14px; color: #fff; background: rgba(212, 175, 55, .08); }
+.dy-beat b { color: var(--gold2); }
+.dy-beat-res { margin: 6px 0; font-family: var(--display); letter-spacing: .14em; font-size: 16px; color: var(--gold2); }
+.dy-h3 { font-family: var(--display); font-size: 13px; letter-spacing: .18em; color: var(--gold); margin: 14px 0 6px; }

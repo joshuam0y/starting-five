@@ -548,3 +548,15 @@ language sql security definer set search_path = public as $$
     where status = 'accepted' and (requester = auth.uid() or addressee = auth.uid()));
 $$;
 grant execute on function public.friends_seen() to authenticated;
+
+-- ---------- the friends league: this week's Daily points for you and your accepted friends, reset every Monday (Pacific) ----------
+create or replace function public.lb_daily_week_friends() returns table (username text, days int, avg_pct numeric, total numeric)
+language sql security definer set search_path = public as $$
+  select p.username, count(*)::int, round(avg(d.pct), 1), round(sum(d.pct), 1)
+  from public.daily_scores d join public.profiles p on p.id = d.user_id
+  where d.era = 'ALL' and d.pct is not null and d.day >= date_trunc('week', now() at time zone 'America/Los_Angeles')::date
+    and (d.user_id = auth.uid() or d.user_id in (select case when requester = auth.uid() then addressee else requester end from public.friendships
+      where status = 'accepted' and (requester = auth.uid() or addressee = auth.uid())))
+  group by p.username order by sum(d.pct) desc, count(*) asc, p.username
+$$;
+grant execute on function public.lb_daily_week_friends() to authenticated;
