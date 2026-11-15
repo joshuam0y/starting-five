@@ -39,6 +39,7 @@
       return '';
     },
     isOnline(n) { return !!ONLINE[String(n || '').toLowerCase()]; },
+    statusOf(n) { const v = ONLINE[String(n || '').toLowerCase()]; return typeof v === 'string' ? v : ''; },
     signOut() {
       del(KEY); del(OLD); ROOMS.forEach(del);
       const done = () => { USER = null; stopSocial(); fire(); };
@@ -177,9 +178,16 @@
     if (!sb || !me) return;
     if (!PRES) {
       PRES = sb.channel('sf-online', { config: { presence: { key: me } } });
-      PRES.on('presence', { event: 'sync' }, () => { ONLINE = {}; Object.keys(PRES.presenceState()).forEach(k => { ONLINE[k.toLowerCase()] = true; }); const f = document.getElementById('pfFriends'); if (f) drawFriends(f); });
-      PRES.subscribe(st => { if (st === 'SUBSCRIBED') PRES.track({ u: me, at: Date.now() }); });
+      // each player shares what they are doing (a short label from the page they are on), friends see it next to the green dot
+      PRES.on('presence', { event: 'sync' }, () => {
+        ONLINE = {};
+        const ps = PRES.presenceState();
+        Object.keys(ps).forEach(k => { const m = (ps[k] || [])[0] || {}; ONLINE[k.toLowerCase()] = m.st || true; });
+        const f = document.getElementById('pfFriends'); if (f) drawFriends(f);
+      });
+      PRES.subscribe(st => { if (st === 'SUBSCRIBED') { LASTST = doingNow(); PRES.track({ u: me, at: Date.now(), st: LASTST }); } });
     }
+    touchSeen();
     if (!INV) {
       INV = sb.channel('sf-inv-' + me.toLowerCase());
       INV.on('broadcast', { event: 'invite' }, m => showInvite(m && m.payload));
@@ -190,6 +198,39 @@
     try { if (PRES) sb.removeChannel(PRES); if (INV) sb.removeChannel(INV); } catch (e) { /* gone */ }
     PRES = null; INV = null; ONLINE = {};
   }
+  // what you are doing right now, from the page you are on: friends see it as your status
+  let LASTST = '';
+  function doingNow() {
+    const h = (location.hash || '').replace(/^#\/?/, '');
+    if (/^daily\/play/.test(h)) return 'Playing the Daily';
+    if (/^daily\/practice\/./.test(h)) return 'Practicing a past Daily';
+    if (/^ranked\/(match|play|find)/.test(h)) return 'In a ranked match';
+    if (/^challenge\/vs/.test(h)) return 'In Head to Head';
+    if (/^challenge\/tournament/.test(h)) return 'In a tournament';
+    if (/^challenge/.test(h)) return 'In Season Mode';
+    if (/^(season|team|teams|trade|trades|fa|freeagency|standings|stats|draft|live|game|myteam|gm|playoffs|rotation)/.test(h)) return 'In The Association';
+    return '';
+  }
+  window.addEventListener('hashchange', () => {
+    if (!PRES) return;
+    const st = doingNow();
+    if (st === LASTST) return;
+    LASTST = st;
+    try { PRES.track({ u: P.account(), at: Date.now(), st }); } catch (e) { /* the channel is reconnecting */ }
+  });
+  // last active: saved at most once a minute while the page is open, so friends see "active 2h ago" after you leave
+  function touchSeen() { if (document.hidden || !P.account()) return; P.rpc('touch_seen').catch(() => { /* before the latest SQL */ }); }
+  setInterval(touchSeen, 120000);
+  document.addEventListener('visibilitychange', touchSeen);
+  const agoText = t => {
+    const m = Math.max(0, Math.round((Date.now() - Date.parse(t)) / 60000));
+    if (m < 2) return 'active just now';
+    if (m < 60) return 'active ' + m + 'm ago';
+    const h = Math.round(m / 60);
+    if (h < 24) return 'active ' + h + 'h ago';
+    const d = Math.round(h / 24);
+    return d < 30 ? 'active ' + d + 'd ago' : 'active over a month ago';
+  };
   function roomNow() {
     const R = UI.rooms || {};
     for (const k of ['vs', 'tn']) { const c = R[k] && R[k](); if (c) return { mode: k, code: c }; }
@@ -497,12 +538,14 @@
       const ids = [...new Set((r.data || []).flatMap(x => [x.requester, x.addressee]))].filter(i => i !== USER.id);
       const names = {};
       if (ids.length) { const p = await c.from('profiles').select('id,username').in('id', ids); (p.data || []).forEach(x => { names[x.id] = x.username; }); }
+      const seen = {}; try { ((await P.rpc('friends_seen')) || []).forEach(x => { if (x.seen_at) seen[String(x.username).toLowerCase()] = x.seen_at; }); } catch (e) { /* before the latest SQL: online or offline only */ }
+      const stateOf = n => { if (P.isOnline(n)) { const d = P.statusOf(n); return '<small class="pf-on">' + esc(d || 'ONLINE') + '</small>'; } const t = seen[String(n || '').toLowerCase()]; return '<small class="muted">' + (t ? agoText(t) : 'offline') + '</small>'; };
       const rows = r.data || [], other = x => (x.requester === USER.id ? x.addressee : x.requester);
       const inc = rows.filter(x => x.status === 'pending' && x.addressee === USER.id), out = rows.filter(x => x.status === 'pending' && x.requester === USER.id), fr = rows.filter(x => x.status === 'accepted');
       const li = (x, btns) => `<li><i class="pf-dot ${P.isOnline(names[other(x)]) ? 'on' : ''}"></i><b>${UI.userLink && names[other(x)] ? UI.userLink(names[other(x)]) : esc(names[other(x)] || '?')}</b>${btns}</li>`;
       const room = roomNow();
       box.innerHTML = (inc.length ? `<div class="pf-h">REQUESTS</div><ul>${inc.map(x => li(x, `<button type="button" class="btn btn-small btn-gold" data-acc="${x.id}">ACCEPT</button><button type="button" class="btn btn-small" data-rm="${x.id}">DECLINE</button>`)).join('')}</ul>` : '')
-        + `<div class="pf-h">FRIENDS (${fr.length})</div>${fr.length ? `<ul>${fr.sort((a, b) => P.isOnline(names[other(b)]) - P.isOnline(names[other(a)])).map(x => li(x, `${P.isOnline(names[other(x)]) ? '<small class="pf-on">ONLINE</small>' : '<small class="muted">offline</small>'}${room && P.isOnline(names[other(x)]) ? `<button type="button" class="btn btn-small btn-gold" data-inv="${esc(names[other(x)])}">INVITE</button>` : ''}<button type="button" class="btn btn-small" data-rm="${x.id}" title="Remove friend">UNFRIEND</button>`)).join('')}</ul>` : '<p class="muted">No friends yet. Add someone by their exact username.</p>'}`
+        + `<div class="pf-h">FRIENDS (${fr.length})</div>${fr.length ? `<ul>${fr.sort((a, b) => P.isOnline(names[other(b)]) - P.isOnline(names[other(a)])).map(x => li(x, `${stateOf(names[other(x)])}${room && P.isOnline(names[other(x)]) ? `<button type="button" class="btn btn-small btn-gold" data-inv="${esc(names[other(x)])}">INVITE</button>` : ''}<button type="button" class="btn btn-small" data-rm="${x.id}" title="Remove friend">UNFRIEND</button>`)).join('')}</ul>` : '<p class="muted">No friends yet. Add someone by their exact username.</p>'}`
         + (out.length ? `<div class="pf-h">SENT</div><ul>${out.map(x => li(x, `<small class="muted">waiting</small><button type="button" class="btn btn-small" data-rm="${x.id}">CANCEL</button>`)).join('')}</ul>` : '')
         + (room ? '' : '<p class="muted ch-small">To invite a friend, host a room online first (Head to Head or Tournament), then open this again.</p>');
       box.querySelectorAll('.u-link').forEach(a => a.addEventListener('click', () => { const pnl = document.getElementById('pfPanel'); if (pnl) pnl.remove(); }));

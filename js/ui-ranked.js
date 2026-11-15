@@ -1276,35 +1276,52 @@
   async function dailyHub(app) {
     stopRefresh();
     const day = today(), signed = UI.profile.signedIn();
-    app.innerHTML = `<section class="ch-hero"><div class="ch-hero-k">DAILY #${dayNo(day)} | ${esc(day)}</div><h1 class="ch-hero-t">TODAY'S AUCTION.</h1>
-        <p class="ch-hero-p">One theme a day. The same ten players for everyone.</p></section><div id="dyBody"><p class="muted">Loading...</p></div>`;
+    const dateLbl = new Date(day + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }).toUpperCase();
+    const left = (() => { const t = new Date().toLocaleTimeString('en-GB', Object.assign({ hour12: false }, PT)).split(':'), ms = 86400000 - ((+t[0]) * 3600 + (+t[1]) * 60 + (+t[2])) * 1000; return Math.floor(ms / 3600000) + 'H ' + (Math.floor(ms / 60000) % 60) + 'M'; })();
+    // the top of the page is today's theme and one button; it draws at once from local data, the boards load under it
+    let TH = null, perf = 0;
+    const hero = () => {
+      const info = TH || (() => { try { return dailyThemeInfo(day); } catch (e) { return null; } })();
+      const done = ls.get(dKey(day), null), played = done && done.fin, sk = streakNow();
+      const pct = played ? (done.pct != null ? f1(done.pct) + '%' : perf > 0 && done.score != null ? Math.min(100, 100 * Number(done.score) / perf).toFixed(1) + '%' : '') : '';
+      return `<section class="dy-hero">
+        <div class="dy-k">DAILY #${dayNo(day)} | ${esc(dateLbl)}</div>
+        <small class="dy-tk">TODAY'S THEME</small>
+        <h1 class="dy-t">${esc(info ? info.title : "TODAY'S AUCTION")}</h1>
+        ${info && info.tag ? `<p class="dy-tag">${esc(info.tag)}</p>` : ''}
+        ${played && pct ? `<div class="dy-mine"><small>YOUR SCORE</small><b>${pct}</b><span>of a perfect five</span></div>`
+          : `<div class="dy-rules"><span><b>$${DAILY.budget}</b> BUDGET</span><span><b>${DAILY.pool}</b> PLAYERS</span><span><b>5</b> TO PICK</span></div>`}
+        <a class="btn btn-gold btn-big dy-play" href="#/daily/play">${played ? "SEE TODAY'S RESULT" : done ? "FINISH TODAY'S AUCTION" : "PLAY TODAY'S AUCTION"}</a>
+        <button type="button" class="dy-how" id="dyHow">HOW TO PLAY</button>
+        <p class="dy-meta">${sk.n ? '<b>' + sk.n + '</b> DAY STREAK' + (sk.done ? '' : ' | PLAY TO KEEP IT') + ' | ' : ''}NEW THEME IN ${left}</p>
+      </section>`;
+    };
+    const wire = () => {
+      const how = UI.$('#dyHow', app); if (how) how.addEventListener('click', () => UI.ranked.dailyTour());
+      const done = ls.get(dKey(day), null), playBtn = app.querySelector('a.dy-play');
+      if (playBtn && !done && !dailyTourSeen()) playBtn.addEventListener('click', e => { e.preventDefault(); UI.ranked.dailyTour(() => { location.hash = '#/daily/play'; }); });
+    };
+    app.innerHTML = `<div id="dyHero">${hero()}</div><div id="dyBody"><p class="muted">Loading the board...</p></div>`;
+    wire();
     const body = UI.$('#dyBody', app);
     try {
-      let TH = null; try { await dailyTheme(day); TH = THEME[day].info; } catch (e) { /* the theme card stays out */ }
+      try { await dailyTheme(day); TH = THEME[day].info; } catch (e) { /* the theme from the day number stays */ }
       await syncRemote();
       let rows = []; try { rows = (await UI.profile.rpc('lb_daily', { p_day: day, p_era: 'ALL', p_region: null, p_limit: 100 })) || []; } catch (e) { rows = null; }
-      let st = null, yst = null; const yday = dayBefore(day);
-      try { st = await UI.profile.rpc('daily_stats', { p_day: day }); } catch (e) { /* before the latest SQL */ }
-      if (yday >= DAILY_START) { try { yst = await UI.profile.rpc('daily_stats', { p_day: yday }); } catch (e) { /* before the latest SQL */ } }
-      const perf = TH ? dailyPerfect('ALL', day) : 0, pctOf = sc => (perf > 0 ? Math.min(100, 100 * Number(sc) / perf).toFixed(1) + '%' : '');
+      let st = null; try { st = await UI.profile.rpc('daily_stats', { p_day: day }); } catch (e) { /* before the latest SQL */ }
+      perf = TH ? dailyPerfect('ALL', day) : 0;
+      const pctOf = sc => (perf > 0 ? Math.min(100, 100 * Number(sc) / perf).toFixed(1) + '%' : '');
       if (!body.isConnected) return;   // you left while the boards were loading
-      const me = UI.profile.account(), done = ls.get(dKey(day), null), played = done && done.fin, sk = streakNow();
-      const left = (() => { const t = new Date().toLocaleTimeString('en-GB', Object.assign({ hour12: false }, PT)).split(':'), ms = 86400000 - ((+t[0]) * 3600 + (+t[1]) * 60 + (+t[2])) * 1000; return Math.floor(ms / 3600000) + 'H ' + (Math.floor(ms / 60000) % 60) + 'M'; })();
+      UI.$('#dyHero', app).innerHTML = hero(); wire();   // the synced result, the real theme and the score can change the top
+      const me = UI.profile.account();
       const avgOf = x => x.avg_pct != null ? f1(x.avg_pct) + '%' : f1(x.avg_score);
       const statHtml = x => (x && x.played ? `<p class="rk-stat"><b>${x.played}</b> PLAYED TODAY | AVERAGE <b>${avgOf(x)}</b>${x.best_pct != null ? ' | BEST <b>' + f1(x.best_pct) + '%</b>' : ''}</p>` : '');
-      const statLine = statHtml(st);
-      const yest = yst && yst.played ? `<div class="rk-theme"><small>YESTERDAY | DAILY #${dayNo(yday)}</small><b>${esc(yst.winner || '')} WON${yst.winner_pct != null ? ' WITH ' + f1(yst.winner_pct) + '%' : ''}</b><span class="muted">${yst.played} played | average ${avgOf(yst)}</span></div>` : '';
-      body.innerHTML = `${TH ? `<div class="rk-theme"><small>DAILY #${dayNo(day)} | ${esc(TH.kind)}</small><b>${esc(TH.title)}</b><span class="muted">${esc(TH.tag)}</span></div>` : ''}
-        <p class="rk-streak">${sk.n ? '<b>' + sk.n + '</b> DAY STREAK' + (sk.done ? ' | TODAY DONE' : ' | PLAY TODAY TO KEEP IT') : 'START A STREAK: PLAY ONE A DAY'}</p>
-        <div class="ch-go"><a class="btn btn-gold btn-big" href="#/daily/play">${played ? "SEE TODAY'S RESULT" : done ? "FINISH TODAY'S AUCTION" : "PLAY TODAY'S AUCTION"}</a><a class="btn" href="#/daily/practice">PRACTICE ARCHIVE</a><button type="button" class="btn" id="dyHow">HOW TO PLAY</button></div>
-        ${signed ? '' : '<p class="muted rk-sub">No account needed. Sign in to put your score on the board.</p>'}
-        ${yest}
-        <div class="rk-theme lock"><small>TOMORROW</small><b>???</b><span class="muted">Opens in ${left}</span></div>
-        ${statLine}
+      body.innerHTML = `<h2 class="dy-h">TODAY'S BOARD</h2>
+        ${statHtml(st)}
         <div class="rk-bt" id="dyTabs"><button type="button" class="btn btn-small btn-gold" data-bt="today">TODAY</button><button type="button" class="btn btn-small" data-bt="friends">FRIENDS</button><button type="button" class="btn btn-small" data-bt="week">THIS WEEK</button></div>
         <div id="dyBoard"></div>
-        <p class="muted rk-sub">OF PERFECT: your score next to the best five of today's ten players. 100% means you ended with exactly those five.</p>
-        <div class="ch-go"><a class="btn" href="#/ranked">RANKED</a></div>`;
+        ${signed ? '' : '<p class="muted rk-sub">No account needed to play. Sign in to put your score on the board.</p>'}
+        <div class="ch-go dy-more"><a class="btn" href="#/daily/practice">PRACTICE PAST DAYS</a><a class="btn" href="#/ranked">RANKED</a></div>`;
       const board = UI.$('#dyBoard', app), msg = t => '<p class="muted">' + t + '</p>';
       const todayTbl = list => list && list.length ? table(perf > 0 ? ['#', 'PLAYER', 'SCORE', 'OF PERFECT FIVE'] : ['#', 'PLAYER', 'SCORE'], list.map((x, i) => [i + 1, nameCell(x, me), '<b>' + Number(x.score).toFixed(1) + '</b>'].concat(perf > 0 ? [pctOf(x.score)] : []))) : '';
       let curTab = 'today';
@@ -1329,10 +1346,6 @@
       };
       app.querySelectorAll('#dyTabs [data-bt]').forEach(b => b.addEventListener('click', () => show(b.dataset.bt)));
       show('today');
-      // how to play: the button replays it any time; the first tap on Play Today's Auction shows it once, before anything has been started
-      const how = UI.$('#dyHow', app); if (how) how.addEventListener('click', () => UI.ranked.dailyTour());
-      const playBtn = app.querySelector('a.btn-gold.btn-big[href="#/daily/play"]');
-      if (playBtn && !done && !dailyTourSeen()) playBtn.addEventListener('click', e => { e.preventDefault(); UI.ranked.dailyTour(() => { location.hash = '#/daily/play'; }); });
       // the numbers stay current while the page is open: every 30 seconds the played count, average and best, and the board when it is on Today
       stopRefresh();
       REFRESH = setInterval(async () => {

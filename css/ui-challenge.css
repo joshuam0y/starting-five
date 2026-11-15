@@ -1280,3 +1280,23 @@ a.pr-i:hover { border-color: var(--gold); }
   .ch-go { position: sticky; bottom: var(--mb-h, var(--bar-h, 0px)); z-index: 15; background: var(--bg); padding: 8px 0; box-shadow: 0 -10px 12px var(--bg); }
   .ch-go .btn-big { min-height: 52px; flex: 1 1 auto; }
 }
+
+/* #/daily: today's theme first, one button, the board under it */
+.dy-hero { margin: 8px 0 18px; padding: 18px 16px 16px; border: 1px solid var(--gold); background: radial-gradient(420px 220px at 85% 0%, rgba(255, 200, 60, .16), transparent 70%), linear-gradient(180deg, #14110a 0%, #050505 100%); display: grid; gap: 6px; text-align: center; justify-items: center; }
+.dy-k { font-family: var(--display); font-size: 12px; letter-spacing: .2em; color: var(--muted); }
+.dy-tk { font-family: var(--display); font-size: 11px; letter-spacing: .24em; color: var(--gold); margin-top: 8px; }
+.dy-t { font-family: var(--display); font-size: clamp(40px, 11vw, 72px); line-height: .95; margin: 0; color: var(--gold2); letter-spacing: .01em; overflow-wrap: anywhere; }
+.dy-tag { margin: 0; color: var(--text2); font-size: 15px; }
+.dy-rules { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 10px 0 4px; }
+.dy-rules span { font-family: var(--display); font-size: 12px; letter-spacing: .12em; color: var(--text2); border: 1px solid var(--line2); padding: 5px 10px; background: rgba(0, 0, 0, .35); }
+.dy-rules b { color: #fff; font-size: 15px; margin-right: 2px; }
+.dy-mine { display: grid; gap: 0; margin: 8px 0 2px; }
+.dy-mine small { font-family: var(--display); font-size: 11px; letter-spacing: .2em; color: var(--muted); }
+.dy-mine b { font-family: var(--display); font-size: 48px; line-height: 1; color: #fff; }
+.dy-mine span { font-size: 13px; color: var(--text2); }
+.dy-play { width: 100%; max-width: 420px; margin-top: 8px; min-height: 56px; }
+.dy-how { background: none; border: 0; color: var(--gold2); font-family: var(--display); letter-spacing: .16em; font-size: 13px; text-decoration: underline; text-underline-offset: 4px; padding: 10px 12px; min-height: 44px; cursor: pointer; }
+.dy-meta { margin: 0; font-family: var(--display); font-size: 11px; letter-spacing: .14em; color: var(--muted); }
+.dy-meta b { color: var(--gold2); font-size: 14px; }
+.dy-h { font-family: var(--display); font-size: 18px; letter-spacing: .14em; margin: 4px 0 6px; }
+.dy-more { margin-top: 14px; }

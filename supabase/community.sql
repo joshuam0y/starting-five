@@ -530,3 +530,21 @@ begin
 exception when unique_violation then return 'That username is taken. Pick another.';
 end $$;
 grant execute on function public.claim_profile(text) to authenticated;
+
+-- ---------- friends: when each player was last active ----------
+-- Its own table with no read policy, so only these functions see it: a player's last-active time is shown to their accepted friends and nobody else.
+create table if not exists public.user_seen (uid uuid primary key references auth.users (id) on delete cascade, seen_at timestamptz not null default now());
+alter table public.user_seen enable row level security;
+create or replace function public.touch_seen() returns void
+language sql security definer set search_path = public as $$
+  insert into public.user_seen (uid, seen_at) select auth.uid(), now() where auth.uid() is not null
+    on conflict (uid) do update set seen_at = now() where public.user_seen.seen_at < now() - interval '60 seconds';
+$$;
+grant execute on function public.touch_seen() to authenticated;
+create or replace function public.friends_seen() returns table (username text, seen_at timestamptz)
+language sql security definer set search_path = public as $$
+  select p.username, s.seen_at from public.profiles p left join public.user_seen s on s.uid = p.id
+  where p.id in (select case when requester = auth.uid() then addressee else requester end from public.friendships
+    where status = 'accepted' and (requester = auth.uid() or addressee = auth.uid()));
+$$;
+grant execute on function public.friends_seen() to authenticated;
