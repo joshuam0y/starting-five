@@ -1318,3 +1318,5 @@ a.pr-i:hover { border-color: var(--gold); }
 .dy-beat b { color: var(--gold2); }
 .dy-beat-res { margin: 6px 0; font-family: var(--display); letter-spacing: .14em; font-size: 16px; color: var(--gold2); }
 .dy-h3 { font-family: var(--display); font-size: 13px; letter-spacing: .18em; color: var(--gold); margin: 14px 0 6px; }
+.dy-past select { min-height: 48px; padding: 0 12px; background: var(--bg3); color: var(--text); border: 1px solid var(--gold-dim); font-family: var(--display); letter-spacing: .1em; font-size: 14px; max-width: 100%; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

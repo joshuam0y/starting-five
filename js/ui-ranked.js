@@ -1370,7 +1370,8 @@
         <div class="rk-bt" id="dyTabs"><button type="button" class="btn btn-small btn-gold" data-bt="today">TODAY</button><button type="button" class="btn btn-small" data-bt="friends">FRIENDS</button><button type="button" class="btn btn-small" data-bt="week">THIS WEEK</button></div>
         <div id="dyBoard"></div>
         ${signed ? '' : '<p class="muted rk-sub">No account needed to play. Sign in to put your score on the board.</p>'}
-        <div class="ch-go dy-more"><a class="btn" href="#/daily/practice">PRACTICE PAST DAYS</a><a class="btn" href="#/ranked">RANKED</a></div>`;
+        <div class="ch-go dy-more">${(() => { const past = themePast(); return past.length ? `<label class="dy-past"><span class="sr-only">Play a past day</span><select id="dyPast"><option value="">PLAY A PAST DAY</option>${past.map(t => `<option value="${esc(t.key)}">#${dayNo(t.day)} | ${esc(t.title)}</option>`).join('')}</select></label>` : ''; })()}<a class="btn" href="#/daily/practice">ARCHIVE</a><a class="btn" href="#/ranked">RANKED</a></div>`;
+      const pastSel = UI.$('#dyPast', app); if (pastSel) pastSel.addEventListener('change', () => { if (pastSel.value) location.hash = '#/daily/practice/' + encodeURIComponent(pastSel.value) + '/' + Date.now(); });
       const board = UI.$('#dyBoard', app), msg = t => '<p class="muted">' + t + '</p>';
       const todayTbl = list => list && list.length ? table(perf > 0 ? ['#', 'PLAYER', 'SCORE', 'OF PERFECT FIVE'] : ['#', 'PLAYER', 'SCORE'], list.map((x, i) => [i + 1, nameCell(x, me), '<b>' + Number(x.score).toFixed(1) + '</b>'].concat(perf > 0 ? [pctOf(x.score)] : []))) : '';
       let curTab = 'today';

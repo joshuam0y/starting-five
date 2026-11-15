@@ -57,20 +57,29 @@ const say = (ok, what) => { console.log(ok ? 'ok  ' : 'FAIL', what); if (!ok) ba
     await p.evaluate(() => { const x = [...document.querySelectorAll('#app button')].find(e => /^AUCTION/.test(e.textContent.trim())); if (x) x.click(); }); await w(400);
     await p.evaluate(() => { const x = document.getElementById('vsStart'); if (x) x.click(); }); await w(1500);
     let h2h = '';
-    for (let i = 0; i < 400 && h2h !== 'done'; i++) {
+    for (let i = 0; i < 600 && h2h !== 'done'; i++) {
       await w(250);
       h2h = await p.evaluate(k => {
-        const txt = (document.getElementById('app') || {}).innerText || '';
-        if (/WINS THE SERIES|SERIES OVER|PLAY AGAIN|REMATCH/i.test(txt) && !document.getElementById('aucRaise')) return 'done';
+        if (/\/vs\/result/.test(location.hash) && /WINS \d-\d/.test((document.getElementById('app') || {}).innerText || '')) return 'done';
+        for (const id of ['whSkip', 'rvGo', 'vsFinal']) { const x = document.getElementById(id); if (x && !x.disabled) { x.click(); return id; } }
         const r = document.getElementById('aucRaise'), s = document.getElementById('aucPass');
         if (k % 2 && r && !r.disabled) { r.click(); return 'bid'; }
         if (s && !s.disabled) { s.click(); return 'pass'; }
-        // after the auction: any big gold button moves the series on (sim, next game, set lineup)
-        const go = [...document.querySelectorAll('#app .btn-gold')].find(x => !x.disabled && /SIM|NEXT|PLAY|START|CONTINUE|DONE|READY|GO/i.test(x.textContent));
+        // after the auction: the gold button moves the series on (to the series, watch the next game)
+        const go = [...document.querySelectorAll('#app .btn-gold')].find(x => !x.disabled && !/SETUP|HOME|MENU|NEW|REMATCH|AGAIN/i.test(x.textContent));
         if (go) { go.click(); return 'go'; }
         return 'wait';
       }, i);
     }
+    // the series line has to match the games: count each side's wins from the scores
+    await w(1200);
+    const sr = await p.evaluate(() => {
+      const t = (document.getElementById('app') || {}).innerText || '', m = /PLAYER (\d) WINS (\d)-(\d)/.exec(t), wins = [0, 0, 0];
+      for (const g of t.matchAll(/PLAYER (\d) (\d+) @ PLAYER (\d) (\d+)/g)) wins[+g[2] > +g[4] ? +g[1] : +g[3]]++;
+      return m ? { w: +m[1], a: +m[2], b: +m[3], wins } : { none: location.hash + ' ' + t.slice(0, 200).replace(/\n/g, ' / ') };
+    });
+    if (sr && sr.none) console.log('     page:', sr.none);
+    say(!!sr && !sr.none && sr.wins[sr.w] === sr.a && sr.wins[3 - sr.w] === sr.b, 'head to head: the series result matches the game scores' + (sr ? ' (' + sr.a + '-' + sr.b + ', games ' + (sr.wins || []).slice(1).join('-') + ')' : ' (no result line)'));
     say(h2h === 'done', 'head to head: auction and series played to the end');
     errCheck('head to head: no page errors', e0);
 
@@ -90,17 +99,24 @@ const say = (ok, what) => { console.log(ok ? 'ok  ' : 'FAIL', what); if (!ok) ba
     const step = async (how, label) => {
       const r = await p.evaluate(h => {
         const s = UI.state.game; let out = null, guard = 0;
-        do { s.events.forEach(e => { e.resolved = true; }); LEAGUE.clearResolved(s); out = LEAGUE.advance(s, h); } while (out && out.stopped === 'event' && ++guard < 50);
+        do {
+          s.events.forEach(e => { e.resolved = true; }); LEAGUE.clearResolved(s); out = LEAGUE.advance(s, h);
+          if (out && out.stopped === 'userPick') {   // the user's draft pick: the best prospect left
+            const pool = Object.values(s.players).filter(q => q.team === 'DRAFT' && +q.draftYear === s.year).sort((a, b) => (a.undrafted - b.undrafted) || (b.ovr - a.ovr));
+            if (pool.length) DRAFT.pick(s, s.userTeam, pool[0].id);
+            out = { stopped: 'event' };
+          }
+        } while (out && out.stopped === 'event' && ++guard < 120);
         return { phase: s.phase, sp: s.season && s.season.phase, year: s.year, stopped: out && out.stopped };
       }, how);
-      console.log('     ', label, JSON.stringify(r));
       return r;
     };
     let r = null;
     for (let i = 0; i < 40; i++) { r = await step('endPlayoffs', 'sim'); if (r.stopped === 'seasonOver') break; }
     say(r && r.stopped === 'seasonOver', 'association: season simmed to the end');
     await visitAll('season over');
-    for (let i = 0; i < 40; i++) { r = await step('nextPhase', 'offseason'); if (r.phase === 'regular' || r.phase === 'preseason') break; await p.evaluate(() => { location.hash = '#/home'; }); }
+    for (let i = 0; i < 40; i++) { r = await step('nextPhase', 'offseason'); if (r.phase === 'regular' || r.phase === 'preseason') break; }
+    say(r && (r.phase === 'regular' || r.phase === 'preseason'), 'association: offseason played through to the next season');
     await visitAll('next season');
     errCheck('association: no page errors', e0);
   } catch (e) { say(false, 'crashed: ' + e.message); }

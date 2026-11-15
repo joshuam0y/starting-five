@@ -171,3 +171,4 @@
   .lv-feed { max-height: 52vh; }
   .lv-ft { min-width: 56px; font-size: 11px; }
 }
+.bn-head { font-family: var(--display); font-size: 22px; letter-spacing: .03em; line-height: 1.15; margin: 0 0 8px; color: #fff; }

@@ -241,6 +241,7 @@
     return r;
   }
   function setEra(state) {
+    if (!(+state.startYear < 2004)) { ERA = null; return; }   // only leagues that start in the older eras; a modern save never drifts onto it
     var o = [];
     Object.keys(state.players || {}).forEach(function (id) { var x = state.players[id]; if (x && !x.retired && state.teams[x.team] && countsOnRoster(state, x)) o.push(x.ovr || 0); });
     if (o.length < 60) { ERA = null; return; }
