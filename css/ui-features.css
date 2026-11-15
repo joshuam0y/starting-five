@@ -1111,3 +1111,10 @@ a.pi-g:hover { border-color: var(--gold-dim); }
   .pin-sum > summary { gap: 6px 14px; padding: 8px 12px; }
   .pin-sum em { margin-left: 0; }
 }
+
+/* the Play card: sim it or watch it, side by side */
+.sim-btns .sim-top { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; }
+.sim-btns .sim-top .sim-next { grid-column: auto; }
+.sim-btns .sim-watch { min-height: 60px; font-size: 19px; letter-spacing: .1em; display: flex; align-items: center; justify-content: center; margin: 0; background: transparent; color: var(--gold2); border: 2px solid var(--gold); }
+.sim-btns .sim-watch:hover { background: rgba(212, 175, 55, .12); color: #fff; }
+@media (max-width: 420px) { .sim-btns .sim-next, .sim-btns .sim-watch { font-size: 15px; letter-spacing: .06em; } }

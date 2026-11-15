@@ -713,8 +713,7 @@
       ${resultStrip()}
       ${match}
       <div class="sim-btns">
-        ${nextOk ? btn('nextGame', 'SIM NEXT GAME', 'btn-gold sim-next') : ''}${btn({ days: 1 }, 'SIM DAY', nextOk ? '' : 'btn-gold')}${btn({ days: 7 }, 'SIM WEEK')}${btn({ days: 30 }, 'SIM MONTH')}
-        ${next && UI.pages.live ? `<a class="btn sim-btn lv-watch" href="#/live/next">WATCH LIVE</a>` : ''}
+        ${nextOk || (next && UI.pages.live) ? `<div class="sim-top">${nextOk ? btn('nextGame', 'SIM NEXT GAME', 'btn-gold sim-next') : ''}${next && UI.pages.live ? `<a class="btn btn-gold sim-btn sim-watch" href="#/live/watch">WATCH NEXT GAME</a>` : ''}</div>` : ''}${btn({ days: 1 }, 'SIM DAY', nextOk ? '' : 'btn-gold')}${btn({ days: 7 }, 'SIM WEEK')}${btn({ days: 30 }, 'SIM MONTH')}
       </div>
       <details class="sim-more"><summary>SIM TO...</summary><div class="sim-more-list">
         ${btn('tradeDeadline', 'TRADE DEADLINE', '', !reg)}${btn('allStar', 'ALL-STAR BREAK', '', !reg)}${btn('endRegular', 'END OF REGULAR SEASON', '', !reg)}${btn('endPlayoffs', 'END OF PLAYOFFS')}
@@ -1584,6 +1583,7 @@
         const active = !!me && !me.x.winner;
         controls = `${resultStrip()}<div class="po-ctl" role="group" aria-label="Sim the playoffs">
           ${nextOk ? btn('poNext', 'SIM NEXT GAME', true, true) : btn('poDay', 'SIM DAY', true, true)}
+          ${nextOk && active && UI.pages.live ? '<a class="btn btn-gold po-b" href="#/live/watch">WATCH NEXT GAME</a>' : ''}
           ${btn('poSeries', 'SIM TO END OF SERIES', active, false, active ? '' : 'Your team has no series in progress')}
           ${btn('poRound', 'SIM ROUND', true)}
           ${btn('poFinals', 'SIM TO FINALS', live.drawn < 4, false, live.drawn < 4 ? '' : 'The Finals are on')}

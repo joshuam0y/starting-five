@@ -528,6 +528,7 @@
   // Text play-by-play or the court view (js/ui-court.js); the choice is remembered on this device.
   const VIEW_KEY = 'a13-live-view';
   const courtReady = () => !!(window.COURT && typeof window.COURT.mount === 'function' && live && window.COURT.available(live.res));
+  const courtOk = res => !!(window.COURT && typeof window.COURT.mount === 'function' && window.COURT.available(res));
   function savedView() { try { return localStorage.getItem(VIEW_KEY) === 'court' ? 'court' : 'text'; } catch (e) { return 'text'; } }
   function stopCourt() { if (live && live.court) { live.court.destroy(); live.court = null; } }
   function setView(mode, remember) {
@@ -560,7 +561,10 @@
     }
   }
 
+  // #/live/watch: the next game, straight onto the court, tip-off right away (WATCH NEXT GAME)
+  let autoWatch = false;
   P.live = function (app, arg) {
+    if (arg === 'watch') { autoWatch = true; arg = 'next'; }
     if (X.need(app, 'engine season')) return;
     const season = X.season();
     const user = X.userTeam();
@@ -620,6 +624,7 @@
       </div>`;
     const tip = UI.$('#lvTip');
     tip.addEventListener('click', () => start(app, found, false));
+    if (autoWatch) setTimeout(() => { if (tip.isConnected) tip.click(); }, 0);
   }
 
   function start(app, found, force) {
@@ -660,7 +665,8 @@
     ['home', 'away'].forEach(side => res[side].box.forEach(r => { stats[side][r.id] = { pts: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, oreb: 0, dreb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0 }; }));
     const totalSec = 2880 + Math.max(0, (res.quarters || []).length - 4) * 300;
     live = { game: g, dayIndex: again.dayIndex, day: again.day, res, events, i: 0, speed: 1, stats, totalSec, view,
-      as: 0, hs: 0, period: 'Q1', clock: '12:00', elapsed: 0, recorded: false, timer: null, quarters: [], mode: savedView(), court: null };
+      as: 0, hs: 0, period: 'Q1', clock: '12:00', elapsed: 0, recorded: false, timer: null, quarters: [], mode: autoWatch && courtOk(res) ? 'court' : savedView(), court: null };
+    autoWatch = false;
     X.onLeave(leaveLive);
     drawLive(app);
   }

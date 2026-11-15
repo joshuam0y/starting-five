@@ -129,7 +129,7 @@
     // your next game: a WATCH button beside NEXT GAME, so watching it live is one tap from anywhere in the Association
     let wb = document.getElementById('watchBtn');
     if (!wb && b.parentNode) {
-      wb = document.createElement('a'); wb.id = 'watchBtn'; wb.className = 'watch-btn'; wb.href = '#/live';
+      wb = document.createElement('a'); wb.id = 'watchBtn'; wb.className = 'watch-btn'; wb.href = '#/live/watch';
       wb.innerHTML = '<i class="nx-ar" aria-hidden="true"></i>WATCH'; wb.title = 'Watch your next game live';
       b.parentNode.insertBefore(wb, b);
     }
