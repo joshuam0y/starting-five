@@ -1060,6 +1060,7 @@
     });
     state.news = state.news || []; state.events = state.events || []; state.transactions = state.transactions || [];
     safe("migrate brands", function () { applyBrands(state); });
+    if (mod("COACH") && W.COACH.init && +state.startYear < 2004 && !state.coachOld) safe("migrate old coaches", function () { W.COACH.init(state); });
     safe("migrate news", function () { worldSeen(state); });
     if (mod("FUTURE")) safe("migrate future", function () { W.FUTURE.activate(state); });
     // triple-doubles from before box scores counted them: one recount of the season in progress from every

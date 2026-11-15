@@ -111,7 +111,7 @@
 
   // Court coordinates are feet: x along the length (0 to 94), y across (0 to 50). Home attacks the
   // right basket in the first half and the left one after halftime.
-  const CW = 94, CH = 50, M = 3, HOOP = 5.25;
+  const CW = 94, CH = 50, M = 3, HOOP = 5.25, RIM = 10;
   const V_WIN = 66;            // phones show the court upright, this many feet at a time; the camera follows the ball
   const NARROW = 560;          // container width below which the court stands upright
   const R_DOT = 2.1, R_HIT = 3.6;
@@ -193,29 +193,31 @@
     const id = ++uid;
     const kit = kits(tl.home, tl.away, opts.team);
     const abbr = { home: tl.home, away: tl.away };
+    const YEAR = +(opts.year || (opts.game && opts.game.year)) || 9999;
     const info = {};
     SIDES.forEach(side => (game[side].box || []).forEach((r, i) => {
       const p = playerOf ? playerOf(r.id) : null;
       const name = r.name || (p && p.name) || r.id;
       const pos = String((p && p.pos) || 'SF').toUpperCase().split(/[-\/ ,]/)[0];
       const sn = p && p.season ? Number(p.season) : 0;
-      info[keyOf(side, i)] = { id: r.id, name, pos, ini: initials(name), last: lastName(name), side, yr: sn ? "'" + String(sn - 1).slice(2) + "-'" + String(sn).slice(2) : '' };
+      info[keyOf(side, i)] = { id: r.id, name, pos, ht: p && p.ht ? +p.ht : 0, ini: initials(name), last: lastName(name), side, yr: sn ? "'" + String(sn - 1).slice(2) + "-'" + String(sn).slice(2) : '' };
     }));
     const start = clamp(opts.start | 0, 0, evs.length);
     const st = {
       cur: start, done: start, ev: null, beats: [], beat: null, bt: 0, evDur: 0, evT: 0, tPrev: start ? evs[start - 1].t : 0,
       on: { home: [], away: [] }, pos: {}, alpha: {}, ball: { x: 47, y: 25, z: 0 }, holder: null, ph: null,
       off: null, set: false, form: null, hs: 0, as: 0, per: 'Q1', clock: '12:00', shownT: 0,
-      playing: opts.autoplay !== false, speed: 1, tab: 'box', pnl: null, holdAt: null, ended: false, tags: [], sel: null, mode: null, camY: 0, raf: 0, last: 0, dead: false
+      playing: opts.autoplay !== false, speed: 1, tab: 'box', pnl: null, holdAt: null, ended: false, tags: [], sel: null, mode: null, camY: 0, raf: 0, last: 0, dead: false,
+      simT: 0, act: {}, rec: [], replay: null, hl: null, lastReplay: -1e9, crowd: 0, zoom: null, possT: 0, possLen: 24, tf: { home: 0, away: 0, per: '' }
     };
     if (start > 0) { const p = evs[start - 1]; st.hs = p.hs; st.as = p.as; st.per = p.per; st.shownT = p.t; }
 
     el.innerHTML = `
       <div class="ct-wrap">
         <div class="ct-strip">
-          <div class="ct-tm">${logoOf(tl.away, 26)}<b>${esc(tl.away)}</b><span class="ct-pts" data-s="away">0</span></div>
-          <div class="ct-clk"><b class="ct-per">Q1</b><span class="ct-time">12:00</span></div>
-          <div class="ct-tm ct-tm-h"><span class="ct-pts" data-s="home">0</span><b>${esc(tl.home)}</b>${logoOf(tl.home, 26)}</div>
+          <div class="ct-tm">${logoOf(tl.away, 26)}<b>${esc(tl.away)}</b><i class="ct-bonus" data-s="away" hidden>BONUS</i><span class="ct-pts" data-s="away">0</span></div>
+          <div class="ct-clk"><b class="ct-per">Q1</b><span class="ct-time">12:00</span><span class="ct-sc" hidden></span></div>
+          <div class="ct-tm ct-tm-h"><span class="ct-pts" data-s="home">0</span><i class="ct-bonus" data-s="home" hidden>BONUS</i><b>${esc(tl.home)}</b>${logoOf(tl.home, 26)}</div>
         </div>
         <div class="ct-stage">
           <svg class="ct-svg" role="img" aria-label="Court view of the game" preserveAspectRatio="xMidYMid meet"></svg>
@@ -230,6 +232,7 @@
           <button type="button" class="btn btn-small ct-skip" aria-label="Skip to the end of the quarter">SKIP QTR</button>
           <button type="button" class="btn btn-small ct-pb" aria-label="Box score and plays">BOX / PLAYS</button>
           <button type="button" class="btn btn-small ct-fs" aria-label="Full screen">FULL SCREEN</button>
+          <button type="button" class="btn btn-small ct-cam" hidden aria-label="Camera">TV CAM</button>
           ${window.SFX ? `<button type="button" class="btn btn-small ct-sfx${window.SFX.on ? ' on' : ''}" aria-label="Sound effects">${window.SFX.on ? 'SOUND ON' : 'SOUND OFF'}</button>` : ''}
         </div>
         <div class="ct-floor-list" aria-label="On the floor"></div>
@@ -321,7 +324,10 @@
           const mk2 = os[i] || os[0], man = out[mk2], me = out[dk];
           if (!man || !me || moving[dk]) return;
           const d = Math.max(0.01, Math.hypot(h[0] - man[0], h[1] - man[1])), gap = Math.min(d * 0.8, Math.max(2.7, d * 0.28));
-          const tx = man[0] + (h[0] - man[0]) / d * gap, ty = man[1] + (h[1] - man[1]) / d * gap;
+          let tx = man[0] + (h[0] - man[0]) / d * gap, ty = man[1] + (h[1] - man[1]) / d * gap;
+          // help: when the ball gets into the paint, the defenders away from it sag toward it
+          const bh = st.holder && sideOf(st.holder) === O ? out[st.holder] : null;
+          if (bh && mk2 !== st.holder && Math.hypot(h[0] - bh[0], h[1] - bh[1]) < 17) { tx += (bh[0] - tx) * 0.3; ty += (bh[1] - ty) * 0.3; }
           const base = st.pos[dk];
           base[0] += (tx - base[0]) * k; base[1] += (ty - base[1]) * k;
           me[0] = base[0]; me[1] = base[1];
@@ -339,8 +345,38 @@
       return out;
     }
     let lastBall = null;
+    // what the 3D view needs for one frame (also what a replay plays back)
+    function snapshot(DP) {
+      const bp = lastBall || [47, 25], players = [];
+      Object.keys(info).forEach(key => {
+        const a = st.alpha[key] || 0;
+        if (a <= 0.01) return;
+        const p = DP[key] || st.pos[key] || [47, 25], hold = st.holder === key;
+        const tgt = hold ? hoop(sideOf(key), st.per) : bp;
+        const A = st.act[key], f = A ? (st.simT - A.t0) / A.d : 2;
+        players.push({ key, x: p[0], y: p[1], a, ang: Math.atan2(tgt[1] - p[1], tgt[0] - p[0]), act: f >= 0 && f < 1 ? { k: A.k, f } : null, hold, sel: st.sel === key, def: !!st.off && sideOf(key) !== st.off });
+      });
+      const tags = [], rings = [];
+      st.tags.forEach(tg => { const f = tg.age / tg.ttl; if (tg.ring) rings.push({ x: tg.at[0], y: tg.at[1], f }); else tags.push({ key: tg.key, x: tg.at ? tg.at[0] : 0, y: tg.at ? tg.at[1] : 0, text: tg.text, cls: tg.cls, f }); });
+      return {
+        t: st.simT, cam: camPref, players, tags, rings, names: true, crowd: st.crowd,
+        ball: { x: st.ball.x, y: st.ball.y, h: st.ball.h, held: st.holder, flight: !!st.flight },
+        dir: st.off ? (attacksRight(st.off, st.per) ? 1 : -1) : 0,
+        zoom: st.zoom && st.simT < st.zoom.until ? st.zoom : null, replay: null
+      };
+    }
     function render(dt) {
       st.lastDt = dt;
+      if (r3) {
+        lastBall = ballPos();
+        const DP = displayPos(); lastDP = DP;
+        st.tags = st.tags.filter(tg => (tg.age += dt) < tg.ttl);
+        const S = snapshot(DP);
+        if (st.playing && !st.ended) { st.rec.push(S); while (st.rec.length && st.rec[0].t < st.simT - 4500) st.rec.shift(); }
+        try { r3.frame(S, dt); } catch (e) { console.warn('[court] 3D frame failed, back to 2D', e); stop3d(true); }
+        drawClock();
+        return;
+      }
       st.ang = st.ang || {};
       lastBall = ballPos();
       const DP = displayPos(); lastDP = DP;
@@ -385,7 +421,7 @@
           mk('circle', { class: 'ct-ringfx', cx: s[0], cy: s[1], r: (1 + f * 4).toFixed(2), opacity: (1 - f).toFixed(2) }, tagLayer);
           return;
         }
-        const lift = tg.cls === 'kind' ? R_DOT + 3.6 : R_DOT + 1.4 + f * 2.5;
+        const lift = tg.cls === 'kind' ? R_DOT + 3.6 : tg.cls === 'play' ? R_DOT + 5.4 : R_DOT + 1.4 + f * 2.5;
         const t = mk('text', { class: 'ct-tag ' + (tg.cls || ''), x: s[0].toFixed(2), y: (s[1] - lift).toFixed(2), opacity: (f < 0.75 ? 1 : (1 - f) * 4).toFixed(2) }, tagLayer);
         t.textContent = tg.text;
       });
@@ -417,6 +453,13 @@
       const sec = Math.ceil(left - 1e-6);
       $('.ct-per').textContent = st.ended ? 'FINAL' : per;
       $('.ct-time').textContent = st.ended ? '' : Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+      // the shot clock (from 1954-55): from the start of the possession; off when the game clock has less on it
+      const sc = $('.ct-sc');
+      if (sc) {
+        const v = Math.ceil(st.possLen - (t - st.possT) - 1e-6), show = !st.ended && YEAR >= 1955 && v < left && v >= 0 && st.possT <= t;
+        sc.hidden = !show;
+        if (show) { sc.textContent = Math.min(st.possLen, v); sc.classList.toggle('low', v <= 5); }
+      }
     }
     function drawScore() {
       const a = $('.ct-pts[data-s="away"]'), h = $('.ct-pts[data-s="home"]');
@@ -586,6 +629,16 @@
 
     // ---------- planning: an event becomes a few beats ----------
     // beat: { dur (ms at 1x), move: { key: [x, y] }, fade: { key: alpha }, ball: { to: key | [x, y], arc }, hold, fire, at() }
+    function act(key, k, d) { if (key) st.act[key] = { k, t0: st.simT, d }; }
+    function cheer(side, n) { st.crowd = Math.min(1, (st.crowd || 0) + (side === 'home' ? 0.16 : 0.06) * n); }
+    const leftIn = ev => periodStart(ev.per) + periodLength(ev.per) - ev.t;
+    const clutchEv = ev => !!ev && periodIndex(ev.per) >= 3 && leftIn(ev) <= 120 && Math.abs(ev.hs - ev.as) <= 5;
+    const buzzerEv = ev => { const nx = evs[ev.i + 1]; return leftIn(ev) <= 3 && (!nx || nx.k === 'end' || nx.k === 'final'); };
+    // a play worth a replay (3D view, at 1X, not in a watch party, not too often)
+    function highlight(kind, p) {
+      if (!r3 || st.speed !== 1 || opts.onControl || st.simT - st.lastReplay < 30000) return;
+      st.hl = { kind, x: p[0], y: p[1], t: st.simT };
+    }
     function tag(key, text, cls, ttl) { st.tags.push({ key, text, cls, age: 0, ttl: ttl || 1300 }); }
     function tagAt(p, text, cls, ttl) { st.tags.push({ at: p, text, cls, age: 0, ttl: ttl || 1300 }); }
     function ring(p) { st.tags.push({ at: p, ring: true, age: 0, ttl: 600 }); }
@@ -630,6 +683,87 @@
       }
       if (st.ph !== end) pass(B, end, { move: drift(st.form, st.on.home.concat(st.on.away), 1.2) });
       return end;
+    }
+
+    // A fast break: right after a defensive rebound or a steal, quick enough (7 seconds) that the defense is not set.
+    // The handler pushes it up the middle, the wings fill the lanes, the defense sprints back. Returns false when it is not one.
+    function fastBreak(ev, prev, O, per, B, shooter, spot) {
+      if (!prev || ev.shot === 'post' || ev.shot === 'mid' || ev.t - prev.t > 7) return false;
+      const turn = (prev.k === 'dreb' && prev.side === O) || (prev.k === 'tov' && prev.tov === 'steal' && prev.side !== O);
+      if (!turn || !st.ph || sideOf(st.ph) !== O) return false;
+      const hd = st.ph, D = other(O), mv = {};
+      const lanes = [[22, 25], [13, 5], [13, 45], [30, 16], [33, 34]];
+      ordered(st.on[O]).forEach((k, i) => { const l = lanes[i] || lanes[4]; mv[k] = at(O, per, l[0] + rnd(-2, 2), l[1] + rnd(-2, 2)); });
+      mv[hd] = at(O, per, rnd(17, 21), 25 + rnd(-3, 3));
+      if (shooter !== hd) mv[shooter] = ev.shot === 'close' ? at(O, per, rnd(9, 13), 25 + rnd(-8, 8)) : spot;
+      const back = [[9, 25], [15, 18], [19, 32], [25, 12], [30, 38]];
+      ordered(st.on[D]).forEach((k, i) => { const l = back[i] || back[4]; mv[k] = at(O, per, l[0] + rnd(0, 6), l[1] + rnd(-3, 3)); });
+      const far = Math.max.apply(null, Object.keys(mv).map(k => dist(st.pos[k] || mv[k], mv[k])));
+      B.push({ dur: clamp(far * 26, 900, 1700), move: mv, hold: hd, at0: () => { tag(hd, 'FAST BREAK', 'play', 1500); cheer(O, 1); } });
+      st.off = O; st.set = false; st.form = Object.assign({}, mv);
+      if (shooter !== hd) pass(B, shooter, { dur: 420, move: { [shooter]: spot } });
+      else B.push({ dur: 380, move: { [shooter]: spot } });
+      return true;
+    }
+    // The half-court set that gets this shot, read from the shot and the pass: a pick and roll for a big's basket off
+    // a guard's pass, a drive and kick for an assisted three, a post-up, a shooter coming off a screen, else the ball
+    // moving around until the shooter goes to work (an isolation when nobody passed it to him).
+    function runPlay(ev, O, per, B, shooter, spot) {
+      const A = ev.k === 'make' && ev.b && ev.b !== shooter ? ev.b : null, h = hoop(O, per), D = other(O), r = Math.random();
+      const toward = (q, f) => [q[0] + (h[0] - q[0]) * f, q[1] + (h[1] - q[1]) * f];
+      const spotOf = k => (st.form && st.form[k]) || st.pos[k] || at(O, per, 24, 25);
+      const get = k => { if (st.ph !== k) pass(B, k, { dur: 480, move: drift(st.form, st.on.home.concat(st.on.away), 1) }); };
+      if (ev.shot === 'post' && r < 0.85) {
+        const block = at(O, per, rnd(7.5, 9), spot[1] < 25 ? 18.5 : 31.5), d = matchup(shooter);
+        if (st.ph === shooter) { const g = ordered(st.on[O]).find(x => x !== shooter); if (g) pass(B, g, { dur: 450 }); }
+        B.push({ dur: 700, move: Object.assign({ [shooter]: block }, d ? { [d]: toward(block, 0.22) } : {}), at0: () => tag(shooter, 'POST UP', 'play', 1500) });
+        pass(B, shooter, { dur: 480 });
+        B.push({ dur: 850, move: Object.assign({ [shooter]: spot }, d ? { [d]: toward(spot, 0.2) } : {}) });
+        return;
+      }
+      if (A && (ev.shot === 'close' || ev.shot === 'mid') && rank(shooter) >= 2.5 && r < 0.8) {
+        get(A);
+        const P0 = spotOf(A), side = P0[1] < 25 ? 1 : -1, dA = matchup(A), dS = matchup(shooter);
+        const scr = [P0[0] + (h[0] - P0[0]) * 0.1, clamp(P0[1] + side * 2.2, 2, 48)];
+        B.push({ dur: 650, move: { [shooter]: scr }, hold: A, at0: () => tag(A, 'PICK & ROLL', 'play', 1500) });
+        const drive = [P0[0] + (h[0] - P0[0]) * 0.4, clamp(P0[1] + side * 6, 6, 44)];
+        const mv = { [A]: drive, [shooter]: spot };
+        if (dA) mv[dA] = [(scr[0] + P0[0]) / 2, scr[1] - side * 1.5];
+        if (dS) mv[dS] = [drive[0] + (h[0] - drive[0]) * 0.2, drive[1] - side * 2];
+        B.push({ dur: 800, move: mv, hold: A });
+        pass(B, shooter, { dur: 420 });
+        return;
+      }
+      if (A && ev.shot === 'three' && r < 0.6) {
+        get(A);
+        const lane = at(O, per, rnd(9, 13), 25 + rnd(-5, 5)), dA = matchup(A), mv = { [A]: lane, [shooter]: spot };
+        if (dA) mv[dA] = [lane[0] + (spotOf(A)[0] - lane[0]) * 0.15, lane[1] + 1.2];
+        ordered(st.on[D]).filter(k => k !== dA).sort((p, q) => dist(spotOf(p), lane) - dist(spotOf(q), lane)).slice(0, 2)
+          .forEach(k => { const q = spotOf(k); mv[k] = [q[0] + (lane[0] - q[0]) * 0.5, q[1] + (lane[1] - q[1]) * 0.5]; });
+        B.push({ dur: 850, move: mv, hold: A, at0: () => tag(A, 'DRIVE & KICK', 'play', 1500) });
+        pass(B, shooter, { dur: 460 });
+        return;
+      }
+      if (A && (ev.shot === 'mid' || ev.shot === 'three') && r < 0.75) {
+        const big = ordered(st.on[O]).reverse().find(k => k !== shooter && k !== A);
+        const low = at(O, per, rnd(4, 7), spot[1] < 25 ? 10 : 40), scr = [(low[0] + spot[0]) / 2, (low[1] + spot[1]) / 2];
+        get(A);
+        B.push({ dur: 700, move: Object.assign({ [shooter]: low }, big ? { [big]: scr } : {}) });
+        const dS = matchup(shooter);
+        B.push({ dur: 750, move: Object.assign({ [shooter]: spot }, dS ? { [dS]: [scr[0], scr[1] + 1.4] } : {}), hold: A, at0: () => tag(shooter, 'OFF A SCREEN', 'play', 1400) });
+        pass(B, shooter, { dur: 420 });
+        return;
+      }
+      const hub = A || (Math.random() < 0.55 ? shooter : null);
+      const n = Math.floor(rnd(0, 2.6));
+      if (hub) swing(O, B, hub, n);
+      else if (n) swing(O, B, pick(st.on[O].filter(x => x !== shooter)) || shooter, n);
+      if (st.ph !== shooter) { pass(B, shooter, { move: Object.assign({ [shooter]: spot }, drift(st.form, st.on[O].filter(x => x !== shooter), 1)), dur: 560 }); return; }
+      if (!A && ev.shot !== 'close' && Math.random() < 0.6) {
+        const P0 = spotOf(shooter);
+        B.push({ dur: 420, move: { [shooter]: [P0[0], clamp(P0[1] + rnd(-3, 3), 3, 47)] }, at0: () => tag(shooter, 'ISOLATION', 'play', 1300) });
+      }
+      B.push({ dur: clamp(dist(st.pos[shooter] || spot, spot) * 55, 350, 1200), move: { [shooter]: spot } });
     }
 
     function planSubs(ev, B) {
@@ -677,8 +811,9 @@
           });
           st.pos[jumper] = st.pos[jumper] || mv[jumper];
         });
-        B.push({ dur: 900, move: mv, ball: { to: [47, 25], arc: 0 }, hold: null, at0: () => banner('TIP-OFF') });
-        B.push({ dur: 650, ball: { to: [47, 25], arc: 8 }, hold: null });
+        const jumpers = SIDES.map(side => { const o = ordered(st.on[side]); return o[o.length - 1]; });
+        B.push({ dur: 900, move: mv, ball: { to: [47, 25], arc: 0, h1: 6.5 }, hold: null, at0: () => banner('TIP-OFF') });
+        B.push({ dur: 650, ball: { to: [47, 25], arc: 8, h1: 9 }, hold: null, at0: () => jumpers.forEach(j => act(j, 'jump', 900)) });
         const pg = ordered(st.on[O])[0];
         B.push({ dur: 450, ball: { to: pg, arc: 2 }, hold: pg, fire: true });
         st.ph = pg; st.off = O; st.set = false; st.form = null;
@@ -695,53 +830,58 @@
       if (k === 'make' || k === 'miss' || k === 'sfoul') {
         const shooter = ev.a;
         const putback = prev && prev.k === 'oreb' && prev.a === shooter && ev.shot === 'close' && st.ph === shooter;
-        const spot = shotSpot(ev.shot, O, per);
+        const dunk = k === 'make' && ev.shot === 'close' && /dunk/i.test(ev.body || ev.text || '');
+        const spot = dunk ? at(O, per, rnd(2.8, 3.8), 25 + rnd(-1.8, 1.8)) : shotSpot(ev.shot, O, per);
         if (putback) {
           B.push({ dur: 320, move: { [shooter]: spot } });
-        } else {
+        } else if (!fastBreak(ev, prev, O, per, B, shooter, spot)) {
           setUp(O, per, B);
-          const assister = k === 'make' ? ev.b : null;
-          const hub = assister || (Math.random() < 0.55 ? shooter : null);
-          const n = Math.floor(rnd(0, 2.6));
-          if (hub) swing(O, B, hub, n);
-          else if (n) swing(O, B, pick(st.on[O].filter(x => x !== shooter)) || shooter, n);
-          if (st.ph !== shooter) pass(B, shooter, { move: Object.assign({ [shooter]: spot }, drift(st.form, st.on[O].filter(x => x !== shooter), 1)), dur: 560 });
-          else B.push({ dur: clamp(dist(st.pos[shooter] || spot, spot) * 55, 350, 1200), move: { [shooter]: spot } });
+          runPlay(ev, O, per, B, shooter, spot);
         }
         const dfd = matchup(shooter);
         const h = hoop(O, per);
         const closeout = dfd ? { [dfd]: [spot[0] + (h[0] - spot[0]) * 0.14, spot[1] + (h[1] - spot[1]) * 0.14] } : {};
         const rim = [h[0] + rnd(-0.2, 0.2), h[1] + rnd(-0.2, 0.2)];
         const long = ev.shot === 'three', near = ev.shot === 'close';
-        const arc = long ? 9 : near ? 2.8 : ev.shot === 'post' ? 4.5 : 6.5;
-        const dur = long ? 860 : near ? 460 : 700;
-        const label = { close: 'AT THE RIM', post: 'POST', mid: 'MID-RANGE', three: '3PT' }[ev.shot];
+        const arc = dunk ? 0.5 : long ? 9 : near ? 2.8 : ev.shot === 'post' ? 4.5 : 6.5;
+        const dur = dunk ? 520 : long ? 860 : near ? 460 : 700;
+        const label = dunk ? 'DUNK' : { close: 'AT THE RIM', post: 'POST', mid: 'MID-RANGE', three: '3PT' }[ev.shot];
+        // the rise: he gathers and goes up (a dunker toward the rim), his man comes out to contest
+        const rise = dunk ? 240 : near ? 180 : 260;
+        const riseMove = Object.assign({}, closeout); if (dunk) riseMove[shooter] = [spot[0] + (h[0] - spot[0]) * 0.35, spot[1] + (h[1] - spot[1]) * 0.35];
+        B.push({ dur: rise, move: riseMove, at0: () => { tag(shooter, label, 'kind', rise + dur + 200); act(shooter, dunk ? 'dunk' : 'shoot', dunk ? rise + dur * 1.6 : rise * 2.6); if (dfd) act(dfd, 'contest', rise + dur); } });
         st.ph = null;
         if (k === 'make') {
           const fouler = ev.c;
-          if (fouler) closeout[fouler] = [spot[0] + (h[0] - spot[0]) * 0.1, spot[1] + 0.8];
-          B.push({ dur, move: closeout, ball: { to: rim, arc }, hold: null, fire: true, at0: () => tag(shooter, label, 'kind', dur + 200), at: () => {
+          const mv = {};
+          if (fouler) mv[fouler] = [spot[0] + (h[0] - spot[0]) * 0.1, spot[1] + 0.8];
+          const big = dunk ? 'DUNK' : fouler ? 'AND ONE' : buzzerEv(ev) ? 'AT THE BUZZER' : long && clutchEv(ev) ? 'CLUTCH THREE' : '';
+          B.push({ dur, move: mv, ball: { to: rim, arc }, shot: true, dunk, hold: null, fire: true, at0: () => { if (dunk || long || big) st.zoom = { x: h[0], y: h[1], until: st.simT + dur + 1000 }; }, at: () => {
             ring(rim); tag(shooter, '+' + ev.pts, 'pts');
             if (fouler) { tag(fouler, 'FOUL', 'foul'); tagAt(rim, 'AND ONE', 'big', 1500); }
+            cheer(O, ev.pts + (dunk ? 3 : 0) + (fouler ? 2 : 0) + (big ? 2 : 0));
+            if (dunk && st.speed <= 2 && window.SFX) window.SFX.play('dunk');
+            if (big) highlight(big, rim);
           } });
-          B.push({ dur: 260, ball: { to: at(O, per, HOOP - 1.4, 25 + rnd(-1, 1)), arc: 0 }, hold: null });
+          B.push({ dur: dunk ? 420 : 260, ball: { to: at(O, per, HOOP - 1.4, 25 + rnd(-1, 1)), arc: 0, h1: 0.5 }, hold: null });
           st.off = fouler ? O : null; st.set = !!fouler;
         } else if (k === 'sfoul') {
           const fouler = ev.b;
-          if (fouler && st.pos[shooter]) closeout[fouler] = [spot[0] + (h[0] - spot[0]) * 0.08, spot[1] + 0.9];
-          B.push({ dur: 420, move: closeout, at0: () => tag(shooter, label, 'kind', 600) });
-          B.push({ dur: 420, ball: { to: [spot[0] + (h[0] - spot[0]) * 0.5, spot[1] + (h[1] - spot[1]) * 0.5], arc: 2 }, hold: null, fire: true, at: () => { if (fouler) tag(fouler, 'FOUL', 'foul'); } });
+          const mv = {};
+          if (fouler && st.pos[shooter]) mv[fouler] = [spot[0] + (h[0] - spot[0]) * 0.08, spot[1] + 0.9];
+          B.push({ dur: 240, move: mv });
+          B.push({ dur: 420, ball: { to: [spot[0] + (h[0] - spot[0]) * 0.5, spot[1] + (h[1] - spot[1]) * 0.5], arc: 2, h1: 6 }, shot: true, hold: null, fire: true, at: () => { if (fouler) tag(fouler, 'FOUL', 'foul'); } });
           st.off = O; st.set = true;
         } else if (ev.b) {
           const blk = ev.b;
           const meet = [spot[0] + (h[0] - spot[0]) * 0.12, spot[1] + (h[1] - spot[1]) * 0.12];
-          const mv = Object.assign({}, closeout); mv[blk] = [meet[0] + rnd(-0.6, 0.6), meet[1] + rnd(-0.6, 0.6)];
-          B.push({ dur: 360, move: mv, at0: () => tag(shooter, label, 'kind', 500) });
-          B.push({ dur: 240, ball: { to: meet, arc: 2.5 }, hold: null, fire: true, at: () => tag(blk, 'BLOCK', 'big') });
+          const mv = {}; mv[blk] = [meet[0] + rnd(-0.6, 0.6), meet[1] + rnd(-0.6, 0.6)];
+          B.push({ dur: 200, move: mv, at0: () => act(blk, 'block', 720) });
+          B.push({ dur: 240, ball: { to: meet, arc: 2.5, h1: 9.6 }, shot: true, hold: null, fire: true, at0: () => { st.zoom = { x: meet[0], y: meet[1], until: st.simT + 1300 }; }, at: () => { tag(blk, 'BLOCK', 'big'); cheer(other(O), 3); highlight('BLOCK', meet); } });
           B.push({ dur: 460, ball: { to: landing(O, per), arc: 2 }, hold: null });
           st.off = null; st.set = false;
         } else {
-          B.push({ dur, move: closeout, ball: { to: rim, arc }, hold: null, fire: true, at0: () => tag(shooter, label, 'kind', dur + 200), at: () => tag(shooter, 'MISS', 'miss', 900) });
+          B.push({ dur, ball: { to: rim, arc }, shot: true, hold: null, fire: true, at: () => tag(shooter, 'MISS', 'miss', 900) });
           B.push({ dur: 420, ball: { to: landing(O, per), arc: 3 }, hold: null });
           st.off = null; st.set = false;
         }
@@ -753,7 +893,7 @@
         // the rebounder goes where the miss came down
         crash[r] = st.lastBallTo ? st.lastBallTo.slice() : [st.ball.x, st.ball.y];
         B.push({ dur: 520, move: crash });
-        B.push({ dur: 220, ball: { to: r, arc: 0.6 }, hold: r, fire: true, at: () => tag(r, k === 'oreb' ? 'O-REB' : 'REB', 'reb', 900) });
+        B.push({ dur: 220, ball: { to: r, arc: 0.6, h1: 8.5 }, hold: r, fire: true, at0: () => act(r, 'jump', 640), at: () => tag(r, k === 'oreb' ? 'O-REB' : 'REB', 'reb', 900) });
         st.ph = r; st.off = O; st.set = k === 'oreb'; if (k === 'dreb') st.form = null;
         return B;
       }
@@ -775,12 +915,12 @@
         let base = O === 'home' ? ev.hs - ev.made : ev.as - ev.made;
         seq.forEach((made, j) => {
           const last = j === seq.length - 1;
-          B.push({ dur: 640, ball: { to: [h[0] + rnd(-0.15, 0.15), h[1]], arc: 4.5 }, hold: null, fire: last, at: () => {
+          B.push({ dur: 640, ball: { to: [h[0] + rnd(-0.15, 0.15), h[1]], arc: 4.5 }, shot: true, hold: null, fire: last, at0: () => act(shooter, 'ft', 700), at: () => {
             if (made) { base++; if (O === 'home') st.hs = base; else st.as = base; drawScore(); ring(h); tag(shooter, '+1', 'pts', 900); }
             else tag(shooter, 'MISS', 'miss', 800);
           } });
           if (!last) B.push({ dur: 420, ball: { to: shooter, arc: 2 }, hold: shooter });
-          else if (made) B.push({ dur: 260, ball: { to: at(O, per, HOOP - 1.4, 25), arc: 0 }, hold: null });
+          else if (made) B.push({ dur: 260, ball: { to: at(O, per, HOOP - 1.4, 25), arc: 0, h1: 0.5 }, hold: null });
           else B.push({ dur: 380, ball: { to: landing(O, per), arc: 2.5 }, hold: null });
         });
         st.ph = null; st.off = lastMade ? null : O; st.set = false; st.form = null;
@@ -847,12 +987,25 @@
         const ev = evs[j];
         st.done = j + 1;
         st.hs = ev.hs; st.as = ev.as; st.per = ev.per; st.shownT = ev.t; st.tPrev = ev.t;
+        countPoss(ev);
         if (typeof opts.onStep === 'function') { try { opts.onStep(j); } catch (e) { console.warn('[court] onStep failed', e); } }
       }
       const ev = evs[Math.min(i, evs.length - 1)];
       if (few) sound(ev);
       drawScore(); drawLine(ev); pnlDraw();
       if (st.sel) card();
+    }
+    // the shot clock starts again on a new possession (and on an offensive rebound: 14 seconds from 2018-19);
+    // team fouls count per period, the bonus from the fifth (the fourth in overtime)
+    function countPoss(ev) {
+      const k = ev.k;
+      if (k === 'tip' || k === 'dreb' || k === 'tov' || k === 'end' || k === 'sfoul' || k === 'ft' || (k === 'make' && !ev.c)) { st.possT = ev.t; st.possLen = 24; }
+      else if (k === 'oreb') { st.possT = ev.t; st.possLen = YEAR >= 2019 ? 14 : 24; }
+      if (st.tf.per !== ev.per) st.tf = { home: 0, away: 0, per: ev.per };
+      const fouled = k === 'pf' ? ev.side : k === 'sfoul' || (k === 'make' && ev.c) ? other(ev.side) : k === 'tov' && ev.tov === 'foul' ? ev.side : null;
+      if (fouled && st.tf[fouled] != null) st.tf[fouled]++;
+      const lim = periodIndex(ev.per) >= 4 ? 4 : 5;
+      SIDES.forEach(sd => { const b = el.querySelector('.ct-bonus[data-s="' + sd + '"]'); if (b) b.hidden = st.tf[other(sd)] < lim; });
     }
     function nextEvent() {
       if (st.cur >= evs.length) {
@@ -877,11 +1030,18 @@
       b.a0 = {};
       Object.keys(b.fade || {}).forEach(k => { b.a0[k] = st.alpha[k] || 0; });
       if (b.ball) {
+        const held = !!st.holder;
         st.flight = true;
         const p = ballPos();
         b.b0 = [p[0], p[1]];
         if (Array.isArray(b.ball.to)) st.lastBallTo = b.ball.to.slice();
+        // how high the ball is (feet): from the hands, a release over the head, or where it was; to hands, the rim or the floor
+        const to = b.ball.to;
+        b.h0 = held ? (b.shot ? (b.dunk ? 9.4 : 8) : 3.6) : (st.ball.h == null ? 3.6 : st.ball.h);
+        b.h1 = b.ball.h1 != null ? b.ball.h1 : typeof to === 'string' ? 3.6
+          : Math.abs(to[1] - 25) < 1.6 && (Math.abs(to[0] - HOOP) < 1.6 || Math.abs(to[0] - (CW - HOOP)) < 1.6) ? RIM : 0.5;
       }
+      if (b.move && Object.keys(b.move).length >= 4 && st.speed <= 2 && Math.random() < 0.3 && window.SFX && window.SFX.play) window.SFX.play('squeak');
       if (b.at0) b.at0();
     }
     function endBeat(b) {
@@ -890,7 +1050,7 @@
       if (b.ball) {
         const to = typeof b.ball.to === 'string' ? st.pos[b.ball.to] : b.ball.to;
         if (to) { st.ball.x = to[0]; st.ball.y = to[1]; }
-        st.ball.z = 0; st.flight = false;
+        st.ball.z = 0; st.ball.h = b.h1; st.flight = false;
         st.holder = b.hold !== undefined ? b.hold : (typeof b.ball.to === 'string' ? b.ball.to : null);
       } else if (b.hold !== undefined) st.holder = b.hold;
       if (b.at) b.at();
@@ -910,6 +1070,7 @@
         st.ball.x = b.b0[0] + (to[0] - b.b0[0]) * p;
         st.ball.y = b.b0[1] + (to[1] - b.b0[1]) * p;
         st.ball.z = (b.ball.arc || 0) * 4 * p * (1 - p);
+        st.ball.h = b.h0 + (b.h1 - b.h0) * p + (b.ball.arc || 0) * 0.9 * 4 * p * (1 - p);
       }
       return p >= 1;
     }
@@ -929,7 +1090,7 @@
         const b = st.beat;
         const left = b.dur - st.bt;
         const use = Math.min(ms, left);
-        st.evT += use;
+        st.evT += use; st.simT += use;
         if (stepBeat(b, use)) endBeat(b);
         ms -= use;
       }
@@ -940,10 +1101,37 @@
       if (!el.isConnected || !svg.isConnected) { destroy(); return; }
       const dt = Math.min(100, st.last ? now - st.last : 16);
       st.last = now;
+      const S = window.SFX;
+      if (st.replay) {
+        replayStep(dt);
+        if (S && S.ambient) S.ambient(0.2 + st.crowd * 0.6);
+        st.raf = requestAnimationFrame(frame);
+        return;
+      }
       if (st.playing && !st.ended) advance(dt * st.speed);
+      st.crowd = Math.max(clutchEv(st.ev) ? 0.45 : 0.06, (st.crowd || 0) - dt / 5000);
+      if (S && S.ambient) S.ambient(st.playing && !st.ended ? 0.12 + st.crowd * 0.8 : 0);
+      if (st.hl && r3 && st.simT >= st.hl.t + 1100) startReplay();
       render(dt);
       if ((st.playing && !st.ended) || st.tags.length) st.raf = requestAnimationFrame(frame);
       else st.last = 0;
+    }
+    // a replay: the last few seconds again at half speed from a low camera near the play; a tap ends it
+    function startReplay() {
+      const h = st.hl; st.hl = null;
+      const frames = st.rec.filter(f => f.t >= h.t - 2800 && f.t <= h.t + 900);
+      if (frames.length < 20 || !r3) return;
+      st.lastReplay = st.simT;
+      st.replay = { frames, i: 0, t: frames[0].t, info: { kind: h.kind, x: h.x, y: h.y, a0: (h.x > 47 ? Math.PI : 0) + (Math.random() < 0.5 ? 0.75 : -0.75) } };
+      r3.snapCamera();
+    }
+    function endReplay() { st.replay = null; if (r3) r3.snapCamera(); st.last = 0; }
+    function replayStep(dt) {
+      const R = st.replay;
+      R.t += dt * 0.5;
+      while (R.i < R.frames.length - 1 && R.frames[R.i + 1].t <= R.t) R.i++;
+      if (R.t > R.frames[R.frames.length - 1].t || !r3) { endReplay(); return; }
+      r3.frame(Object.assign({}, R.frames[R.i], { replay: R.info, tags: [], zoom: null, cam: camPref }), dt * 0.5);
     }
     function wake() { if (!st.raf && !st.dead) { st.last = 0; st.raf = requestAnimationFrame(frame); } }
 
@@ -961,7 +1149,7 @@
     // plays every event before k at once and sets the floor for event k (a skip, or catching up with the leader)
     function jumpTo(k) {
       if (k > 0) fire(k - 1);
-      st.beats = []; st.beat = null; st.flight = false;
+      st.beats = []; st.beat = null; st.flight = false; st.replay = null; st.hl = null; st.act = {};
       st.cur = k;
       const ev = evs[k];
       if (ev) {
@@ -1002,6 +1190,57 @@
     const sfxB = $('.ct-sfx');
     if (sfxB) sfxB.addEventListener('click', () => { window.SFX.set(!window.SFX.on); sfxB.classList.toggle('on', window.SFX.on); sfxB.textContent = window.SFX.on ? 'SOUND ON' : 'SOUND OFF'; });
 
+    // ---------- the 3D view (js/court3d.js): TV camera, a camera behind the play, or the flat 2D court ----------
+    const CAMKEY = 'a13-ct-cam', CAMS = ['auto', 'tv', 'end', '2d'], CAMLBL = { auto: 'AUTO CAM', tv: 'TV CAM', end: 'GAME CAM', '2d': '2D VIEW' };
+    let camPref = (() => { try { const v = localStorage.getItem(CAMKEY); return CAMS.indexOf(v) >= 0 ? v : 'auto'; } catch (e) { return 'auto'; } })();
+    let r3 = null, r3Loading = false;
+    const can3d = () => !!(window.COURT3D && window.COURT3D.supported() && opts.three !== false);
+    function syncCam() { const b = $('.ct-cam'); if (!b) return; b.hidden = !can3d(); b.textContent = CAMLBL[camPref]; }
+    function cfg3() {
+      const year = YEAR < 9999 ? YEAR : 0;
+      const style = '.ct-apron{fill:#0b0b0d}.ct-plank{fill:#c08a4a}.ct-plank2{fill:#8a5c2a}.ct-seam{stroke:rgba(60,34,10,.45);stroke-width:.07;fill:none}.ct-ln{fill:none;stroke:rgba(255,255,255,.93);stroke-width:.2}.ct-edge{stroke-width:.34}.ct-dash{stroke-dasharray:.8 .6}.ct-paint{opacity:.82}.ct-mid-fill{opacity:.4}.ct-board,.ct-rim{display:none}.ct-end{font-family:Arial,sans-serif;font-weight:700;font-size:2.2px;letter-spacing:.5px;fill:#fff;opacity:.6;text-anchor:middle;dominant-baseline:central}';
+      const fl = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-M} ${-M} ${CW + 2 * M} ${CH + 2 * M}" width="2048" height="1147"><style>${style}</style>${floorSvg(id + 'g', kit.home.paint, kit.away.fill, abbr.home, abbr.away, year)}</svg>`;
+      const tm = (opts.team || UI.team)(tl.home) || {};
+      const src = (UI.logoSrc ? UI.logoSrc(tm) : tm.logo) || tm.logo || '';
+      return { info, kit, floorSvg: fl, logoSrc: src, homeColors: tm.colors || [], onBounce: () => { if (st.speed <= 2 && st.playing && window.SFX) window.SFX.play('dribble'); } };
+    }
+    function start3d() {
+      if (r3 || r3Loading || camPref === '2d' || !can3d()) return;
+      r3Loading = true;
+      window.COURT3D.load().then(() => {
+        r3Loading = false;
+        if (st.dead || r3 || camPref === '2d') return;
+        const stage = $('.ct-stage');
+        stage.classList.add('ct-3d');
+        try { r3 = window.COURT3D.create(stage, cfg3()); }
+        catch (e) { console.warn('[court] 3D failed, staying in 2D', e); stage.classList.remove('ct-3d'); r3 = null; return; }
+        r3.resize();
+        render(0); wake();
+      }).catch(e => { r3Loading = false; console.warn('[court] 3D not available', e); });
+    }
+    function stop3d(broken) {
+      if (r3) { try { r3.destroy(); } catch (e) { /* gone */ } r3 = null; }
+      st.replay = null; st.hl = null; st.rec = [];
+      $('.ct-stage').classList.remove('ct-3d');
+      if (broken) { camPref = '2d'; syncCam(); }
+      build(); wake();
+    }
+    const camBtn = $('.ct-cam');
+    if (camBtn) camBtn.addEventListener('click', () => {
+      camPref = CAMS[(CAMS.indexOf(camPref) + 1) % CAMS.length];
+      try { localStorage.setItem(CAMKEY, camPref); } catch (e) { /* private mode */ }
+      syncCam();
+      if (camPref === '2d') stop3d(false);
+      else if (!r3) start3d();
+      else { r3.snapCamera(); wake(); }
+    });
+    $('.ct-stage').addEventListener('click', e => {
+      if (!r3) return;
+      if (st.replay) { endReplay(); wake(); return; }
+      const key = r3.pick(e.clientX, e.clientY);
+      if (key) select(key);
+    });
+
     function onResize() {
       const want = narrow() ? 'v' : 'h';
       if (want !== st.mode) { build(); wake(); }
@@ -1011,6 +1250,8 @@
 
     function destroy() {
       st.dead = true;
+      if (r3) { r3.destroy(); r3 = null; }
+      if (window.SFX && window.SFX.ambient) window.SFX.ambient(0);
       document.removeEventListener('keydown', onKey);
       document.body.classList.remove('ct-full-on');
       if (st.raf) cancelAnimationFrame(st.raf);
@@ -1042,6 +1283,8 @@
     if (start >= evs.length) { st.ended = true; st.per = evs[evs.length - 1].per; }
     applyFull();  card();
     build();
+    syncCam();
+    start3d();
     drawScore();
     chips();
     syncControls();

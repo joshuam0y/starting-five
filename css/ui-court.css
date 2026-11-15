@@ -240,3 +240,21 @@ body.ct-full-on { overflow: hidden; }
 .ct-head { stroke-width: .28; }
 .ct-arm { opacity: .95; }
 .ct-dot .ct-ini { font-size: 1.05px; }
+
+/* 3D view (js/court3d.js) */
+.ct-stage.ct-3d { aspect-ratio: 16 / 9; background: #060609; overflow: hidden; }
+.ct-stage.ct-3d .ct-svg { display: none; }
+.ct-gl, .ct-gl-over { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.ct-gl { touch-action: manipulation; cursor: pointer; }
+.ct-gl-over { pointer-events: none; }
+.ct-banner, .ct-sub { z-index: 3; }
+.ct-full .ct-stage.ct-3d { aspect-ratio: auto; align-self: stretch; }
+@media (max-width: 560px) { .ct-stage.ct-3d { aspect-ratio: 4 / 5; } }
+.ct-sc { min-width: 1.6em; padding: 0 5px; background: #1a0b05; border: 1px solid #5a2a10; color: #ff9a4a; font-size: 15px; text-align: center; border-radius: 3px; }
+.ct-sc.low { color: #ff5a3a; }
+.ct-sc[hidden] { display: none; }
+.ct-bonus { font-style: normal; font-family: var(--display); font-size: 9px; letter-spacing: .12em; color: #111; background: var(--gold); padding: 1px 4px; border-radius: 2px; }
+.ct-bonus[hidden] { display: none; }
+.ct-tag.play { font-size: 1.2px; fill: #fff; stroke: #000; stroke-width: .3px; letter-spacing: .1px; }
+.ct-cam[hidden] { display: none; }
+@media (max-width: 560px) { .ct-sc { font-size: 12px; } .ct-bonus { font-size: 8px; padding: 0 3px; } }

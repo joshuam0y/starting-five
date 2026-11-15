@@ -54,6 +54,9 @@
     crowd: (c, t) => { hiss(c, t, 'bandpass', 850, 0.35, 0.35, 0.2, 1.8); hiss(c, t + 0.1, 'bandpass', 2200, 0.6, 0.3, 0.06, 1.4); },
     tick: (c, t) => tone(c, t, 'square', 1900, 0.001, 0.035, 0.025),
     chime: (c, t) => { tone(c, t, 'sine', 880, 0.005, 0.12, 0.25); tone(c, t + 0.09, 'sine', 1320, 0.005, 0.1, 0.35); },
+    dunk: (c, t) => { tone(c, t, 'sine', 110, 0.003, 0.3, 0.25, 55); tone(c, t + 0.01, 'triangle', 420, 0.003, 0.1, 0.35); hiss(c, t + 0.12, 'bandpass', 900, 0.4, 0.3, 0.16, 1.3); },
+    squeak: (c, t) => tone(c, t, 'sine', 2300 + Math.random() * 900, 0.004, 0.025, 0.07, 3400),
+    dribble: (c, t) => { tone(c, t, 'sine', 95, 0.002, 0.09, 0.07, 60); hiss(c, t, 'lowpass', 500, 0.7, 0.002, 0.02, 0.04); },
     land: (c, t) => { [660, 880, 1320].forEach((f, i) => tone(c, t + i * 0.08, 'triangle', f, 0.005, 0.11, 0.4)); }
   };
   const last = {};
@@ -66,9 +69,27 @@
     if (!c) return;
     try { SOUNDS[name](c, c.currentTime + 0.01); } catch (e) { /* no sound is fine */ }
   }
+  // the crowd under the game: a low murmur whose level the court sets every frame (0 to 1), off at 0
+  let amb = null, ambLv = -1;
+  function ambient(lv) {
+    lv = on ? Math.max(0, Math.min(1, lv || 0)) : 0;
+    if (Math.abs(lv - ambLv) < 0.03 && !(lv === 0 && ambLv > 0)) return;
+    ambLv = lv;
+    if (!lv && !amb) return;
+    const c = ac(); if (!c) return;
+    try {
+      if (!amb) {
+        const s = noise(c), f = c.createBiquadFilter(), g = c.createGain();
+        s.loop = true; f.type = 'bandpass'; f.frequency.value = 700; f.Q.value = 0.45; g.gain.value = 0;
+        s.connect(f); f.connect(g); g.connect(c.destination); s.start();
+        amb = { s, g };
+      }
+      amb.g.gain.setTargetAtTime(lv * 0.06, c.currentTime, 0.35);
+    } catch (e) { /* no sound is fine */ }
+  }
   window.SFX = {
-    play,
+    play, ambient,
     get on() { return on; },
-    set(v) { on = !!v; try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) { /* private mode */ } if (on) { ac(); play('chime'); } }
+    set(v) { on = !!v; if (!on) ambient(0); try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) { /* private mode */ } if (on) { ac(); play('chime'); } }
   };
 })();

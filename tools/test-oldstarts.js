@@ -22,6 +22,11 @@ for (const y of list) {
   ok(teams.every(a => (per[a] || 0) >= 6 && per[a] <= 15), y + ': every team has 6 to 15 players (' + teams.map(a => per[a]).join('/') + ')');
   const keep = eraTeams(Math.min(y + 4, 1988)), mine = teams.find(a => keep.indexOf(a) >= 0) || teams[0];   // a team that does not fold in the first seasons
   const s = L.newLeague(mine, { seed: 5, start: y });
+  // coaches: that season's real opening-night coaches (data/coach-old.js), and nobody coaching before his time
+  const CO = require('../data/coach-old.js'), op = CO.open[y] || {};
+  const coachOf = a => s.coaches[s.teams[a].coach] || {};
+  ok(Object.keys(s.teams).every(a => !op[a] || s.teams[a].coach === op[a][0]), y + ': the real opening-night coaches (' + Object.keys(s.teams).map(a => a + ' ' + coachOf(a).name).slice(0, 4).join(', ') + ')');
+  const early = () => Object.keys(s.teams).map(coachOf).filter(c => (c.available || 0) > s.year).map(c => c.name);
   let bad = null;
   for (let k = 0; k < 4 && !bad; k++) {
     const Y = s.year;
@@ -42,6 +47,7 @@ for (const y of list) {
       const want = eraTeams(Y + 1), have = Object.keys(s.teams).sort();
       ok(JSON.stringify(want) === JSON.stringify(have) || (have.length === want.length), y + ' to ' + (Y + 1) + ': ' + have.length + ' teams, the real league has ' + want.length + (JSON.stringify(want) === JSON.stringify(have) ? '' : ' (' + have.filter(a => want.indexOf(a) < 0) + ' / ' + want.filter(a => have.indexOf(a) < 0) + ')'));
       const cnt = {}; Object.values(s.players).forEach(p => { if (s.teams[p.team] && !p.retired) cnt[p.team] = (cnt[p.team] || 0) + 1; });
+      ok(!early().length, y + ' to ' + (Y + 1) + ': no coach before his first real season (' + early().join(', ') + ')');
       ok(Object.keys(s.teams).every(a => (cnt[a] || 0) >= 5), y + ' to ' + (Y + 1) + ': every team has at least five players (' + Object.keys(s.teams).map(a => a + cnt[a]).join(' ') + ')');
     } catch (e) { bad = e; ok(false, y + ' season ' + Y + ' threw ' + (e && e.stack || e).split('\n').slice(0, 3).join(' | ')); }
   }

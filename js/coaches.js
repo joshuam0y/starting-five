@@ -7,6 +7,12 @@
 
   var MAX_EFFECT = 0;      // coaches are cosmetic: no gameplay effect
 
+  function oldData() {
+    if (typeof window !== 'undefined' && window.COACH_OLD) return window.COACH_OLD;
+    if (root && root.COACH_OLD) return root.COACH_OLD;
+    if (typeof require === 'function') { try { return require('../data/coach-old.js'); } catch (e) { /* ignore */ } }
+    return null;
+  }
   function data() {
     if (typeof window !== 'undefined' && window.COACHES) return window.COACHES;
     if (root && root.COACHES) return root.COACHES;
@@ -43,7 +49,15 @@
   function init(state) {
     if (!state) return state;
     var d = data();
-    var early = false;
+    var early = !!state.coaches && +state.startYear !== 2013 && !!state.startYear;
+    // a save started before 2003-04 with the 2012-13 coaches (before data/coach-old.js): the real coaches of the
+    // season it is in, once
+    if (state.coaches && +state.startYear < 2004 && +state.year < 2004 && !state.coachOld && oldData()) {
+      Object.keys(state.teams || {}).forEach(function (a) { state.teams[a].coach = null; });
+      state.coaches = null;
+      if (startCoaches(state, d, +state.year)) early = true;
+    }
+    if (state.coaches && +state.startYear < 2004) state.coachOld = 1;
     if (!state.coaches) {
       early = startCoaches(state, d);
       if (!early) {
@@ -87,15 +101,28 @@
     });
     return open;
   }
-  function startCoaches(state, d) {
-    var Y = +state.startYear;
+  function startCoaches(state, d, atYear) {
+    var Y = atYear || +state.startYear;
     if (!Y || Y === 2013) return false;
     var H = (typeof window !== 'undefined' && window.COACH_HISTORY) || (root && root.COACH_HISTORY) || {};
     var all = {}, byName = {}, next = {};
     d.start.concat(d.early || [], d.pool).forEach(function (c) { if (!all[c.id]) { all[c.id] = c; byName[c.name] = c; } });
-    var open = openingCoaches(d, H, Y, byName);
-    if (!open) return false;
     var seen = function (id, y) { if (id && (!next[id] || y < next[id])) next[id] = y; };
+    // before 2003-04 (data/coach-old.js): that season's real opening-night coaches, and every real coach of the
+    // years after it, available from his first season on a bench
+    var O = Y < 2004 ? oldData() : null, open = null, oldTitles = {};
+    if (O && O.open && O.open[Y]) {
+      Object.keys(O.coaches).forEach(function (id) {
+        var r = O.coaches[id], yrs = r[5] || [], last = Math.max.apply(null, yrs.concat([0]));
+        if (all[id]) { if (all[id].last != null && all[id].last < last) all[id] = Object.assign(copy(all[id]), { last: last }); }
+        else { all[id] = { id: id, name: r[0], offense: r[1], defense: r[2], development: r[3], motivation: r[4], last: last >= 2003 ? null : last }; byName[r[0]] = all[id]; }
+        yrs.forEach(function (y) { if (y > Y) seen(id, y); });
+      });
+      open = {};
+      Object.keys(O.open[Y]).forEach(function (a) { var o = O.open[Y][a]; if (all[o[0]]) open[a] = { id: o[0], since: o[1] }; });
+      oldTitles = O.titles || {};
+    } else open = openingCoaches(d, H, Y, byName);
+    if (!open) return false;
     Object.keys(H).forEach(function (k) {
       if (!/^\d{4}$/.test(k) || +k <= Y) return;
       Object.keys(H[k]).forEach(function (a) { var c = byName[H[k][a]]; if (c) seen(c.id, +k); });
@@ -105,8 +132,8 @@
     Object.keys(open).forEach(function (a) { hired[open[a].id] = a; });
     state.coaches = {};
     Object.keys(all).forEach(function (id) {
-      var src = copy(all[id]), won = (d.titleYears || {})[src.name] || [];
-      src.titles = won.filter(function (t) { return t < Y; }).length;
+      var src = copy(all[id]), won = ((d.titleYears || {})[src.name] || []).concat(oldTitles[src.name] || []);
+      src.titles = won.filter(function (t, i) { return t < Y && won.indexOf(t) === i; }).length;
       if (!src.titles) delete src.titles;
       if (hired[id]) {
         src.team = hired[id]; src.since = open[hired[id]].since; delete src.available;
@@ -360,7 +387,7 @@
       var a = age(c, year);
       var pastReal = c.last != null && year > c.last + 1;
       if (c.status === 'free' && (pastReal || a >= 72) && rng() < 0.6) c.status = 'retired';
-      else if (c.status === 'employed' && a >= 76 && rng() < 0.5) {
+      else if (c.status === 'employed' && ((a >= 76 && rng() < 0.5) || (c.last != null && !c.fictional && year > c.last + 3 && rng() < 0.35))) {
         var abbr = c.team; fire(state, abbr); c.status = 'retired';
       }
     });
@@ -393,6 +420,15 @@
     var H = opts.hist || (typeof window !== 'undefined' && window.COACH_HISTORY) || (root && root.COACH_HISTORY);
     var year = +(state && state.year) || 2013, today = opts.today || '';
     var seq = [];
+    // a league that started before 2003-04 has its own history: the coaches of this save, season by season
+    if (state && +state.startYear < 2004 && state.coaches) {
+      var byYear = {};
+      Object.keys(state.coaches).forEach(function (k) { var c = state.coaches[k]; (c.seasons || []).forEach(function (x) { if (x.team === abbr) byYear[x.year] = c.name; }); });
+      var cur0 = of(state, abbr);
+      if (cur0 && cur0.name) byYear[year] = cur0.name;
+      Object.keys(byYear).map(Number).sort(function (a, b) { return a - b; }).forEach(function (y) { seq.push({ season: y, name: byYear[y] }); });
+      H = null;
+    }
     if (H) for (var y = 2004; y <= year; y++) {
       var open = H[y] && (H[y][abbr] || (abbr === 'OKC' && H[y].SEA));
       if (!open) continue;
@@ -404,7 +440,7 @@
     // past the real data: the save's own coach
     var dataYears = H ? Object.keys(H).filter(function (k) { return /^\d{4}$/.test(k); }).map(Number) : [];
     var lastData = dataYears.length ? Math.max.apply(null, dataYears) : 0, cur = of(state, abbr);
-    if (year > lastData && cur && cur.name && (!seq.length || seq[seq.length - 1].name !== cur.name)) seq.push({ season: year, name: cur.name });
+    if (H && year > lastData && cur && cur.name && (!seq.length || seq[seq.length - 1].name !== cur.name)) seq.push({ season: year, name: cur.name });
     var stints = [];
     seq.forEach(function (e) {
       var last = stints[stints.length - 1];
