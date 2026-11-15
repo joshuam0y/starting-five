@@ -307,7 +307,89 @@
     return true;
   }
 
-  var EXPANSION = { addTeams: addTeams, applyPending: applyPending, applyHistoric: applyHistoric, applyMoves: applyMoves, HISTORIC: HISTORIC, isExpanded: isExpanded, TEAMS: TEAMS, ALIGN: ALIGN, PROTECT: PROTECT, ROSTER: ROSTER, CAP_PICK: CAP_PICK };
+  // ---------- Expansion mode: the user's own new team from opening night ----------
+  // customTeam(state, { abbr, city, name, colors, conf }) adds the team to a league that was just built, makes it the
+  // user's, and opens the expansion draft (state.expansionDraft): every other team protects its PROTECTN most valuable
+  // players and can lose at most one; the user makes ROSTERN picks (draftPick, draftAuto), then draftFinish rebuilds
+  // the season's schedule with the new team in it (LEAGUE.restartSeason). Their first draft is capped like 2004's.
+  function customTeam(state, t0) {
+    if (!state || !state.teams || !t0 || !t0.abbr) return { ok: false, reason: 'No team' };
+    var abbr = String(t0.abbr).toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
+    if (abbr.length !== 3) return { ok: false, reason: 'The short name needs three letters.' };
+    if (state.teams[abbr] || abbr === 'FA' || abbr === 'DRAFT') return { ok: false, reason: abbr + ' is already taken. Pick another short name.' };
+    var Y = state.year, conf = t0.conf === 'East' ? 'East' : 'West';
+    var divs = {};
+    Object.keys(state.teams).forEach(function (a) { var t = state.teams[a]; if (t.conf === conf) divs[t.div] = (divs[t.div] || 0) + 1; });
+    var div = Object.keys(divs).sort(function (x, y) { return divs[x] - divs[y] || (x < y ? -1 : 1); })[0] || conf;
+    var colors = (t0.colors || []).filter(function (c) { return /^#[0-9a-fA-F]{6}$/.test(c); });
+    var t = makeTeam({ abbr: abbr, city: String(t0.city || 'New').slice(0, 24), name: String(t0.name || 'Expansion').slice(0, 24), conf: conf, div: div, colors: colors.length ? colors.slice(0, 2) : ['#d4af37', '#111111'] }, Y);
+    t.custom = true;
+    state.teams[abbr] = t;
+    var C = mod('COACH'); if (C && C.init) { try { C.init(state); } catch (e) { /* coaches are cosmetic */ } }
+    var D = mod('DRAFT'); if (D && D.ensurePicks) { try { D.ensurePicks(state, 7, Y); } catch (e) { /* picks come with the next draft */ } }
+    state.userTeam = abbr;
+    // the pool: what every other team leaves unprotected
+    var owner = {}, byTeam = {}, pool = [], prot = {};
+    Object.keys(state.teams).forEach(function (a) { if (a !== abbr) byTeam[a] = []; });
+    Object.keys(state.players).forEach(function (id) { var p = state.players[id], a = ownerOf(state, p, Y); if (a && byTeam[a]) { byTeam[a].push(p); owner[id] = a; } });
+    Object.keys(byTeam).forEach(function (a) {
+      var list = byTeam[a].sort(function (x, y) { return value(y, Y) - value(x, Y); });
+      prot[a] = list.slice(0, PROTECTN).map(function (p) { return p.id; });
+      list.slice(PROTECTN).forEach(function (p) { pool.push(p.id); });
+    });
+    state.expansionDraft = { team: abbr, year: Y, need: ROSTERN, picks: [], pool: pool, owner: owner, protect: PROTECTN };
+    state.expansion = state.expansion || {};
+    state.expansion.capDraft = Y; state.expansion.capPick = CAP_PICK; state.expansion.capTeams = [abbr];
+    return { ok: true, abbr: abbr, pool: pool.length };
+  }
+  // the players the user can still take: unprotected, and from a team that has not lost one yet
+  function draftPool(state) {
+    var d = state && state.expansionDraft; if (!d) return [];
+    var lost = {}; d.picks.forEach(function (x) { lost[x.from] = 1; });
+    return d.pool.filter(function (id) { var p = state.players[id]; return p && p.team === d.owner[id] && !lost[d.owner[id]]; })
+      .map(function (id) { return state.players[id]; });
+  }
+  function draftPick(state, id) {
+    var d = state && state.expansionDraft; if (!d) return { ok: false, reason: 'No expansion draft' };
+    if (d.picks.length >= d.need) return { ok: false, reason: 'Your roster is full.' };
+    var p = state.players[id];
+    if (!p || !draftPool(state).some(function (q) { return q.id === id; })) return { ok: false, reason: 'That player is not available.' };
+    var from = d.owner[id];
+    if (state.teams[from] && Array.isArray(state.teams[from].rotation)) state.teams[from].rotation = state.teams[from].rotation.filter(function (x) { return x !== id; });
+    p.lastTeam = from; p.team = d.team; p.yearsWithTeam = 0;
+    if (p.mood != null) p.mood = Math.max(40, p.mood - 5);
+    d.picks.push({ id: id, from: from, n: d.picks.length + 1 });
+    addTx(state, fullName(state, d.team) + ' select ' + p.name + ' from ' + fullName(state, from) + ' in the expansion draft.', [id]);
+    return { ok: true, left: d.need - d.picks.length };
+  }
+  // the rest picked for the user: the best value left, no more than five of one position group
+  function draftAuto(state) {
+    var d = state && state.expansionDraft; if (!d) return 0;
+    var n = 0, groupOf = function (p) { var g = String(p.pos || 'SF').split(/[-\/]/)[0]; return g === 'PG' || g === 'SG' ? 'G' : g === 'C' ? 'C' : 'F'; };
+    while (d.picks.length < d.need) {
+      var have = d.picks.map(function (x) { return state.players[x.id]; }).filter(Boolean);
+      var cand = draftPool(state).sort(function (x, y) {
+        var nx = have.filter(function (h) { return groupOf(h) === groupOf(x); }).length >= 5 ? 6 : 0, ny = have.filter(function (h) { return groupOf(h) === groupOf(y); }).length >= 5 ? 6 : 0;
+        return (value(y, d.year) - ny) - (value(x, d.year) - nx);
+      });
+      if (!cand.length || !draftPick(state, cand[0].id).ok) break;
+      n++;
+    }
+    return n;
+  }
+  function draftFinish(state) {
+    var d = state && state.expansionDraft; if (!d) return { ok: false };
+    if (d.picks.length < d.need) draftAuto(state);
+    var name = fullName(state, d.team), label = (d.year - 1) + '-' + String(d.year).slice(2);
+    state.expansion.draft = d.picks.map(function (x) { return { id: x.id, from: x.from, to: d.team, n: x.n }; });
+    delete state.expansionDraft;
+    var L = mod('LEAGUE'); if (L && L.restartSeason) L.restartSeason(state);
+    addNews(state, 'The ' + name + ' join the league', 'The ' + name + ' play their first season in ' + label + ' after taking ' + d.picks.length + ' players in the expansion draft.', []);
+    addTx(state, 'The ' + name + ' join the league for ' + label + '.', []);
+    return { ok: true };
+  }
+
+  var EXPANSION = { customTeam: customTeam, draftPool: draftPool, draftPick: draftPick, draftAuto: draftAuto, draftFinish: draftFinish, addTeams: addTeams, applyPending: applyPending, applyHistoric: applyHistoric, applyMoves: applyMoves, HISTORIC: HISTORIC, isExpanded: isExpanded, TEAMS: TEAMS, ALIGN: ALIGN, PROTECT: PROTECT, ROSTER: ROSTER, CAP_PICK: CAP_PICK };
   if (root) root.EXPANSION = EXPANSION;
   if (typeof module !== 'undefined' && module.exports) module.exports = EXPANSION;
 })(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this));

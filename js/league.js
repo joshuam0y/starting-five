@@ -1087,7 +1087,9 @@
     return state;
   }
 
-  var API = { KEY_DATES: KEY_DATES, newLeague: newLeague, summerStart: summerStart, chemParts: chemParts, advance: advance, nextPhase: nextPhase, leagueView: leagueView, resolveEvent: resolveEvent,
+  // a league that just got a new team (Expansion mode): the season and its schedule built again with it in
+  function restartSeason(state) { startSeason(state); return state.season; }
+  var API = { KEY_DATES: KEY_DATES, restartSeason: restartSeason, newLeague: newLeague, summerStart: summerStart, chemParts: chemParts, advance: advance, nextPhase: nextPhase, leagueView: leagueView, resolveEvent: resolveEvent,
     clearResolved: clearResolved, currentDate: currentDate, useStart: useStart, startData: startData, pendingEvents: pendingEvents, OFFSEASON: OFFSEASON,
     userPicksLeft: userPicksLeft, handlesContractDecisions: true, autoOn: autoOn, applyBrands: applyBrands, migrate: migrate, rosterRules: rosterRules, rosterOf: rosterOf, enforceRosters: enforceRosters, assignPicks: assignPicks };
   W.LEAGUE = API;

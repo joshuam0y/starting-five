@@ -988,3 +988,15 @@ body.no-assoc-nav .navmore-list a[data-nav="settings"], body.no-assoc-nav .navmo
   .mm .mm-grid .mt-tn .mt-s { grid-area: s; font-size: 10px; letter-spacing: .1em; }
   .mm .mm-k { margin: 4px 0 10px; }
 }
+
+/* Expansion mode: the team form and the expansion draft */
+.exp-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.exp-form input[type="color"] { width: 100%; height: 44px; padding: 2px; background: var(--bg3); border: 1px solid var(--line2); }
+.ex-list { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
+.ex-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; background: var(--bg2); border: 1px solid var(--line); }
+.ex-ovr { font-family: var(--display); font-size: 22px; text-align: center; }
+.ex-main { min-width: 0; display: grid; }
+.ex-main b { font-family: var(--display); letter-spacing: .03em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ex-main small { color: var(--muted); font-size: 12px; }
+.ex-go { position: sticky; bottom: 0; background: var(--bg); padding: 8px 0; z-index: 15; }
+@media (max-width: 560px) { .exp-form { grid-template-columns: minmax(0, 1fr); } }

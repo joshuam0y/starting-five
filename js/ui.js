@@ -121,7 +121,7 @@
     if (!b) return;
     const page = (location.hash || '#/home').replace(/^#\/?/, '').split('/')[0] || 'home';
     let a = null;
-    if (!NEXT_HIDDEN.includes(page)) {
+    if (!NEXT_HIDDEN.includes(page) && !(UI.state && UI.state.game && UI.state.game.expansionDraft)) {   // no sim while an expansion draft is open
       try { a = typeof UI.nextAction === 'function' ? UI.nextAction() : null; } catch (e) { console.warn('NEXT button failed', e); a = null; }
     }
     b.hidden = !a;
@@ -189,6 +189,9 @@
     let page = parts[0] || 'home';
     const arg = parts.slice(1).join('/');
     if (page !== 'continue' && typeof (UI.pages || {})[page] !== 'function') page = 'home';
+    // Expansion mode: until the expansion draft is done the league has no season for the new team, so its pages wait
+    const g0 = UI.state && UI.state.game;
+    if (g0 && g0.expansionDraft && !['expansion', 'home', 'saves', 'settings', 'new', 'daily', 'ranked', 'challenge', 'me', 'u'].concat(UI.INFO_ROUTES || []).includes(page) && UI.pages.expansion) { location.replace('#/expansion'); return; }
     const navKey = NAV[page] || page;
     // the top links belong to the Association; the home screen, Season Mode, Head to Head and the info pages are bare
     document.body.classList.toggle('no-assoc-nav', ['home', 'challenge', 'new', 'saves', 'continue', 'ranked', 'daily', 'me', 'u'].concat(UI.INFO_ROUTES || []).includes(page));

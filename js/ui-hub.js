@@ -364,8 +364,27 @@
       <div class="ts-bar">
         <div class="ts-filters" role="group" aria-label="Filter teams">${FILTERS.map(([k, l], i) => `<button type="button" data-f="${k}" class="${i ? '' : 'on'}" aria-pressed="${!i}">${l}</button>`).join('')}</div>
         <button type="button" class="btn btn-small ts-random" id="randomBtn">RANDOM TEAM</button>
+        ${window.EXPANSION && window.EXPANSION.customTeam && !summer && !T ? '<button type="button" class="btn btn-small btn-gold ts-random" id="expBtn">EXPANSION TEAM</button>' : ''}
       </div>
       <div id="tsGrid"></div>
+      <div class="ts-modal" id="expForm" hidden role="dialog" aria-modal="true" aria-labelledby="expTitle">
+        <div class="ts-box exp-box">
+          <div class="ts-head"><div class="ts-hinfo"><div class="ct-k">EXPANSION MODE | ${esc(seasonLbl)}</div><h2 class="ct-t" id="expTitle">YOUR OWN TEAM</h2>
+            <div class="ts-pay">Every team protects its best ${window.EXPANSION ? window.EXPANSION.PROTECT : 8} players. You build a ${window.EXPANSION ? window.EXPANSION.ROSTER : 14}-man roster from the rest, no more than one from each team.</div></div>
+            <button type="button" class="ts-x" id="expClose" aria-label="Close">&times;</button></div>
+          <div class="ts-form exp-form">
+            <label class="field"><span>CITY</span><input id="expCity" maxlength="24" placeholder="Las Vegas"></label>
+            <label class="field"><span>TEAM NAME</span><input id="expName" maxlength="24" placeholder="Aces"></label>
+            <label class="field"><span>SHORT NAME (3 LETTERS)</span><input id="expAbbr" maxlength="3" placeholder="LVA" autocapitalize="characters"></label>
+            <label class="field"><span>CONFERENCE</span><select id="expConf"><option>West</option><option>East</option></select></label>
+            <label class="field"><span>MAIN COLOR</span><input type="color" id="expC1" value="#d4af37"></label>
+            <label class="field"><span>SECOND COLOR</span><input type="color" id="expC2" value="#111111"></label>
+            <label class="field"><span>SAVE SLOT</span><select id="expSlot">${slots.map(s => `<option value="${s.slot}" ${s.slot === first ? 'selected' : ''}>Slot ${s.slot}: ${s.meta ? esc(s.meta.name) + ' (overwrite)' : 'Empty'}</option>`).join('')}</select></label>
+          </div>
+          <p class="lv-err" id="expErr" hidden></p>
+          <div class="confirm-actions"><button type="button" class="btn btn-gold btn-big" id="expGo">TO THE EXPANSION DRAFT</button></div>
+        </div>
+      </div>
       <div class="ts-modal" id="confirm" hidden role="dialog" aria-modal="true" aria-labelledby="confirmName">
         <div class="ts-box" id="confirmBox">
           <div class="ts-head" id="confirmTeam"></div>
@@ -441,6 +460,32 @@
     UI.centerChips(app);
     UI.$$('[data-real]', app).forEach(b => b.addEventListener('click', () => { newReal = b.getAttribute('data-real') === '1'; P.new(app); }));
     UI.$('#cancelBtn', app).addEventListener('click', close);
+    const expForm = UI.$('#expForm', app), expBtn = UI.$('#expBtn', app);
+    if (expBtn && expForm) {
+      const expErr = t => { const e = UI.$('#expErr', app); e.textContent = t; e.hidden = !t; };
+      expBtn.addEventListener('click', () => { expForm.hidden = false; document.body.classList.add('ts-lock'); setTimeout(() => UI.$('#expCity', app).focus(), 0); });
+      UI.$('#expClose', app).addEventListener('click', () => { expForm.hidden = true; document.body.classList.remove('ts-lock'); });
+      const autoAbbr = () => { const a = UI.$('#expAbbr', app); if (a.dataset.touched) return; a.value = (UI.$('#expCity', app).value.replace(/[^A-Za-z]/g, '').slice(0, 2) + UI.$('#expName', app).value.replace(/[^A-Za-z]/g, '').slice(0, 1)).toUpperCase(); };
+      UI.$('#expCity', app).addEventListener('input', autoAbbr); UI.$('#expName', app).addEventListener('input', autoAbbr);
+      UI.$('#expAbbr', app).addEventListener('input', e => { e.target.dataset.touched = '1'; e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, ''); });
+      UI.$('#expGo', app).addEventListener('click', async () => {
+        const city = UI.$('#expCity', app).value.trim(), name = UI.$('#expName', app).value.trim(), abbr = UI.$('#expAbbr', app).value.trim().toUpperCase();
+        if (!city || !name) { expErr('Give your team a city and a name.'); return; }
+        if (!/^[A-Z]{3}$/.test(abbr)) { expErr('The short name needs three letters.'); return; }
+        if (L.teams.some(t => t.abbr === abbr)) { expErr(abbr + ' is already taken. Pick another short name.'); return; }
+        const go = UI.$('#expGo', app); go.disabled = true; go.textContent = 'BUILDING THE LEAGUE...'; expErr('');
+        await new Promise(r => setTimeout(r, 30));
+        try {
+          await UI.saves.create(Number(UI.$('#expSlot', app).value), city + ' ' + name + ' Expansion', L.teams[0].abbr, start, { realLife: false });
+          const r = window.EXPANSION.customTeam(UI.state.game, { abbr, city, name, conf: UI.$('#expConf', app).value, colors: [UI.$('#expC1', app).value, UI.$('#expC2', app).value] });
+          if (!r.ok) throw new Error(r.reason);
+          await UI.saves.write();
+          document.body.classList.remove('ts-lock');
+          UI.updateChrome();
+          location.hash = '#/expansion';
+        } catch (e) { expErr('Could not start: ' + e.message); go.disabled = false; go.textContent = 'TO THE EXPANSION DRAFT'; }
+      });
+    }
     UI.$('#startBtn', app).addEventListener('click', async () => {
       if (!picked) return;
       const btn = UI.$('#startBtn');
@@ -458,6 +503,29 @@
         btn.textContent = 'START';
       }
     });
+  };
+
+  // ---------- Expansion draft (Expansion mode): the user picks his roster from the unprotected players ----------
+  let expPos = '';
+  P.expansion = function (app) {
+    const st = UI.state.game, E = window.EXPANSION, d = st && st.expansionDraft;
+    if (!st || !E || !d) { location.hash = st ? '#/season' : '#/new'; return; }
+    const t = st.teams[d.team], mine = d.picks.map(x => st.players[x.id]).filter(Boolean), left = d.need - d.picks.length;
+    const pool = E.draftPool(st).filter(p => !expPos || String(p.pos || '').split(/[-\/]/)[0] === expPos).sort((a, b) => b.ovr - a.ovr || a.age - b.age);
+    const row = (p, btn) => `<li class="ex-row"><span class="ex-ovr ${UI.ovrClass(p.ovr)}">${esc(p.ovr)}</span><span class="ex-main"><b>${esc(p.name)}</b><small>${esc(p.pos || '-')} | ${esc(p.age)} YRS | ${UI.fmtMoney(UI.salaryOf(p))}${btn ? ' | from ' + esc((st.teams[p.lastTeam || p.team] || {}).name || p.team) : ''}</small></span>${btn || ''}</li>`;
+    app.innerHTML = `<section class="ch-hero"><div class="ch-hero-k">${UI.logo(d.team, 28)} ${esc(t.city + ' ' + t.name)} | EXPANSION DRAFT</div>
+        <h1 class="ch-hero-t">${left ? 'PICK ' + (d.picks.length + 1) + ' OF ' + d.need : 'YOUR ROSTER IS SET.'}</h1>
+        <p class="ch-hero-p">Every team protected its best ${d.protect}. You can take one player from each team.</p></section>
+      ${mine.length ? `<h3 class="dy-h3">YOUR TEAM (${mine.length})</h3><ul class="ex-list">${mine.sort((a, b) => b.ovr - a.ovr).map(p => row(p, '')).join('')}</ul>` : ''}
+      ${left ? `<h3 class="dy-h3">AVAILABLE (${E.draftPool(st).length})</h3>
+        <div class="ch-chips ch-swipe ex-pos">${['', 'PG', 'SG', 'SF', 'PF', 'C'].map(x => `<button type="button" class="ch-chip sm${expPos === x ? ' on' : ''}" data-pos="${x}">${x || 'ALL'}</button>`).join('')}</div>
+        <ul class="ex-list">${pool.slice(0, 80).map(p => row(p, `<button type="button" class="btn btn-small btn-gold" data-take="${esc(p.id)}">TAKE</button>`)).join('')}</ul>` : ''}
+      <div class="ch-go ex-go">${left ? `<button type="button" class="btn btn-big" id="exAuto">AUTO-PICK THE LAST ${left}</button>` : `<button type="button" class="btn btn-gold btn-big" id="exDone">START THE SEASON</button>`}</div>`;
+    const save = () => UI.saves.write();
+    app.querySelectorAll('[data-pos]').forEach(b => b.addEventListener('click', () => { expPos = b.dataset.pos; P.expansion(app); }));
+    app.querySelectorAll('[data-take]').forEach(b => b.addEventListener('click', async () => { b.disabled = true; const r = E.draftPick(st, b.dataset.take); if (!r.ok) UI.toast(r.reason, 'error'); await save(); P.expansion(app); }));
+    const au = UI.$('#exAuto', app); if (au) au.addEventListener('click', async () => { au.disabled = true; E.draftAuto(st); await save(); P.expansion(app); });
+    const dn = UI.$('#exDone', app); if (dn) dn.addEventListener('click', async () => { dn.disabled = true; dn.textContent = 'BUILDING THE SCHEDULE...'; await new Promise(r => setTimeout(r, 30)); E.draftFinish(st); await save(); UI.updateChrome(); location.hash = '#/season'; });
   };
 
   // ---------- Rosters: all teams ----------
