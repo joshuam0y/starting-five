@@ -85,6 +85,7 @@ check(starsHeld === 0 || starsStayed / starsHeld >= 0.7, 'stars mostly stay with
     const after = mine(), newEvents = u.events.filter(e => !evBefore.has(e));
     const told = new Set();
     newEvents.filter(e => e.type === 'simSummary').forEach(e => (e.moved || []).forEach(id => told.add(id)));
+    (u.news || []).slice(0, 20).filter(n => n && n.tag === 'rosterFix').forEach(n => (n.ids || []).forEach(id => told.add(id)));   // the season-start roster fill, told in the news and a pop-up
     const expiring = new Set(u.fa && u.fa.summary ? u.fa.summary.expiring : []);
     const ok = (id, inOut) => told.has(id) || u.players[id].retired || (inOut === 'out' && expiring.has(id)) ||
       (inOut === 'in' && u.players[id].draft && u.players[id].draft.team === u.userTeam && u.players[id].draft.year === u.year);

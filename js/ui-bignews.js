@@ -34,6 +34,7 @@
       else if (n.type === 'milestone' && ids.some(mine) && /HISTORIC|career/i.test(h + ' ' + (n.body || ''))) out.push(['MILESTONE', n]);
       else if (n.type === 'award' && ids.some(mine) && !/All-Star Starters|All-NBA Teams/i.test(h)) out.push(['AWARD', n]);
       else if (n.type === 'playoffs' && /^CHAMPIONS!/.test(h) && h.indexOf(teamName) >= 0) out.push(['CHAMPIONS', n]);
+      else if (n.tag === 'rosterFix') out.push(['YOUR ROSTER', n]);
       else if (n.tag === 'league') out.push(['RULE CHANGE', n]);
     });
     const R = RULES[st.year];

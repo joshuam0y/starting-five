@@ -981,9 +981,22 @@
         var p = state.players[id];
         if (p.stashedUntil && p.stashedUntil <= state.year) { p.stashedUntil = null; if (p.injury && p.injury.type === "Playing overseas") p.injury = null; }
       }
-      enforceRosters(state);
+      var rosterFixes = enforceRosters(state) || [];
       // a new season: last season's notices and unanswered quiet trade offers do not carry over
       state.notices = [];
+      // the user's roster fixed to the league limit: a news item (the Association pops it up) and a notice, never silent.
+      // Only news and a notice, no event, so the sim runs exactly as before.
+      var mineFix = rosterFixes.filter(function (f) { return f.team === state.userTeam; });
+      if (mineFix.length) {
+        var ins = mineFix.filter(function (f) { return f.in; }).map(function (f) { return state.players[f.in]; }).filter(Boolean);
+        var outs = mineFix.filter(function (f) { return f.out; }).map(function (f) { return state.players[f.out]; }).filter(Boolean);
+        var parts = [];
+        if (ins.length) parts.push("signed " + ins.map(function (q) { return q.name; }).join(", ") + " to one-year minimum deals so the roster has the " + rosterRules(state.year).min + " players the league requires");
+        if (outs.length) parts.push("released " + outs.map(function (q) { return q.name; }).join(", ") + " to get down to the roster limit");
+        var line = "Your team " + parts.join(" and ") + ".";
+        state.news.unshift({ year: state.year, day: state.day || 0, headline: ins.length ? "Roster Filled To " + rosterRules(state.year).min : "Roster Trimmed To The Limit", body: line, ids: mineFix.map(function (f) { return f.in || f.out; }), tag: "rosterFix" });
+        state.notices.push({ text: line, ids: mineFix.map(function (f) { return f.in || f.out; }), year: state.year });
+      }
       state.events = state.events.filter(function (e) { return !(e && e.quiet && e.type === "tradeOffer"); });
       startSeason(state);
       if (mod("COACH") && W.COACH.realSync) safe("coachReal", function () { W.COACH.realSync(state, null); });
