@@ -141,11 +141,9 @@
       + (ovrs && ovrs.length ? ovrs.map(sqEmoji).join('') + '\n' : '')
       + pct.toFixed(1) + '% of a perfect five' + (r ? ' | #' + r.rank + ' of ' + r.played : '');
   };
-  // "beat my score": every Daily share links to #/daily/beat/<daily #>/<name>/<percent>. Opening it keeps the challenge for
-  // that day only; the hub shows it over the Play button and the end screen says who won.
+  // "beat my score": shares now link to plain playstartingfive.com/daily, but older shared links to
+  // #/daily/beat/<daily #>/<name>/<percent> still open the challenge for that day (shown over the Play button).
   const BEATKEY = 'a13-dy-beat';
-  const beatName = () => String((UI.profile.signedIn() && UI.profile.account()) || 'a friend').replace(/[^A-Za-z0-9_ -]/g, '').slice(0, 16) || 'a friend';
-  const beatHash = (day, pct) => '#/daily/beat/' + dayNo(day) + '/' + encodeURIComponent(beatName()) + '/' + pct.toFixed(1);
   const beatNow = day => { const c = ls.get(BEATKEY, null); return c && c.n === dayNo(day) && c.name && c.pct != null ? c : null; };
   const beatLine = (day, pct) => {
     const c = beatNow(day); if (!c || pct == null) return '';
@@ -807,7 +805,7 @@
       <section class="rk-score">${five.length === 5 ? fiveCards(five, true) : ''}<small>YOUR LINEUP SCORE</small><b>${Number(sv.score).toFixed(1)}</b>${pct == null ? '' : `<div class="rk-pct"><b>${pct.toFixed(1)}%</b> OF A PERFECT FIVE</div>`}<div class="rk-streak" id="rkStreak"></div><div class="rk-tier on rk-tier-pg" id="rkTierPg"></div><div class="rk-std" id="rkReach"></div><div class="rk-std" id="rkStd"></div>${five.length === 5 ? '' : '<span class="muted">' + (sv.names ? esc(sv.names.join(', ')) : 'Played on another device.') + '</span>'}</section>
       <div class="ch-go"><a class="btn btn-gold" href="#/daily">SEE THE BOARD</a>${pct == null ? '' : '<button type="button" class="btn" id="dlShare">SHARE YOUR SCORE</button>'}</div>`;
     const sk = streakNow(), el = UI.$('#rkStreak', app); if (el && sk.n) el.innerHTML = '<b>' + sk.n + '</b> DAY DAILY STREAK';
-    const doShare = async btn => { if (btn) btn.disabled = true; await shareCard({}, dailyShareText(day, TH.title, sv.ovrs, pct), beatHash(day, pct)); if (btn) btn.disabled = false; };
+    const doShare = async btn => { if (btn) btn.disabled = true; await shareCard({}, dailyShareText(day, TH.title, sv.ovrs, pct), '#/daily'); if (btn) btn.disabled = false; };
     const sh = UI.$('#dlShare', app); if (sh) sh.addEventListener('click', () => doShare(sh));
     // the same reveal as right after a game, rebuilt from the saved names: the five players are looked up in the day's ten
     if (pct != null && five.length === 5 && sv.score != null) resultPop({ app, era: 'ALL', day, TH, five, score: Number(sv.score), pct, byId, doShare });
@@ -881,7 +879,7 @@
         <div id="rkFr"></div>
         <div class="ch-go">${isPr ? `<a class="btn btn-gold" href="#/daily/practice/${esc(prKey)}/${Date.now()}">PLAY AGAIN</a><a class="btn" href="#/daily/practice">ARCHIVE</a>` : `<a class="btn btn-gold" href="#/daily">SEE THE BOARD</a>${pct == null ? '' : '<button type="button" class="btn" id="dlShare">SHARE YOUR SCORE</button>'}`}</div>`;
       const dsh = UI.$('#dlShare', app);
-      const doShare = async btn => { btn.disabled = true; const r = await shareCard({ k: 'DAILY #' + dayNo(day), title: 'OF A PERFECT FIVE', color: '#d4af37', big: pct.toFixed(1) + '%', sub: TH.title, name: UI.profile.account() || '' }, dailyShareText(day, TH.title, five.map(ovrOf), pct), beatHash(day, pct)); btn.disabled = false;  };
+      const doShare = async btn => { btn.disabled = true; const r = await shareCard({ k: 'DAILY #' + dayNo(day), title: 'OF A PERFECT FIVE', color: '#d4af37', big: pct.toFixed(1) + '%', sub: TH.title, name: UI.profile.account() || '' }, dailyShareText(day, TH.title, five.map(ovrOf), pct), '#/daily'); btn.disabled = false;  };
       if (dsh) dsh.addEventListener('click', () => doShare(dsh));
       if (pct != null) resultPop({ app, era, day, TH, five, score, pct, byId, doShare });   // the result pops up with the share button every time this screen opens
       const paintStreak = () => { const sk = UI.$('#rkStreak', app), n = streakNow(); if (sk && n.n) sk.innerHTML = '<b>' + n.n + '</b> DAY DAILY STREAK' + (n.best > n.n ? ' | BEST ' + n.best : ''); };
