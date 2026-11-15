@@ -147,6 +147,23 @@ function build(Y) {
   const mulberry = seed => { let a = seed >>> 0; return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
   const gaussR = r => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
   const teamSet = new Set(teams.map(t => t.abbr));
+  const BIOF = path.join(ROOT, 'tools', 'bio-cache.json'), BIO = fs.existsSync(BIOF) ? JSON.parse(fs.readFileSync(BIOF, 'utf8')) : {};
+  // Basketball-Reference's position words to the game's five, split by height where the words cover two spots
+  const posFromBio = (txt, ht) => {
+    const t = String(txt || '').toLowerCase(), h = ht || 0;
+    if (/point guard/.test(t)) return 'PG';
+    if (/shooting guard/.test(t)) return 'SG';
+    if (/small forward/.test(t)) return 'SF';
+    if (/power forward/.test(t)) return 'PF';
+    if (/^center/.test(t)) return 'C';
+    if (/guard\/forward|forward\/guard/.test(t)) return h && h <= 76 ? 'SG' : 'SF';
+    if (/forward\/center|center\/forward/.test(t)) return h && h >= 82 ? 'C' : 'PF';
+    if (/guard/.test(t)) return h && h >= 76 ? 'SG' : 'PG';
+    if (/forward/.test(t)) return h && h >= 80 ? 'PF' : 'SF';
+    if (/center/.test(t)) return 'C';
+    if (h) return h <= 74 ? 'PG' : h <= 77 ? 'SG' : h <= 79 ? 'SF' : h <= 81 ? 'PF' : 'C';
+    return null;
+  };
   const prospect = (dy, row, nTeams) => {
     const [pick, tm, id, name, college] = row, seen = id && firstSeen(id, dy);
     const tg = global.TARGETS && id && global.TARGETS[id];
@@ -156,10 +173,14 @@ function build(Y) {
       return { id, name: p.name, team: 'DRAFT', pos: p.pos, age: Math.max(18, p.age - (seen.year - dy)), ht: p.ht, wt: p.wt, ovr, pot: clamp(Math.max(ovr + 6, seen.peak, tp - 2) + Math.round(hash(id) * 3), ovr, 99),
         nbaId: p.nbaId || null, injury: null, attrs: p.attrs, stats: null, face: null, draftYear: dy, realPick: pick, arrivalYear: seen.year, undrafted: false, boardRank: pick, college: college || undefined, draftedBy: ab(tm) };
     }
-    // never played in the NBA (or after 2012): a prospect from the slot he went in, a real name and a position by the dice
-    const r = mulberry(Math.floor(hash(name + dy) * 4294967295)), pos = ['PG', 'SG', 'SF', 'PF', 'C'][Math.floor(r() * 5)];
+    // never played in the NBA (or after 2012): a prospect from the slot he went in, a real name, and his real height, weight and
+    // position from Basketball-Reference (tools/fetch-bios.py) when it has them; otherwise a position by the dice
+    const r = mulberry(Math.floor(hash(name + dy) * 4294967295)), bio = id && BIO[id];
+    let pos = ['PG', 'SG', 'SF', 'PF', 'C'][Math.floor(r() * 5)];
+    if (bio && (bio.pos || bio.ht)) pos = posFromBio(bio.pos, bio.ht) || pos;
     const ovr = clamp(Math.round(62 - pick * 0.22 + gaussR(r) * 2), 40, 64), pot = clamp(Math.round(ovr + 14 - pick * 0.1 + r() * 6), ovr + 2, 86);
     const bd = DG.body(pos, r), attrs = DG.buildAttrs(pos, ovr, r), delay = 1 + Math.floor(r() * 3);
+    if (bio && bio.ht) { bd.ht = bio.ht; bd.wt = bio.wt || Math.round(190 + 5.5 * (bio.ht - 76)); }   // no weight listed: the usual weight for his height
     return { id: id || ('pr' + dy + '_' + String(pick).padStart(3, '0')), name, team: 'DRAFT', pos, age: 19 + Math.floor(r() * 4), ht: bd.ht, wt: bd.wt, ovr, pot, nbaId: null, injury: null, attrs, stats: null, face: null,
       draftYear: dy, realPick: pick, arrivalYear: dy + delay, undrafted: false, boardRank: pick, college: college || undefined, draftedBy: ab(tm) };
   };

@@ -777,14 +777,15 @@
     const label = live.day.playoff ? 'PLAYOFFS | GAME ' + (g.gameNum || '') : (live.day.date || '');
     app.innerHTML = `
       <section class="lv-board" id="lvBoard">
-        <div class="lv-team">${UI.logo(g.away, 76)}<b>${esc(X.teamName(g.away))}</b><small>${esc(recordOf(season, g.away))}</small></div>
+        <div class="lv-team">${UI.logo(g.away, 76)}<b>${esc(X.teamName(g.away))}</b><em class="lv-ab">${esc(g.away)}</em><small>${esc(recordOf(season, g.away))}</small></div>
         <div class="lv-mid">
           <div class="lv-k" id="lvLabel">${esc(label)}</div>
           <div class="lv-score"><span id="lvAs">0</span><i>-</i><span id="lvHs">0</span></div>
           <div class="lv-clock"><b id="lvPer">Q1</b><span id="lvClock">12:00</span></div>
           <div class="lv-prog"><i id="lvProg"></i></div>
         </div>
-        <div class="lv-team">${UI.logo(g.home, 76)}<b>${esc(X.teamName(g.home))}</b><small>${esc(recordOf(season, g.home))}</small></div>
+        <div class="lv-team">${UI.logo(g.home, 76)}<b>${esc(X.teamName(g.home))}</b><em class="lv-ab">${esc(g.home)}</em><small>${esc(recordOf(season, g.home))}</small></div>
+        <div class="lv-run" id="lvRun" aria-live="polite"></div>
       </section>
       ${courtReady() ? `<div class="lv-views" role="group" aria-label="How to watch">
         <button type="button" class="lv-view" data-view="text" aria-pressed="false">PLAY-BY-PLAY</button>
@@ -797,8 +798,8 @@
         <button type="button" class="btn btn-small" id="lvSkip">SKIP TO END</button>
       </div>
       <div class="lv-grid" id="lvGrid">
-        <section class="lv-feed-wrap">${UI.header('PLAY-BY-PLAY')}<ol class="pbp lv-feed" id="lvFeed"></ol></section>
-        <section>${UI.header('SCORING')}<div id="lvQ"></div><div class="lv-last" id="lvLast"></div></section>
+        <section class="lv-feed-wrap"><div class="lv-sub">PLAY-BY-PLAY</div><ol class="pbp lv-feed" id="lvFeed"></ol></section>
+        <section><div class="lv-sub">BY QUARTER</div><div id="lvQ"></div><div class="lv-last" id="lvLast"></div></section>
       </div>
       <div id="lvBoxes" class="lv-boxes"></div>
       <div id="lvAfter"></div>`;
@@ -827,6 +828,24 @@
     return `<li class="${ev.score ? 'lv-made' : ''}${ev.team ? '' : ' lv-sys'}">${t}${team}<span class="lv-tx">${esc(body)}</span><span class="lv-sc">${ev.period ? ev.as + '-' + ev.hs : ''}</span></li>`;
   }
 
+  // a run (one team scoring in a row) and lead changes, shown under the score: the moments worth looking up for
+  function momentum(ev) {
+    const m = live.mo || (live.mo = { a: 0, h: 0, team: null, pts: 0, other: 0, lead: 0, changes: 0 });
+    const da = live.as - m.a, dh = live.hs - m.h;
+    m.a = live.as; m.h = live.hs;
+    if (da <= 0 && dh <= 0) return;
+    const side = da > 0 ? 'a' : 'h', pts = da > 0 ? da : dh, abbr = side === 'a' ? live.game.away : live.game.home;
+    if (m.team === side) m.pts += pts; else { m.team = side; m.pts = pts; }
+    const lead = live.as > live.hs ? 'a' : live.hs > live.as ? 'h' : 0;
+    let note = '';
+    if (lead && m.lead && lead !== m.lead) { m.changes++; note = 'LEAD CHANGE | ' + abbr + ' IN FRONT'; }
+    if (lead) m.lead = lead;
+    if (m.pts >= 7) note = abbr + ' ON A ' + m.pts + '-0 RUN';
+    const el = document.getElementById('lvRun');
+    if (el && note) { el.textContent = note; el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+    else if (el && m.pts < 7 && !note && el.textContent && /RUN$/.test(el.textContent)) el.textContent = '';
+  }
+
   let lastBoxDraw = 0;
   function update(ev) {
     if (!live) return;
@@ -839,6 +858,7 @@
     $('lvPer').textContent = live.recorded ? 'FINAL' : periodLabel(live.period);
     $('lvClock').textContent = live.recorded ? '' : live.clock;
     $('lvProg').style.width = Math.min(100, live.elapsed / live.totalSec * 100) + '%';
+    if (ev) momentum(ev);
     if (ev) {
       const feed = $('lvFeed');
       feed.insertAdjacentHTML('afterbegin', feedItem(ev));
@@ -864,6 +884,7 @@
     const ot = Math.max(0, (live.res.quarters || []).length - 4);
     $('lvPer').textContent = 'FINAL' + (ot ? (ot > 1 ? '/' + ot + 'OT' : '/OT') : '');
     $('lvControls').innerHTML = '<span class="lv-ck">GAME OVER</span>';
+    if ($('lvRun')) $('lvRun').textContent = live.mo && live.mo.changes ? live.mo.changes + ' LEAD CHANGE' + (live.mo.changes > 1 ? 'S' : '') : '';
     $('lvControls').hidden = false;
     const g = live.game;
     const user = X.userTeam();

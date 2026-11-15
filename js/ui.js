@@ -249,6 +249,9 @@
       }
     }
     UI.updateChrome();
+    // the top bar's real height (it wraps to two rows on phones), for anything that sticks just under it
+    const tb = document.querySelector('.topbar');
+    if (tb && 'ResizeObserver' in window) new ResizeObserver(() => document.documentElement.style.setProperty('--tb-h', tb.offsetHeight + 'px')).observe(tb);
     window.addEventListener('hashchange', onHash);
     if (!location.hash) history.replaceState(null, '', location.pathname + location.search + '#/home');
     onHash();

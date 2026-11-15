@@ -102,6 +102,7 @@
       user: state.userTeam, rosters: {}, counts: {}, pay: {}, posInfo: {},
       vcache: {}, tvcache: {}, proj: null
     };
+    setEra(state);
     Object.keys(state.teams || {}).forEach(function (a) { ctx.rosters[a] = []; ctx.counts[a] = 0; ctx.pay[a] = 0; });
     var ids = Object.keys(state.players || {});
     for (var i = 0; i < ids.length; i++) {
@@ -224,10 +225,34 @@
   // value grows about 2.7 times every 8 OVR: stars are worth far more than depth
   var CURVE = 8;
   var REPLACEMENT = Math.exp(2 / CURVE);   // a 62 overall is worth nothing above a minimum signing
-  function talentCurve(eff) { return Math.max(0, Math.exp((eff - 60) / CURVE) - REPLACEMENT); }
+  // Ratings are judged against the player's own league, not a fixed scale: older eras rate lower (Mikan is an 86, and a
+  // 1950 bench is far below a modern one). A rating is placed by rank in its league and read off the 2012-13 league at the
+  // same rank (REF: its ratings at every 5th percentile, best first). A league already on the modern scale is left exactly
+  // as it is. Set by makeCtx for the league being valued.
+  var ERA = null, REF = [98, 86, 82, 79, 78, 76, 75, 73, 72, 70, 69, 68, 67, 66, 64, 62, 61, 59, 57, 54, 49];
+  function eraRating(r) {
+    if (!ERA) return r;
+    var q = ERA.q;   // this league's ratings at the same percentiles, best first
+    if (r >= q[0]) return REF[0] + (r - q[0]);
+    if (r <= q[20]) return REF[20] + (r - q[20]);
+    for (var i = 0; i < 20; i++) {
+      if (r <= q[i] && r >= q[i + 1]) { var span = q[i] - q[i + 1], f = span > 0 ? (q[i] - r) / span : 0; return REF[i] + (REF[i + 1] - REF[i]) * f; }
+    }
+    return r;
+  }
+  function setEra(state) {
+    var o = [];
+    Object.keys(state.players || {}).forEach(function (id) { var x = state.players[id]; if (x && !x.retired && state.teams[x.team] && countsOnRoster(state, x)) o.push(x.ovr || 0); });
+    if (o.length < 60) { ERA = null; return; }
+    o.sort(function (a, b) { return b - a; });
+    var q = [], off = 0;
+    for (var i = 0; i <= 20; i++) { q.push(o[Math.min(o.length - 1, Math.round(i / 20 * (o.length - 1)))]); off += Math.abs(q[i] - REF[i]); }
+    ERA = off / 21 < 2 ? null : { q: q };   // within 2 points a percentile on average: the modern scale, untouched
+  }
+  function talentCurve(eff) { return Math.max(0, Math.exp((eraRating(eff) - 60) / CURVE) - REPLACEMENT); }
 
   function marketSalary(r, capRatio) {
-    var x = clamp((r - 60) / 32, 0, 1);
+    var x = clamp((eraRating(r) - 60) / 32, 0, 1);
     return (800000 + 17500000 * x * x) * capRatio;
   }
 

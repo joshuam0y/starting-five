@@ -143,3 +143,31 @@
   .cm-edit-head .hs { width: 70px; }
   .cm-edit-head h3 { font-size: 20px; }
 }
+
+/* the live game on phones: the score stays on screen while you scroll, short team names, small controls */
+.lv-ab { display: none; font-style: normal; }
+.lv-run { grid-column: 1 / -1; text-align: center; font-family: var(--display); font-size: 13px; letter-spacing: .14em; color: var(--gold2); min-height: 0; position: relative; }
+.lv-run:empty { display: none; }
+.lv-run.flash { animation: lvRun 1.2s ease; }
+@keyframes lvRun { 0% { color: #fff; text-shadow: 0 0 12px rgba(245, 215, 110, .7); } 100% { color: var(--gold2); text-shadow: none; } }
+.lv-sub { font-family: var(--display); font-size: 12px; letter-spacing: .2em; color: var(--muted); margin: 0 0 8px; }
+@media (max-width: 700px) {
+  .lv-board { position: sticky; top: var(--tb-h, var(--top-h, 0px)); z-index: 30; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 6px; padding: 8px 10px; margin: 0 0 10px; }
+  .lv-board .logo { --sz: 34px !important; }
+  .lv-team b { display: none; }
+  .lv-ab { display: block; font-family: var(--display); font-weight: 600; font-size: 16px; letter-spacing: .06em; color: #fff; margin-top: 2px; }
+  .lv-team small { font-size: 11px; }
+  .lv-mid { min-width: 0; }
+  .lv-mid .lv-k { display: none; }
+  .lv-score { font-size: 40px; gap: 8px; }
+  .lv-clock { padding: 2px 10px; margin-top: 0; }
+  .lv-clock span { font-size: 16px; }
+  .lv-prog { margin-top: 6px; }
+  .lv-run { font-size: 11px; }
+  .lv-views { margin-bottom: 8px; }
+  .lv-controls { gap: 6px; margin-bottom: 12px; }
+  .lv-controls .btn-small { min-height: 40px; padding: 6px 12px; }
+  .lv-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .lv-feed { max-height: 52vh; }
+  .lv-ft { min-width: 56px; font-size: 11px; }
+}

@@ -156,6 +156,7 @@
     for (let i = 1; i <= 5; i++) out += `<i class="${n >= i ? 'on' : n >= i - 0.5 ? 'half' : ''}">&#9733;</i>`;
     return `<span class="ftx-stars" title="Trade value: ${n} of 5 stars" aria-label="Trade value ${n} of 5 stars">${out}</span>`;
   };
+  F.pickStars = function (st, pk, abbr) { const X = window.TRADE; return X && X.pickStars ? F.try('TRADE.pickStars', () => X.pickStars(st, pk, abbr), null) : null; };
   F.stars = function (st, p) { const X = window.TRADE; return X && X.stars ? F.try('TRADE.stars', () => X.stars(st, p.id), null) : null; };
   F.mini = function (p, opts) {
     opts = opts || {};
@@ -370,7 +371,7 @@
     });
     (g.picks || []).forEach(pk => {
       const x = removable ? `<button type="button" class="ftx-x" data-act="toggle" data-side="${esc(abbr)}" data-kind="pick" data-id="${esc(F.pickKey(pk))}" aria-label="Remove">&times;</button>` : '';
-      items.push(`<li><b class="ft-pk">PICK</b> ${esc(F.pickLabel(pk, abbr))}${mark && mark === F.pickKey(pk) ? '<span class="ftx-addtag">THEY ALSO WANT</span>' : ''}${x}</li>`);
+      items.push(`<li><b class="ft-pk">PICK</b> ${esc(F.pickLabel(pk, abbr))}${F.starsHtml(F.pickStars(st, pk, abbr))}${mark && mark === F.pickKey(pk) ? '<span class="ftx-addtag">THEY ALSO WANT</span>' : ''}${x}</li>`);
     });
     return items.length ? `<ul class="ft-assets">${items.join('')}</ul>` : '<p class="muted ft-nothing">Nothing yet</p>';
   }
@@ -452,7 +453,7 @@
       const ask = isUser ? '' : `<button type="button" class="btn btn-small ftx-ask" data-act="takePick" data-id="${esc(k)}" title="Ask what the ${esc(UI.team(abbr).name)} want for this pick">WHAT WOULD IT TAKE</button>`;
       return `<div class="ftx-prow"><button type="button" class="ft-item ft-pick${on ? ' on' : ''}" data-act="toggle" data-side="${esc(abbr)}" data-kind="pick" data-id="${esc(k)}" aria-pressed="${on}">
         <span class="ft-pick-yr">${ls ? '#' + esc(ls.overall) : esc(pk.year)}<small>${ls ? esc(pk.year) : pk.round === 1 ? '1ST' : '2ND'}</small></span>
-        <span class="ft-main"><b class="ft-name">${esc(F.pickLabel(pk, abbr))}</b>
+        <span class="ft-main"><b class="ft-name">${esc(F.pickLabel(pk, abbr))}</b>${F.starsHtml(F.pickStars(st, pk, abbr))}
           <span class="ft-meta">${meta}</span></span>
         ${UI.logo(pk.original || abbr, 28)}</button>${ask}</div>`;
     }).join('');
