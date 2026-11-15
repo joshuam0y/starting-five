@@ -100,6 +100,13 @@
       el.innerHTML = run && live && run < live
         ? 'VERSION ' + f(run) + ' | NEWEST ' + f(live) + ' <button type="button" class="btn btn-small btn-gold" id="appUpd">UPDATE NOW</button>'
         : 'VERSION ' + f(run || live);
+      // tap the version: what changed in the last five updates (js/whats-new.js)
+      if (window.WHATS_NEW && window.WHATS_NEW.length) el.insertAdjacentHTML('beforeend', ' <button type="button" class="app-new" id="appNew">WHAT\'S NEW</button>');
+      const nw = document.getElementById('appNew');
+      if (nw) nw.addEventListener('click', () => {
+        const list = window.WHATS_NEW.slice(0, 5).map(x => `<li><b>${f(x.v)}</b><span>${UI.esc(x.t)}</span></li>`).join('');
+        UI.choose({ title: "WHAT'S NEW", html: '<ul class="wn-list">' + list + '</ul>', buttons: [{ value: 'ok', label: 'NICE', gold: true }] });
+      });
       const b = document.getElementById('appUpd');
       if (b) b.addEventListener('click', async () => {
         b.disabled = true; b.textContent = 'UPDATING...';

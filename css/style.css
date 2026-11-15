@@ -1037,3 +1037,11 @@ body.no-assoc-nav .navmore-list a[data-nav="settings"], body.no-assoc-nav .navmo
 .fs-opt.on { color: var(--gold2); }
 .fs-opt.on::before { content: '\2713  '; }
 .fs-opt:disabled { opacity: .4; cursor: default; }
+
+/* the version's WHAT'S NEW link and list */
+.app-new { background: none; border: 0; border-bottom: 1px solid var(--gold-dim); color: var(--gold2); font: inherit; letter-spacing: inherit; margin-left: 10px; padding: 6px 0 2px; cursor: pointer; }
+.app-new:hover { color: #fff; }
+.wn-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 10px; text-align: left; }
+.wn-list li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.wn-list b { font-family: var(--display); color: var(--gold2); letter-spacing: .06em; }
+.wn-list span { color: var(--text2); line-height: 1.4; }

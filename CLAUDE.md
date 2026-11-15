@@ -4,6 +4,7 @@ Vanilla JS basketball draft and sim site (no build step). GitHub Pages deploys o
 
 ## Rules
 - Push straight to `main`; keep changes small and fast.
+- On every push that changes something players see, add one plain, player-facing line at the top of `js/whats-new.js` (`v` = the new cache number). The version's WHAT'S NEW panel shows the latest 5.
 - Bump the service worker cache in `sw.js` (`var CACHE = '2k13-vNNN'`) on EVERY push, or phones keep the old copy. The version shown on the menu is that number / 100.
 - No em dashes or en dashes anywhere: code, UI text, commit messages, replies. Use "|", commas or periods.
 - Less words, more meaningful words in the UI.
