@@ -435,6 +435,9 @@
 
   function teamFor(season, league, abbr) {
     const by = rostersBy(league);
+    // the same team the season sim builds (strategy, rotation style, chemistry, playing hurt), so a watched game
+    // plays exactly like a simmed one
+    if (window.ENGINE && window.ENGINE.teamObj) return window.ENGINE.teamObj(season, league, by, abbr);
     const lt = (league.teams || []).find(t => t.abbr === abbr) || null;
     const lineups = season.lineups && season.lineups[abbr];
     return {
@@ -565,6 +568,8 @@
   let autoWatch = false;
   P.live = function (app, arg) {
     if (arg === 'watch') { autoWatch = true; arg = 'next'; }
+    // start fetching the 3D court now, so it is ready by tip-off
+    try { if (window.COURT3D && window.COURT3D.load && window.COURT3D.supported()) window.COURT3D.load().catch(() => {}); } catch (e) { /* 2D then */ }
     if (X.need(app, 'engine season')) return;
     const season = X.season();
     const user = X.userTeam();

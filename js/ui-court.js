@@ -194,6 +194,11 @@
     const kit = kits(tl.home, tl.away, opts.team);
     const abbr = { home: tl.home, away: tl.away };
     const YEAR = +(opts.year || (opts.game && opts.game.year)) || 9999;
+    // where the five stand in a half-court set, by era: the wings out past the arc once there is one, and from
+    // 1994-95 a stretch four in the far corner
+    const SPOTS = YEAR >= 1995 ? [[28.5, 25], [24, 44], [24, 6], [5, 47.5], [7.5, 18]]
+      : YEAR >= 1980 ? [[28, 25], [23.5, 43], [23.5, 7], [15, 34], [7, 18]] : OFF_SPOTS;
+    const LANE_W = YEAR < 1952 ? 6 : YEAR < 1965 ? 12 : 16;
     const info = {};
     SIDES.forEach(side => (game[side].box || []).forEach((r, i) => {
       const p = playerOf ? playerOf(r.id) : null;
@@ -323,16 +328,14 @@
       });
       // man-to-man: in a half-court possession each defender stays between his man and the basket, sliding as his man
       // moves (eased, so it looks like footwork), unless the play itself is moving him (a closeout, a steal, a block)
-      if (st.off && st.on && st.on[st.off] && st.on[other(st.off)] && st.pos) {
-        const O = st.off, h = hoop(O, st.per), os = ordered(st.on[O]), ds = ordered(st.on[other(O)]), k = 0;
+      // (not on free throws: the ball is dead and everyone holds his spot on the lane)
+      if (st.off && st.on && st.on[st.off] && st.on[other(st.off)] && st.pos && !(st.ev && st.ev.k === 'ft')) {
+        const O = st.off, h = hoop(O, st.per), os = ordered(st.on[O]), ds = ordered(st.on[other(O)]);
+        const bh = st.holder && sideOf(st.holder) === O ? out[st.holder] : null, ball = bh || lastBall;
         ds.forEach((dk, i) => {
           const mk2 = os[i] || os[0], man = out[mk2], me = out[dk];
           if (!man || !me || moving[dk]) return;
-          const d = Math.max(0.01, Math.hypot(h[0] - man[0], h[1] - man[1])), gap = Math.min(d * 0.8, Math.max(2.7, d * 0.28));
-          let tx = man[0] + (h[0] - man[0]) / d * gap, ty = man[1] + (h[1] - man[1]) / d * gap;
-          // help: when the ball gets into the paint, the defenders away from it sag toward it
-          const bh = st.holder && sideOf(st.holder) === O ? out[st.holder] : null;
-          if (bh && mk2 !== st.holder && Math.hypot(h[0] - bh[0], h[1] - bh[1]) < 17) { tx += (bh[0] - tx) * 0.3; ty += (bh[1] - ty) * 0.3; }
+          const [tx, ty] = guardSpot(man, h, ball, !!bh && mk2 === st.holder);
           // a target, not a position: he runs back in transition, then slides in his stance
           st.tgt[dk] = [tx, clamp(ty, 0.5, 49.5)];
           const far = Math.hypot(tx - st.pos[dk][0], ty - st.pos[dk][1]);
@@ -541,7 +544,7 @@
         else if (ev.k === 'ft' && ev.a) { const r = row(ev.a); r.ftm += ev.made || 0; r.fta += ev.att || 0; }
         else if ((ev.k === 'oreb' || ev.k === 'dreb') && ev.a) row(ev.a).reb++;
         else if (ev.k === 'tov' && ev.a) { row(ev.a).tov++; if (ev.b && ev.tov === 'steal') row(ev.b).stl++; }
-        else if ((ev.k === 'pf' || ev.k === 'foulout') && ev.a) row(ev.a).pf++;
+        else if (ev.k === 'pf' && ev.a) row(ev.a).pf++;   // a foul-out line is only the notice, the foul itself was counted
         ev.stats.forEach(([key, stat, v]) => { if (stat === 'pts') row(key).pts += v; else if (stat === 'reb' && (ev.k !== 'oreb' && ev.k !== 'dreb')) row(key).reb += v; });
         if (ev.pts && ev.side) { SIDES.forEach(sd => ev.on[sd].forEach(k => { row(k).pm += sd === ev.side ? ev.pts : -ev.pts; })); }
       }
@@ -593,17 +596,24 @@
     function ordered(keys) { return keys.slice().sort((p, q) => rank(p) - rank(q) || idxOf(p) - idxOf(q)); }
     function offenseSet(O, per) {
       const out = {};
-      ordered(st.on[O]).forEach((key, i) => { const s = OFF_SPOTS[i] || OFF_SPOTS[4]; out[key] = at(O, per, s[0] + rnd(-1.5, 1.5), s[1] + rnd(-2, 2)); });
+      ordered(st.on[O]).forEach((key, i) => { const s = SPOTS[i] || SPOTS[4]; out[key] = at(O, per, s[0] + rnd(-1.5, 1.5), s[1] + rnd(-2, 2)); });
       return out;
     }
-    function defenseSet(O, per, off) {
+    // Man-to-man: the man with the ball gets a defender up on him (about 3 feet, toward the basket); everyone else
+    // sits between his man and the basket and sags toward the ball, more the farther his man is from it (help side).
+    function guardSpot(man, h, ball, onBall) {
+      const d = Math.max(0.01, dist(man, h));
+      if (onBall || !ball) { const g = Math.min(d * 0.6, 3.2); return [man[0] + (h[0] - man[0]) / d * g, man[1] + (h[1] - man[1]) / d * g]; }
+      const g = Math.min(d * 0.5, Math.max(2.5, d * 0.18)), p = [man[0] + (h[0] - man[0]) / d * g, man[1] + (h[1] - man[1]) / d * g];
+      const k = clamp(dist(man, ball) / 70, 0.12, 0.42);
+      return [p[0] + (ball[0] - p[0]) * k, p[1] + (ball[1] - p[1]) * k];
+    }
+    function defenseSet(O, per, off, handler) {
       const out = {}, D = other(O), h = hoop(O, per);
-      const os = ordered(st.on[O]), ds = ordered(st.on[D]);
+      const os = ordered(st.on[O]), ds = ordered(st.on[D]), ball = handler ? off[handler] : null;
       ds.forEach((key, i) => {
-        const man = off[os[i]] || off[os[0]];
-        // between his man and the basket, never on top of him
-        const d = Math.max(0.01, dist(man, h)), gap = Math.min(d * 0.8, Math.max(2.7, d * 0.28));
-        out[key] = [man[0] + (h[0] - man[0]) / d * gap + rnd(-0.6, 0.6), man[1] + (h[1] - man[1]) / d * gap + rnd(-0.6, 0.6)];
+        const mk = os[i] || os[0], g = guardSpot(off[mk], h, ball, mk === handler);
+        out[key] = [g[0] + rnd(-0.4, 0.4), g[1] + rnd(-0.4, 0.4)];
       });
       return out;
     }
@@ -624,7 +634,8 @@
       return polar(rnd(24.6, 26.5), rnd(-62, 62));
     }
     function landing(O, per) { return at(O, per, rnd(3.5, 13), rnd(15, 35)); }
-    function drift(form, keys, r) { const out = {}; form = form || {}; keys.forEach(k => { if (form[k]) out[k] = [form[k][0] + rnd(-r, r), clamp(form[k][1] + rnd(-r, r), 1, 49)]; }); return out; }
+    // the offense shifts a little around its spots (the defense is left to guardSpot, which follows the ball)
+    function drift(form, keys, r) { const out = {}; form = form || {}; keys.forEach(k => { if (st.off && sideOf(k) !== st.off) return; if (form[k]) out[k] = [form[k][0] + rnd(-r, r), clamp(form[k][1] + rnd(-r, r), 1, 49)]; }); return out; }
     function huddles() {
       const out = {};
       ['home', 'away'].forEach(side => {
@@ -649,7 +660,7 @@
     function tag(key, text, cls, ttl) { st.tags.push({ key, text, cls, age: 0, ttl: ttl || 1300 }); }
     function tagAt(p, text, cls, ttl) { st.tags.push({ at: p, text, cls, age: 0, ttl: ttl || 1300 }); }
     function ring(p) { st.tags.push({ at: p, ring: true, age: 0, ttl: 600 }); }
-    function pass(B, to, extra) { const from = st.ph; st.ph = to; B.push(Object.assign({ dur: 380 + (from && st.pos[from] && st.pos[to] ? dist(st.pos[from], st.pos[to]) * 9 : 120), ball: { to, arc: 1.2 } }, extra || {})); }
+    function pass(B, to, extra) { const from = st.ph; st.ph = to; B.push(Object.assign({ dur: 240 + (from && st.pos[from] && st.pos[to] ? dist(st.pos[from], st.pos[to]) * 11 : 120), ball: { to, arc: 1 } }, extra || {})); }
 
     // Puts the ball in the hands of side O in its frontcourt. Returns the handler.
     function setUp(O, per, B) {
@@ -673,7 +684,7 @@
       }
       const off = offenseSet(O, per);
       off[h] = at(O, per, rnd(25, 29), rnd(19, 31));
-      const def = defenseSet(O, per, off);
+      const def = defenseSet(O, per, off, h);
       const far = Math.max.apply(null, Object.keys(off).map(k => dist(st.pos[k] || off[k], off[k])));
       B.push({ dur: clamp(far * 30, 700, 2600), move: Object.assign({}, off, def), arrive: [h], near: 4, wait: 2400 });
       st.off = O; st.set = true; st.form = Object.assign({}, off, def); st.playForm = st.form; st.playFormSide = O;
@@ -686,9 +697,10 @@
         const opts2 = keys.filter(k => k !== st.ph && (j < n - 1 || k !== end || n === 1));
         if (!opts2.length) break;
         const to = pick(opts2);
+        if (j) B.push({ dur: rnd(300, 650) });   // the catch: he squares up and looks before the next pass
         pass(B, to, { move: drift(st.form, st.on.home.concat(st.on.away), 1.6) });
       }
-      if (st.ph !== end) pass(B, end, { move: drift(st.form, st.on.home.concat(st.on.away), 1.2) });
+      if (st.ph !== end) { if (n) B.push({ dur: rnd(300, 600) }); pass(B, end, { move: drift(st.form, st.on.home.concat(st.on.away), 1.2) }); }
       return end;
     }
 
@@ -927,10 +939,18 @@
         const D = other(O);
         const line = at(O, per, 19, 25);
         const mv = {}; mv[shooter] = line;
-        const lane = { D: [[7, 16.2], [7, 33.8], [11, 16.2]], O: [[11, 33.8], [14, 16.2]] };
-        ordered(st.on[D]).forEach((key, i) => { const s = lane.D[i]; mv[key] = s ? at(O, per, s[0], s[1]) : at(O, per, rnd(26, 29), i % 2 ? 12 : 38); });
-        ordered(st.on[O]).filter(x => x !== shooter).forEach((key, i) => { const s = lane.O[i]; mv[key] = s ? at(O, per, s[0], s[1]) : at(O, per, rnd(27, 30), i % 2 ? 14 : 36); });
-        B.push({ dur: 1200, pace: 9, move: mv, ball: { to: shooter, arc: 1.2 }, hold: shooter });
+        // the lane: the two defensive bigs on the spaces nearest the rim, two offensive players in the next ones, just
+        // outside the lane lines of the season; everyone else behind the line, a defender behind the shooter
+        const lo = 25 - LANE_W / 2 - 0.9, hi = 25 + LANE_W / 2 + 0.9;
+        const laneD = [[8.5, lo], [8.5, hi]], laneO = [[12.6, hi], [12.6, lo]];
+        const restD = [[28, 25 + rnd(-1, 1)], [25, 9], [25, 41]], restO = [[33, 15], [33, 35]];
+        const inLane = {};
+        ordered(st.on[D]).reverse().forEach((key, i) => { const s = laneD[i] || restD[i - 2] || restD[2]; mv[key] = at(O, per, s[0], s[1]); if (i < 2) inLane[key] = s; });
+        ordered(st.on[O]).filter(x => x !== shooter).reverse().forEach((key, i) => { const s = laneO[i] || restO[i - 2] || restO[1]; mv[key] = at(O, per, s[0], s[1]); if (i < 2) inLane[key] = s; });
+        // nobody shoots until the lane is filled
+        B.push({ dur: 1000, pace: 12, move: mv, ball: { to: shooter, arc: 1.2 }, hold: shooter, arrive: Object.keys(mv), near: 1.5, wait: 3200 });
+        // a miss off the last one: the lane steps in for the rebound
+        const crash = {}; Object.keys(inLane).forEach(k => { const s = inLane[k]; crash[k] = at(O, per, s[0] - 2.5, s[1] + (s[1] < 25 ? 2.5 : -2.5)); });
         const reb = evs[ev.i + 1] && (evs[ev.i + 1].k === 'oreb' || evs[ev.i + 1].k === 'dreb');
         const lastMade = ev.made > 0 && !(reb && ev.made < ev.att);
         // made ones first when the last one misses, missed ones first otherwise
@@ -946,7 +966,7 @@
           } });
           if (!last) B.push({ dur: 420, ball: { to: shooter, arc: 2 }, hold: shooter });
           else if (made) B.push({ dur: 260, ball: { to: at(O, per, HOOP - 1.4, 25), arc: 0, h1: 0.5 }, hold: null });
-          else B.push({ dur: 380, ball: { to: landing(O, per), arc: 2.5 }, hold: null });
+          else B.push({ dur: 380, move: crash, ball: { to: landing(O, per), arc: 2.5 }, hold: null });
         });
         st.ph = null; st.off = lastMade ? null : O; st.set = false; st.form = null;
         return B;
@@ -1147,8 +1167,12 @@
         if (k === st.holder || busy[k] || !st.form[k] || !st.pos[k]) return;
         const v = st.vel[k] || [0, 0];
         if (Math.hypot(v[0], v[1]) > 1.5 || Math.random() > ms / 1400) return;
-        const f = st.form[k];
-        st.tgt[k] = [clamp(f[0] + rnd(-4.5, 4.5), 1, CW - 1), clamp(f[1] + rnd(-5, 5), 1.5, 48.5)];
+        // near his spot, but never crowding the ball: inside 13 feet of the handler he gets out of the way (spacing)
+        const f = st.form[k], bh = st.holder && sideOf(st.holder) === st.off ? st.pos[st.holder] : null;
+        let t = [f[0] + rnd(-3.5, 3.5), f[1] + rnd(-4, 4)];
+        if (bh) { const d = dist(t, bh) || 0.01; if (d < 13) t = [bh[0] + (t[0] - bh[0]) / d * 13, bh[1] + (t[1] - bh[1]) / d * 13]; }
+        const right = attacksRight(st.off, st.per);
+        st.tgt[k] = [clamp(t[0], right ? 49 : 1, right ? CW - 1 : 45), clamp(t[1], 1.5, 48.5)];
         st.top[k] = rnd(12, 19);
       });
     }
@@ -1292,16 +1316,21 @@
     function start3d() {
       if (r3 || r3Loading || camPref === '2d' || !can3d()) return;
       r3Loading = true;
+      // the 3D box (dark, 3D-sized) goes up at once, so the flat court never flashes while three.js loads
+      const stage0 = $('.ct-stage');
+      if (stage0) stage0.classList.add('ct-3d', 'ct-3d-wait');
+      const back2d = () => { const s = $('.ct-stage'); if (s) s.classList.remove('ct-3d', 'ct-3d-wait'); };
       window.COURT3D.load().then(() => {
         r3Loading = false;
-        if (st.dead || r3 || camPref === '2d') return;
+        if (st.dead || r3 || camPref === '2d') { if (!r3) back2d(); return; }
         const stage = $('.ct-stage');
         stage.classList.add('ct-3d');
         try { r3 = window.COURT3D.create(stage, cfg3()); }
-        catch (e) { console.warn('[court] 3D failed, staying in 2D', e); stage.classList.remove('ct-3d'); r3 = null; return; }
+        catch (e) { console.warn('[court] 3D failed, staying in 2D', e); back2d(); r3 = null; return; }
         r3.resize();
         render(0); wake();
-      }).catch(e => { r3Loading = false; console.warn('[court] 3D not available', e); });
+        stage.classList.remove('ct-3d-wait');
+      }).catch(e => { r3Loading = false; back2d(); console.warn('[court] 3D not available', e); });
     }
     function stop3d(broken) {
       if (r3) { try { r3.destroy(); } catch (e) { /* gone */ } r3 = null; }
@@ -1356,8 +1385,8 @@
       st.per = evs[start].per;
       const O = SIDES.find(s => s === evs[start].side) || 'home';
       const off = offenseSet(O, st.per);
-      Object.assign(st.pos, off, defenseSet(O, st.per, off));
       st.holder = ordered(st.on[O])[0];
+      Object.assign(st.pos, off, defenseSet(O, st.per, off, st.holder));
       st.off = O; st.set = true; st.form = Object.assign({}, st.pos);
       if (evs[start].k === 'pf') { st.off = other(O); }
       drawLine(evs[start - 1]);

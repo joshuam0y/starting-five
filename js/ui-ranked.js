@@ -852,6 +852,13 @@
     save(st.done);
     draw(app, era, day, st, byId, key, house, save);
   }
+  // the owner's play counter (theme_plays in Supabase): one tick per finished game, daily or archive, never shown on the site
+  function countPlay(key, kind, theme, title) {
+    if (!theme) return;
+    const ck = 'a13-ct-' + key;
+    try { if (localStorage.getItem(ck)) return; localStorage.setItem(ck, '1'); } catch (e) { return; }
+    try { Promise.resolve(UI.profile.rpc('count_play', { p_theme: String(theme), p_kind: kind, p_title: String(title || '') })).catch(() => {}); } catch (e) { /* before the latest SQL */ }
+  }
   function draw(app, era, day, st, byId, key, house, save) {
     const A = st.o, per = st.per, money = n => '$' + n;
     const sideBox = (i, name) => {
@@ -863,6 +870,7 @@
     const hdr = `<div class="ch-top"><div><div class="ch-top-k">${isPr ? prTag(day) : 'DAILY #' + dayNo(day) + ' | ' + esc(day)} | ${esc(TH.title)}</div><div class="ch-top-t">${st.done ? 'YOUR FIVE IS SET' : 'PLAYER ' + (st.i + 1) + ' OF ' + st.ids.length}</div></div><span class="ch-top-acts">${st.done ? '' : '<button type="button" class="btn btn-small" id="aucHelp" aria-label="How to play">RULES</button>'}<a class="btn btn-small" href="${isPr ? '#/daily/practice' : '#/daily'}">BACK</a></span></div>`;
     if (st.done) {
       stopClock();
+      countPlay(key, isPr ? 'practice' : 'daily', TH.key || prKey, TH.title);
       const five = st.won[0].map(id => byId[id]), score = UI.ranked.lineupScore(five), houseFive = st.won[1].map(id => byId[id]), hs = UI.ranked.lineupScore(houseFive);
       const perfectScore = dailyPerfect(era, day);
       const pct = score != null && perfectScore > 0 ? Math.min(100, 100 * score / perfectScore) : null;

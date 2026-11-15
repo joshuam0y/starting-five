@@ -886,7 +886,9 @@
     }
 
     function foulOutCheck(team, s) {
-      if (s.fouls >= 6 && !s.out && !team.iron) { s.out = true; log(team, s.name + ' fouls out', PBX.FOULOUT, s); }
+      // off the floor right away (as an injury is), not at the next dead ball: a missed last free throw keeps the
+      // ball live, and he could foul a seventh time before then
+      if (s.fouls >= 6 && !s.out && !team.iron) { s.out = true; log(team, s.name + ' fouls out', PBX.FOULOUT, s); chooseLineup(team, false); }
     }
 
     function shootFT(off, shooter, count) {
@@ -2203,6 +2205,7 @@
 
   var ENGINE = {
     version: 1,
+    teamObj: teamObj,
     newSeason: newSeason,
     realSchedule: realSchedule,
     buildSchedule: buildSchedule,

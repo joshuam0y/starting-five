@@ -560,3 +560,21 @@ language sql security definer set search_path = public as $$
   group by p.username order by sum(d.pct) desc, count(*) asc, p.username
 $$;
 grant execute on function public.lb_daily_week_friends() to authenticated;
+
+-- the owner's play counter: how many times each theme was played, as the daily and in the practice archive.
+-- Nobody can read it from the site (no select policy); see it in the SQL editor:
+--   select title, sum(n) as plays, sum(n) filter (where kind = 'daily') as daily, sum(n) filter (where kind = 'practice') as archive
+--   from public.theme_plays group by title order by plays desc;
+create table if not exists public.theme_plays (
+  theme text not null, kind text not null check (kind in ('daily', 'practice')), title text, n bigint not null default 0,
+  last_at timestamptz not null default now(), primary key (theme, kind)
+);
+alter table public.theme_plays enable row level security;
+create or replace function public.count_play(p_theme text, p_kind text, p_title text default null) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if p_theme is null or length(p_theme) > 80 or p_kind not in ('daily', 'practice') then return; end if;
+  insert into public.theme_plays (theme, kind, title, n) values (p_theme, p_kind, left(p_title, 80), 1)
+  on conflict (theme, kind) do update set n = theme_plays.n + 1, last_at = now(), title = coalesce(excluded.title, theme_plays.title);
+end $$;
+grant execute on function public.count_play(text, text, text) to anon, authenticated;

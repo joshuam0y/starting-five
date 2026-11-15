@@ -244,6 +244,7 @@ body.ct-full-on { overflow: hidden; }
 /* 3D view (js/court3d.js) */
 .ct-stage.ct-3d { aspect-ratio: 16 / 9; background: #060609; overflow: hidden; }
 .ct-stage.ct-3d .ct-svg { display: none; }
+.ct-stage.ct-3d-wait::after { content: 'LOADING COURT'; position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); letter-spacing: .14em; color: var(--gold-dim, #8a7a4a); font-size: 13px; }
 .ct-gl, .ct-gl-over { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .ct-gl { touch-action: manipulation; cursor: pointer; }
 .ct-gl-over { pointer-events: none; }
