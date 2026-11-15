@@ -1326,3 +1326,14 @@ a.pr-i:hover { border-color: var(--gold); }
 .ch-paid.sm { font-size: 11px; padding: 1px 5px; margin: 0 4px; vertical-align: 1px; }
 .vs-code { font: inherit; font-family: var(--display); font-weight: 700; letter-spacing: .14em; color: var(--gold2); background: var(--bg3); border: 1px dashed var(--gold-dim); padding: 2px 8px; margin: 0 4px; cursor: pointer; }
 .vs-code:hover { border-color: var(--gold); }
+
+/* the rating of the player up for bid, big, beside his name; the tutorial's example player */
+.auc-nm { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.auc-nm h2 { margin: 3px 0 4px; min-width: 0; }
+.auc-ovr { font-size: clamp(22px, 3vw, 30px); min-width: 1.9em; padding: 3px 6px; line-height: 1.1; flex: 0 0 auto; }
+.tour-ex { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border: 1px solid var(--gold); background: linear-gradient(120deg, #1a1a1a, #0b0b0b 70%); text-align: left; }
+.tour-ex .ch-ovr { font-size: 30px; min-width: 1.9em; padding: 3px 6px; line-height: 1.1; }
+.tour-ex span { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.tour-ex span b { font-family: var(--display); font-size: 20px; letter-spacing: .03em; color: #fff; }
+.tour-ex span small, .tour-ex em small { font-family: var(--display); font-size: 11px; letter-spacing: .14em; color: var(--muted); }
+.tour-ex em { font-style: normal; display: flex; flex-direction: column; align-items: flex-end; font-family: var(--display); font-size: 22px; color: var(--gold2); }

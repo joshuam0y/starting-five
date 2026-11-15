@@ -468,3 +468,30 @@ i.m-great { background: var(--gold2); } i.m-good { background: #8fcf6a; } i.m-ok
 /* jersey numbers */
 .fr-num { font-family: var(--display); color: var(--gold); font-weight: 600; margin-right: 2px; }
 .pk-num { font-family: var(--display); color: var(--gold2); letter-spacing: .04em; margin-left: 6px; }
+
+/* ---------- #/finances (js/ui-finances.js) ---------- */
+.fin-years { margin: 4px 0 12px; }
+.fin-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }
+.fin-bar select { min-width: 220px; }
+.fin-lines { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: baseline; margin: 0 0 12px; padding: 10px 14px; background: var(--bg2); border: 1px solid var(--line); }
+.fin-lines span { display: flex; flex-direction: column; gap: 2px; }
+.fin-lines small { font-family: var(--display); font-size: 11px; letter-spacing: .14em; color: var(--muted); }
+.fin-lines b { font-family: var(--display); font-size: 18px; letter-spacing: .03em; color: #fff; }
+.fin-lines em { font-style: normal; font-size: 12px; color: var(--muted); align-self: center; }
+.fin-table td.l a { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); letter-spacing: .03em; }
+.fin-st { display: inline-block; font-family: var(--display); font-size: 11px; letter-spacing: .1em; padding: 2px 7px; border-radius: 2px; color: #111; }
+.fin-room { background: #5fc46a; } .fin-over { background: #c9c9cf; } .fin-tax { background: #e3b341; } .fin-a1 { background: #ef8a3c; } .fin-a2 { background: #e5534b; color: #fff; }
+.fin-pos { color: #7ed58a; } .fin-neg { color: #ff8a80; }
+.fin-grid td { min-width: 92px; }
+.fin-grid td.fin-empty { background: transparent; }
+.fin-grid td.fin-last { box-shadow: inset 0 0 0 1px var(--gold-dim); }
+.fin-grid td.fin-off { color: var(--muted); }
+.fin-tag { font-style: normal; font-family: var(--display); font-size: 10px; letter-spacing: .08em; margin-left: 5px; padding: 1px 4px; border-radius: 2px; color: #111; vertical-align: 1px; }
+.fin-player { background: #6cb6ff; } .fin-team { background: #e3b341; } .fin-eto { background: #c297ff; } .fin-tw { background: #8b8b93; }
+.fin-grid tr.fin-dead td { color: #ff8a80; font-style: italic; }
+.fin-grid tfoot tr.fin-line td { font-weight: 400; color: var(--text2); background: #000; border-top: 0; }
+.fin-note { margin-top: 10px; font-size: 13px; }
+/* the name column stays put while the seasons scroll sideways */
+.fin-table th.l, .fin-table td.l { position: sticky; left: 0; z-index: 1; background: var(--bg2); }
+.fin-table thead th.l, .fin-table tfoot td.l { background: #000; }
+@media (max-width: 560px) { .fin-grid td.l small { display: none; } .fin-grid td { min-width: 76px; } .fin-table th.l, .fin-table td.l { max-width: 132px; overflow: hidden; text-overflow: ellipsis; } }

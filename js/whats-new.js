@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 360, t: 'Finances: every payroll and contract by season. Better looking players on the court, a bigger rating in the Daily, and an example in How to Play.' },
   { v: 358, t: 'Daily shares: a clean link, and your rank only once 25 people have played that day.' },
   { v: 354, t: 'Timeouts, technicals, flagrants and ejections, energy bars under every player, blocks that hit the hand, a smarter shot clock.' },
   { v: 352, t: 'Real free throw lineups, defense that follows the ball, crisper passing, no foul-out bugs, no flash when a game loads.' },

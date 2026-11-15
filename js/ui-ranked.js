@@ -933,7 +933,7 @@
         <main class="auc-stage">
           ${UI.timerBar(st.until, DAILY_CLOCK)}
           <section class="auc-card"><div class="auc-face">${UI.faceImg(cur, '#555')}</div>
-            <div class="auc-info"><small>UP FOR BID</small><h2>${esc(cur.name)}</h2><p>${esc(C.posLabel(cur))}${cur.season ? ' | \'' + String(cur.season - 1).slice(2) + '-\'' + String(cur.season).slice(2) : ''} | <b class="ch-ovr ${UI.ovrClass(cur.ovr)}">${esc(cur.ovr)}</b></p></div>
+            <div class="auc-info"><small>UP FOR BID</small><div class="auc-nm"><b class="ch-ovr auc-ovr ${UI.ovrClass(cur.ovr)}" title="Rating">${esc(cur.ovr)}</b><h2>${esc(cur.name)}</h2></div><p>${esc(C.posLabel(cur))}${cur.season ? ' | \'' + String(cur.season - 1).slice(2) + '-\'' + String(cur.season).slice(2) : ''}</p></div>
             <div class="auc-price"><small>${st.holder === 0 ? 'YOU HOLD' : 'THE HOUSE HOLDS'}</small><b>${money(st.price)}</b></div></section>
           ${mine && !canRaise ? `<div class="auc-bid"><div class="auc-broke"><b>YOU CAN'T TOP ${money(st.price)}</b><span>You have ${money(A.budget - st.spent[0])}${per - st.won[0].length > 1 ? ' and must keep ' + money((per - st.won[0].length - 1) * A.start) + ' for your other open spots' : ''}, so the most you can bid is ${money(Math.max(0, max))}.</span></div><div class="auc-go"><button type="button" class="btn btn-big" disabled>BID<small>can't top ${money(st.price)}</small></button><button type="button" class="btn btn-gold btn-big" id="aucPass">PASS<small>${st.holder === 0 ? 'You get him' : 'The house gets him'} for ${money(st.price)}</small></button></div></div>` : `
           <div class="auc-bid"><div class="auc-maxline">YOUR MAX BID IS <b>${money(max)}</b></div><div class="auc-step"><button type="button" class="btn" id="aucDown"${DB.amt - A.raise < min ? ' disabled' : ''}>&minus;</button><div class="auc-amt"><small>YOUR BID</small><b>${money(DB.amt)}</b></div><button type="button" class="btn" id="aucUp"${DB.amt + A.raise > max ? ' disabled' : ''}>+</button></div>
@@ -1231,6 +1231,9 @@
   const DTOUR = [
     ['THE GOAL', "Build the best five from today's ten players. You're scored against the best five possible."],
     ['HOW TO BID', 'Ten players come up one at a time, starting at $1. Raise the bid, or pass and the house gets him at the current price.'],
+    // an example player, as he shows up in the auction: the big number is what to read first
+    ['READ THE RATING', 'The big number is his rating: higher is better. Bid more for the stars you want. Pass on the rest, but every player you pass goes to the house, and its five is the one you have to beat.',
+      () => `<div class="tour-ex"><b class="ch-ovr ${UI.ovrClass(88)}">88</b><span><b>PAUL GEORGE</b><small>SF | '13-'14 PACERS</small></span><em><small>PRICE</small>$4</em></div>`],
     ['BUDGET AND CLOCK', '$20 total, five spots, 24 seconds a bid. Keep $1 for every spot you still need to fill.'],
     ['YOUR SCORE', 'Your score is a percent of the best five. 100% means you picked exactly those five. One try a day.']
   ];
@@ -1245,7 +1248,7 @@
       const [t, p] = S.slides[i], last = i === S.slides.length - 1;
       el.innerHTML = `<div class="rk-tour-b"><small>${S.label} | ${i + 1} OF ${S.slides.length}</small>
         ${S.icons && i === 4 ? `<div class="rk-tour-ic">${[0, 3, 6, 9, 12, 13, 14, 15, 16, 17].map(k => iconSvg(TIERS[k] || TIERS[TIERS.length - 1], 36)).join('')}</div>` : ''}
-        <h2>${esc(t)}</h2><p>${esc(p)}</p>
+        <h2>${esc(t)}</h2>${typeof S.slides[i][2] === 'function' ? S.slides[i][2]() : ''}<p>${esc(p)}</p>
         <div class="rk-tour-dots">${S.slides.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
         <div class="rk-tour-go">${i ? '<button type="button" class="btn" id="tBack">BACK</button>' : '<button type="button" class="btn" id="tSkip">SKIP</button>'}<button type="button" class="btn btn-gold btn-big" id="tNext">${last ? 'GOT IT' : 'NEXT'}</button></div></div>`;
       const nx = el.querySelector('#tNext'), bk = el.querySelector('#tBack'), sk = el.querySelector('#tSkip');

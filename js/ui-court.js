@@ -911,7 +911,7 @@
         else B.push({ dur: 200, move: Object.assign({ [shooter]: spot }, blk ? { [blk]: meet } : {}), arrive: need, near: 1.5, wait: 1400 });
         const riseMove = Object.assign({}, closeout); if (dunk) riseMove[shooter] = [spot[0] + (h[0] - spot[0]) * 0.35, spot[1] + (h[1] - spot[1]) * 0.35];
         if (blk) riseMove[blk] = meet;
-        B.push({ dur: rise, move: riseMove, at0: () => { tag(shooter, label, 'kind', rise + dur + 200); act(shooter, dunk ? 'dunk' : 'shoot', dunk ? rise + dur * 1.6 : rise * 2.6); if (dfd) act(dfd, 'contest', rise + dur); } });
+        B.push({ dur: rise, move: riseMove, at0: () => { tag(shooter, label, 'kind', rise + dur + 200); act(shooter, dunk ? 'dunk' : near ? 'layup' : 'shoot', dunk ? rise + dur * 1.6 : near ? rise + dur : rise * 2.6); if (dfd) act(dfd, 'contest', rise + dur); } });
         st.ph = null;
         if (k === 'make') {
           const fouler = ev.c;

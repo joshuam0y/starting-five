@@ -187,12 +187,14 @@
       box: (a, b, c) => keep(new T.BoxGeometry(a, b, c))
     };
     const geo = {
-      thigh: G.cyl(0.24, 0.19, 1.6), shin: G.cyl(0.18, 0.13, 1.55), shoe: G.box(0.62, 0.28, 0.34),
-      shorts: G.cyl(0.6, 0.66, 1.0, 14), torso: G.cyl(0.66, 0.52, 2.2, 14), upper: G.cyl(0.15, 0.13, 1.2), fore: G.cyl(0.13, 0.11, 1.15),
-      hand: G.sph(0.17, 8, 6), neck: G.cyl(0.17, 0.19, 0.4), head: G.sph(0.43, 14, 12), hair: keep(new T.SphereGeometry(0.445, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2.1)),
+      thigh: G.cyl(0.27, 0.2, 1.6), shin: G.cyl(0.2, 0.12, 1.55), knee: G.sph(0.2, 10, 8), sock: G.cyl(0.135, 0.13, 0.42),
+      shoe: G.box(0.74, 0.3, 0.38), sole: G.box(0.78, 0.08, 0.4),
+      shorts: G.cyl(0.66, 0.76, 1.18, 16), stripe: G.box(0.05, 1.1, 0.12), torso: G.cyl(0.74, 0.56, 2.2, 16), shoulder: G.sph(0.25, 10, 8),
+      upper: G.cyl(0.21, 0.16, 1.2), elbow: G.sph(0.16, 8, 6), fore: G.cyl(0.16, 0.12, 1.1),
+      hand: G.sph(0.19, 10, 8), neck: G.cyl(0.18, 0.2, 0.4), head: G.sph(0.43, 16, 12), hair: keep(new T.SphereGeometry(0.445, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2.1)),
       hit: G.cyl(1.5, 1.5, 7.5, 8), ring: keep(new T.RingGeometry(1.25, 1.6, 28)), num: keep(new T.PlaneGeometry(0.95, 0.95))
     };
-    const skin = mat(SKIN), hairM = mat('#141416'), hitM = keep(new T.MeshBasicMaterial({ visible: false }));
+    const skin = mat(SKIN), hairM = mat('#141416'), sockM = mat('#f1f1f1'), soleM = mat('#e9e9e9'), hitM = keep(new T.MeshBasicMaterial({ visible: false }));
     const ringM = { ball: keep(new T.MeshBasicMaterial({ color: 0xf5d76e, transparent: true, opacity: 0.55, side: T.DoubleSide })), sel: keep(new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8, side: T.DoubleSide })) };
     const kitM = {};
     ['home', 'away'].forEach(side => { const k = cfg.kit[side]; kitM[side] = { jersey: mat(k.fill), trim: mat(k.ring), shoe: mat(side === 'home' ? '#f2f2f2' : '#151515') }; });
@@ -221,13 +223,20 @@
       const inf = cfg.info[key], km = kitM[inf.side];
       const root = new T.Group(), body = new T.Group();
       root.add(body);
+      // legs: thigh, knee, calf, a white sock and a sneaker on a sole
       const legs = [0.34, -0.34].map(z => {
         const L = limb(body, geo.thigh, geo.shin, skin, skin, 1.6, 1.55, [0, 3.3, z]);
-        const shoe = new T.Mesh(geo.shoe, km.shoe); shoe.position.set(0.14, -1.62, 0); L.joint.add(shoe);
+        const knee = new T.Mesh(geo.knee, skin); L.joint.add(knee);
+        const sock = new T.Mesh(geo.sock, sockM); sock.position.y = -1.28; L.joint.add(sock);
+        const shoe = new T.Mesh(geo.shoe, km.shoe); shoe.position.set(0.16, -1.6, 0); L.joint.add(shoe);
+        const sole = new T.Mesh(geo.sole, soleM); sole.position.set(0.17, -1.77, 0); L.joint.add(sole);
         return L;
       });
-      const shorts = new T.Mesh(geo.shorts, km.jersey); shorts.position.y = 3.05; body.add(shorts);
-      const torso = new T.Mesh(geo.torso, km.jersey); torso.position.y = 4.4; torso.scale.x = 0.66; body.add(torso);
+      // baggy shorts with a stripe down each side, a tank top over a chest wider at the shoulders
+      const shorts = new T.Mesh(geo.shorts, km.jersey); shorts.position.y = 3.0; shorts.scale.x = 0.82; body.add(shorts);
+      [0.72, -0.72].forEach(z => { const st2 = new T.Mesh(geo.stripe, km.trim); st2.position.set(0, 3.0, z); body.add(st2); });
+      const torso = new T.Mesh(geo.torso, km.jersey); torso.position.y = 4.4; torso.scale.x = 0.62; body.add(torso);
+      [0.74, -0.74].forEach(z => { const sh = new T.Mesh(geo.shoulder, skin); sh.position.set(0, 5.28, z); body.add(sh); });
       const band = new T.Mesh(G.cyl(0.62, 0.62, 0.14, 14), km.trim); band.position.y = 3.52; band.scale.x = 0.7; body.add(band);
       // the number, front (smaller) and back, in the trim color
       if (inf.num) {
@@ -237,12 +246,15 @@
         const front = new T.Mesh(geo.num, nm); front.position.set(0.4, 4.6, 0); front.rotation.y = Math.PI / 2; front.scale.set(0.62, 0.62, 1); body.add(front);
       }
       const arms = [0.78, -0.78].map(z => {
-        const A = limb(body, geo.upper, geo.fore, skin, skin, 1.2, 1.15, [0, 5.3, z]);
-        const hand = new T.Mesh(geo.hand, skin); hand.position.y = -1.2; A.joint.add(hand);
+        const A = limb(body, geo.upper, geo.fore, skin, skin, 1.2, 1.1, [0, 5.3, z]);
+        const elbow = new T.Mesh(geo.elbow, skin); A.joint.add(elbow);
+        const wrist = new T.Group(); wrist.position.y = -1.1; A.joint.add(wrist);   // the wrist turns for the flick on a jumper
+        const hand = new T.Mesh(geo.hand, skin); hand.position.y = -0.14; hand.scale.set(1, 1.15, 0.7); wrist.add(hand);
+        A.wrist = wrist;
         A.hand = hand; return A;
       });
       const neck = new T.Mesh(geo.neck, skin); neck.position.y = 5.65; body.add(neck);
-      const head = new T.Mesh(geo.head, skin); head.position.y = 6.12; body.add(head);
+      const head = new T.Mesh(geo.head, skin); head.position.y = 6.12; head.scale.y = 1.08; body.add(head);
       const hair = new T.Mesh(geo.hair, hairM); hair.position.y = 6.14; body.add(hair);
       const hit = new T.Mesh(geo.hit, hitM); hit.position.y = 3.6; hit.userData.key = key; root.add(hit);
       const ring = new T.Mesh(geo.ring, ringM.ball); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.04; ring.visible = false; root.add(ring);
@@ -350,40 +362,74 @@
       const d = Math.atan2(Math.sin(want - f.ang), Math.cos(want - f.ang));
       f.ang += d * smooth(dt, 160);
       R.rotation.y = -f.ang;
-      // the run: legs and arms swing with speed
-      const side = p.vx != null && run0 > 1 ? Math.abs(Math.sin(Math.atan2(p.vy, p.vx) - f.ang)) : 0;
-      const run = clamp(f.speed / 14, 0, 1) * (1 - side * 0.55);
-      f.ph += (dt || 16) / 1000 * (3 + f.speed * 0.55);
-      const swing = Math.sin(f.ph) * 0.95 * run;
-      const crouch = p.def && run < 0.4 ? 0.28 : 0.1;
-      f.legs[0].top.rotation.z = swing + crouch; f.legs[1].top.rotation.z = -swing + crouch;
-      f.legs[0].joint.rotation.z = -Math.max(0, Math.sin(f.ph)) * 1.1 * run - crouch * 1.6;
-      f.legs[1].joint.rotation.z = -Math.max(0, -Math.sin(f.ph)) * 1.1 * run - crouch * 1.6;
-      B.position.y = -crouch * 0.9 + Math.abs(Math.cos(f.ph)) * 0.18 * run;
-      B.rotation.z = -0.12 * run;
-      let aL = [-swing * 0.8, -0.12, -0.35], aR = [swing * 0.8, 0.12, -0.35];   // [forward, out, elbow]
-      if (p.def && run < 0.5) { aL = [0.5, -0.75, -0.4]; aR = [0.5, 0.75, -0.4]; }   // the defensive stance: hands out
-      let jump = 0;
+      // the run: a forward lean, knees up, arms swinging bent at the elbow; a defender sliding sideways keeps a wide stance
+      const mvAng = p.vx != null && run0 > 1 ? Math.atan2(p.vy, p.vx) : null;
+      const side = mvAng != null ? Math.abs(Math.sin(mvAng - f.ang)) : 0;
+      const slide = p.def && side > 0.55 && run0 > 2 && run0 < 16;
+      const run = clamp(f.speed / 14, 0, 1) * (slide ? 0.25 : 1 - side * 0.55);
+      f.ph += (dt || 16) / 1000 * (3 + f.speed * (slide ? 0.75 : 0.55));
+      const swing = Math.sin(f.ph) * 1.0 * run;
+      const handler = p.hold && !S.ball.flight;
+      let crouch = p.def && run < 0.4 ? 0.3 : handler ? 0.24 : 0.1;
+      let lx = slide ? 0.22 + Math.abs(Math.sin(f.ph)) * 0.22 : 0;   // legs out to the side (a slide)
+      let l0z = swing + crouch, l1z = -swing + crouch;
+      let k0 = -Math.max(0, Math.sin(f.ph)) * 1.35 * run - crouch * 1.6, k1 = -Math.max(0, -Math.sin(f.ph)) * 1.35 * run - crouch * 1.6;
+      let bodyY = -crouch * 0.9 + Math.abs(Math.cos(f.ph)) * 0.2 * run;
+      B.rotation.z = -0.2 * run - (handler ? 0.1 : 0);
+      const elb = -0.35 - 1.1 * run;
+      let aL = [-swing * 0.85, -0.12, elb], aR = [swing * 0.85, 0.12, elb];   // [forward, out, elbow]
+      if (p.def && run < 0.5) { aL = [0.5, -0.8, -0.45]; aR = [0.5, 0.8, -0.45]; }   // the defensive stance: hands out
+      let jump = 0, flick = 0;
       const A = p.act;
       if (A) {
         const t = A.f, up = clamp(t / 0.35, 0, 1), arc = Math.sin(Math.PI * clamp(t, 0, 1));
-        if (A.k === 'shoot') { jump = arc * 1.5; aL = [lerp(0, 2.7, up), -0.15, -lerp(0, 1.2, up) * (1 - t)]; aR = [lerp(0, 2.9, up), 0.1, -lerp(0, 1.4, up) * (1 - t)]; }
-        else if (A.k === 'dunk') { jump = arc * 3.2; aL = [lerp(0.4, 2.6, up), -0.2, -0.2]; aR = [lerp(0.4, 3.0, up), 0.05, -0.1]; }
-        else if (A.k === 'contest') { jump = Math.sin(Math.PI * clamp((t - 0.2) / 0.8, 0, 1)) * 1.2; aL = [2.4, -0.3, -0.1]; aR = [2.8, 0.1, -0.1]; }
-        else if (A.k === 'block') { jump = arc * 2.6; aL = [2.7, -0.3, 0]; aR = [3.0, 0.1, 0]; }
-        else if (A.k === 'jump') { jump = arc * 2.2; aL = [2.8, -0.25, -0.2]; aR = [2.8, 0.25, -0.2]; }
-        else if (A.k === 'ft') { jump = Math.max(0, Math.sin(Math.PI * clamp((t - 0.3) / 0.5, 0, 1))) * 0.3; aL = [lerp(0.6, 2.6, up), -0.2, -lerp(1.4, 0.2, up)]; aR = [lerp(0.6, 2.8, up), 0.1, -lerp(1.6, 0.2, up)]; }
+        B.rotation.z = 0;
+        if (A.k === 'shoot') {
+          // dip, rise, release at the top with a flick of the wrist, hold the follow-through
+          const dip = t < 0.22 ? Math.sin(t / 0.22 * Math.PI) * 0.55 : 0, rise = clamp((t - 0.15) / 0.85, 0, 1);
+          jump = Math.sin(Math.PI * rise) * 1.5;
+          l0z = l1z = crouch + dip; k0 = k1 = -crouch * 1.6 - dip * 1.9 - (jump > 0.2 ? 0.25 : 0); bodyY -= dip * 0.45;
+          const lift = clamp((t - 0.12) / 0.3, 0, 1);
+          aL = [lerp(0.6, 2.6, lift), -0.18, -lerp(1.5, 0.4, lift)]; aR = [lerp(0.6, 2.95, lift), 0.08, -lerp(1.7, 0.1, lift)];
+          flick = t > 0.48 ? -1.25 * clamp((t - 0.48) / 0.12, 0, 1) : 0.5 * lift;
+        } else if (A.k === 'layup') {
+          // off one foot: the near knee drives up, the ball hand reaches for the rim, the other arm shields
+          jump = arc * 2.4;
+          l0z = -0.35; k0 = -0.5; l1z = 1.5 * up; k1 = -1.7 * up;
+          aR = [lerp(0.8, 3.05, up), 0.12, -lerp(1.2, 0.05, up)]; aL = [1.1, -0.55, -0.9];
+          flick = t > 0.5 ? -0.8 : 0;
+        } else if (A.k === 'dunk') {
+          // up, a hang on the rim at the top, then down
+          const r2 = t < 0.45 ? Math.sin(t / 0.45 * Math.PI / 2) : t < 0.72 ? 1 : Math.cos((t - 0.72) / 0.28 * Math.PI / 2);
+          jump = r2 * 3.2; l0z = l1z = 0.35 * r2; k0 = k1 = -1.1 * r2;
+          aL = [lerp(0.4, 2.9, up), -0.2, -0.15]; aR = [lerp(0.4, 3.05, up), 0.05, -0.1];
+          if (t > 0.45 && t < 0.72) { aL[0] = 2.7; aR[0] = 2.75; }
+        } else if (A.k === 'contest') { jump = Math.sin(Math.PI * clamp((t - 0.2) / 0.8, 0, 1)) * 1.2; aL = [2.4, -0.3, -0.1]; aR = [2.8, 0.1, -0.1]; }
+        else if (A.k === 'block') {
+          // both arms up, then the block hand swats down through the ball
+          jump = arc * 2.6; l0z = l1z = 0.2; k0 = k1 = -0.5 * arc;
+          aL = [2.7, -0.3, 0]; aR = [t < 0.5 ? 3.05 : lerp(3.05, 1.9, clamp((t - 0.5) / 0.2, 0, 1)), 0.1, 0];
+        } else if (A.k === 'jump') {
+          // a rebound: two hands up for it, then pulled into the chest
+          jump = arc * 2.2; k0 = k1 = -0.6 * arc;
+          if (t < 0.55) { aL = [2.85, -0.25, -0.2]; aR = [2.85, 0.25, -0.2]; } else { aL = [1.1, -0.35, -1.7]; aR = [1.1, 0.35, -1.7]; }
+        }
+        else if (A.k === 'ft') { jump = Math.max(0, Math.sin(Math.PI * clamp((t - 0.3) / 0.5, 0, 1))) * 0.3; const dip = t < 0.3 ? Math.sin(t / 0.3 * Math.PI) * 0.35 : 0; k0 = k1 = -crouch * 1.6 - dip * 1.6; l0z = l1z = crouch + dip; aL = [lerp(0.6, 2.6, up), -0.2, -lerp(1.4, 0.2, up)]; aR = [lerp(0.6, 2.85, up), 0.1, -lerp(1.6, 0.1, up)]; flick = t > 0.55 ? -1.2 : 0; }
         else if (A.k === 'cheer') { jump = Math.abs(Math.sin(t * Math.PI * 3)) * 0.8; aL = [2.9, -0.5, 0]; aR = [2.9, 0.5, 0]; }
-      } else if (p.hold && !S.ball.flight) {
-        // dribbling with the right hand
+      } else if (handler) {
+        // dribbling with the right hand, low
         const db = Math.abs(Math.cos(f.ph * 0.75 + 0.6));
         aR = [0.55 + db * 0.35, 0.35, -0.5 - db * 0.4];
+        flick = -0.3 * db;
       }
-      B.position.y += jump / f.s;
+      f.legs[0].top.rotation.set(lx, 0, l0z); f.legs[1].top.rotation.set(-lx, 0, l1z);
+      f.legs[0].joint.rotation.z = k0; f.legs[1].joint.rotation.z = k1;
+      B.position.y = bodyY + jump / f.s;
       f.shadow.material.opacity = clamp(0.62 - jump * 0.12, 0.2, 0.62);
       f.shadow.scale.set(2.6 * f.s * (1 - jump * 0.06), 2.6 * f.s * (1 - jump * 0.06), 1);
       f.arms[0].top.rotation.set(aL[1], 0, aL[0]); f.arms[0].joint.rotation.z = -aL[2];
       f.arms[1].top.rotation.set(aR[1], 0, aR[0]); f.arms[1].joint.rotation.z = -aR[2];
+      if (f.arms[1].wrist) f.arms[1].wrist.rotation.z = flick;
       f.ring.visible = p.hold || p.sel;
       f.ring.material = p.sel ? ringM.sel : ringM.ball;
       f.jump = jump;
