@@ -1051,7 +1051,7 @@
         ${sideBox(0, 'l')}
         <main class="auc-stage">
           <div class="auc-turn s${st.turn}${online() && mineTurn ? ' me' : ''}" id="aucTurn">${online() ? (mineTurn ? 'YOUR TURN: BID OR PASS' : esc(String(who(st.turn)).toUpperCase()) + "'S TURN") : esc(String(who(st.turn)).toUpperCase()) + "'S TURN: BID OR PASS"}</div>
-          ${timed ? `<div class="vs-timer" id="vsTimer"><i style="--w:100%"></i><span>${Math.max(0, Math.ceil((st.until - Date.now()) / 1000))}</span></div>` : ''}
+          ${timed ? UI.timerBar(st.until, cfg.timer || 24) : ''}
           <section class="auc-card" style="--c1:${esc((tm.colors || ['#444'])[0])}">
             <div class="auc-face">${UI.faceImg(cur, (tm.colors || ['#444'])[0])}</div>
             <div class="auc-info"><small>UP FOR BID</small><h2>${esc(cur.name)}</h2><p>${esc(C.posLabel(cur))}${cur.season || cfg.year ? ' | ' + esc(short(cur.season || cfg.year)) : ''}${blind ? '' : ' | <b class="ch-ovr ' + UI.ovrClass(cur.ovr) + '">' + esc(cur.ovr) + '</b>'}</p></div>
@@ -1165,7 +1165,7 @@
           <ul class="ch-list">${ros.map(p => playerRow(p, B, mine ? UI.challengeCap.btn(cfg.cap, five, p, `<button type="button" class="btn btn-small btn-gold" data-add="${esc(p.id)}">TAKE</button>`) : '', blind)).join('')}</ul>`;
       }
       const turn = on >= 0 && VS.turn && VS.turn.pick === taken.length ? VS.turn : null;
-      const clock = turn ? `<div class="vs-timer" id="vsTimer"><i style="--w:100%"></i><span>${Math.max(0, Math.ceil((turn.until - Date.now()) / 1000))}</span></div>` : '';
+      const clock = turn ? UI.timerBar(turn.until, cfg.timer || 24) : '';
       app.innerHTML = `<div class="ch-top"><div><div class="ch-top-k">${esc(lblC(cfg))} | TWO PLAYERS | BEST OF ${cfg.bestOf || 5}${blind ? ' | BLIND' : ''} | COIN FLIP: ${esc(who(cfg.first ? 1 : 0).toUpperCase())} FIRST${cfg.timer ? ' | ' + cfg.timer + ' SEC CLOCK' : ''}${cfg.cap ? ' | $' + cfg.cap + 'M CAP' : ''}</div><div class="ch-top-t">THE DRAFT</div></div>
           <span class="ch-top-acts">${RULES_BTN}<button type="button" class="btn btn-small" id="vsSetup">SETUP</button></span></div>
         ${netBar()}${rulesBox(cfg)}

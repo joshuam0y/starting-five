@@ -413,7 +413,7 @@
     app.innerHTML = `<div class="ch-top auc-top"><div><div class="ch-top-k">${esc(lblC(cfg))} | ${t.n} TEAMS | AUCTION | ${money(ao.budget)} EACH${t.watching ? ' | &#128065; ' + t.watching + ' WATCHING' : ''}</div><div class="ch-top-t">PLAYER ${st.i + 1} OF ${st.ids.length}</div></div><span class="ch-top-acts">${RULES_BTN}${o.quit ? '<button type="button" class="btn btn-small" id="tnQuit">QUIT</button>' : ''}</span></div>
       ${rulesBox(cfg)}
       <main class="auc-stage tauc">
-        ${timed ? `<div class="vs-timer" id="vsTimer"><i style="--w:100%"></i><span>${Math.max(0, Math.ceil((st.until - o.now()) / 1000))}</span></div>` : ''}
+        ${timed ? UI.timerBar(st.until, cfg.timer || 24, o.now()) : ''}
         <section class="auc-card" style="--c1:${esc((tm.colors || ['#444'])[0])}">
           <div class="auc-face">${UI.faceImg(cur, (tm.colors || ['#444'])[0])}</div>
           <div class="auc-info"><small>UP FOR BID</small><h2>${esc(cur.name)}</h2><p>${esc(C.posLabel(cur))}${cur.season || cfg.year ? ' | ' + esc(short(cur.season || cfg.year)) : ''}${showR ? ' | <b class="ch-ovr ' + UI.ovrClass(cur.ovr) + '">' + esc(cur.ovr) + '</b>' : ''}</p></div>

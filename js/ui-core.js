@@ -73,6 +73,10 @@
     if (!m || !m.d || m.year !== g.year) return '';
     return `<i class="mv ${m.d > 0 ? 'up' : 'down'}" title="${m.d > 0 ? 'Up' : 'Down'} ${Math.abs(m.d)} since last season">${Math.abs(m.d)}</i>`;
   };
+  UI.timerBar = (until, total, now) => {
+    const left = Math.max(0, until - (now || Date.now())), w = Math.max(0, Math.min(100, 100 * left / (total * 1000)));
+    return `<div class="vs-timer${left < 8000 ? ' low' : ''}" id="vsTimer"><i style="--w:${w}%"></i><span>${Math.ceil(left / 1000)}</span></div>`;
+  };
   UI.ovrClass = o => (o >= 85 ? 'ovr-elite' : o >= 75 ? 'ovr-good' : o >= 65 ? 'ovr-mid' : 'ovr-low');
 
   // ---------- teams ----------

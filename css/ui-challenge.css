@@ -1300,3 +1300,15 @@ a.pr-i:hover { border-color: var(--gold); }
 .dy-meta b { color: var(--gold2); font-size: 14px; }
 .dy-h { font-family: var(--display); font-size: 18px; letter-spacing: .14em; margin: 4px 0 6px; }
 .dy-more { margin-top: 14px; }
+/* friends' fives: one card per friend, rating, name and price on each row */
+.fr-fives { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin: 8px 0; }
+.fr-five { border: 1px solid var(--line2); background: var(--bg2); padding: 10px 12px; }
+.fr-five.me { border-color: var(--gold-dim); }
+.fr-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.fr-h b { font-family: var(--display); letter-spacing: .06em; font-size: 16px; }
+.fr-h span { font-family: var(--display); font-size: 20px; color: var(--gold2); }
+.fr-five ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.fr-five li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 14px; }
+.fr-five li .ch-ovr { text-align: center; min-width: 0; }
+.fr-five li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fr-five li small { color: var(--muted); font-family: var(--display); }

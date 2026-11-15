@@ -849,6 +849,7 @@
         <section class="rk-score">${fiveCards(five, true)}<small>YOUR LINEUP SCORE</small><b>${score == null ? '-' : score.toFixed(1)}</b>${pct == null ? '' : `<div class="rk-pct"><b>${pct.toFixed(1)}%</b> OF A PERFECT FIVE</div>`}<div class="rk-streak" id="rkStreak"></div><div class="rk-tier on rk-tier-pg" id="rkTierPg"></div><div class="rk-std" id="rkReach"></div><div class="rk-std" id="rkStd"></div><span class="muted">The house scored ${hs == null ? '-' : hs.toFixed(1)}. ${score != null && hs != null ? (score > hs ? 'You beat the house.' : score < hs ? 'The house won this one.' : 'A tie.') : ''}</span></section>
         <details class="rk-det rk-house"><summary>WHAT EACH PLAYER COST, AND THE HOUSE'S FIVE</summary><div class="vs-sides vs-compact">${sideBox(0, 'YOU')}${sideBox(1, 'THE HOUSE')}</div></details>
         <div id="rkSub" class="rkn"><span class="muted">Sending your score...</span></div>
+        <div id="rkFr"></div>
         <div class="ch-go">${isPr ? `<a class="btn btn-gold" href="#/daily/practice/${esc(prKey)}/${Date.now()}">PLAY AGAIN</a><a class="btn" href="#/daily/practice">ARCHIVE</a>` : `<a class="btn btn-gold" href="#/daily">SEE THE BOARD</a>${pct == null ? '' : '<button type="button" class="btn" id="dlShare">SHARE YOUR SCORE</button>'}`}</div>`;
       const dsh = UI.$('#dlShare', app);
       const doShare = async btn => { btn.disabled = true; const r = await shareCard({ k: 'DAILY #' + dayNo(day), title: 'OF A PERFECT FIVE', color: '#d4af37', big: pct.toFixed(1) + '%', sub: TH.title, name: UI.profile.account() || '' }, 'Starting Five Daily #' + dayNo(day) + ' \u{1F3C0}\n' + five.map(p => sqEmoji(ovrOf(p))).join('') + '\n' + pct.toFixed(1) + '% of a perfect five', '#/daily'); btn.disabled = false;  };
@@ -864,6 +865,13 @@
         const line = '#' + t.rank + ' OF ' + t.played + (beat != null ? ' | YOU BEAT ' + beat + '% OF PLAYERS' : '') + ' | AVERAGE ' + avg;
         const a = UI.$('#rkStd', app), b = document.getElementById('popStd'); if (a) a.textContent = line; if (b) b.textContent = line;
       };
+      const showFives = async () => {
+        const el = UI.$('#rkFr', app); if (!el) return;
+        const r = await friendFives(day, perfectScore);
+        if (!el.isConnected || !r) return;
+        const others = r.list.filter(x => x.username !== r.me);
+        el.innerHTML = `<h2 class="dy-h">FRIENDS' FIVES</h2>` + (others.length ? fivesHtml(r.list, perfectScore, r.me) : `<p class="muted">${r.friends ? 'None of your friends have played today yet. Check back later.' : 'Add friends from their profiles to compare fives.'}</p>`);
+      };
       const sub = UI.$('#rkSub', app);
       if (isPr) { sub.innerHTML = '<b>PRACTICE.</b> <span class="muted">Not on the board, no streak.</span>'; return; }
       if (!UI.profile.signedIn()) {   // anyone can play; an account only puts the score on the board
@@ -878,9 +886,9 @@
         return;
       }
       const cur = ls.get(key, {});
-      if (cur.sent) { sub.innerHTML = `<b>SCORE SENT.</b> <span class="muted">One try a day for each era.</span>`; showStd(); return; }
-      UI.profile.rpc('submit_daily', { p_day: day, p_era: era, p_score: score, p_lineup: { names: five.map(p => p.name), seasons: five.map(p => p.season || null), ovrs: five.map(ovrOf), score, era }, p_pct: pct == null ? null : Math.round(pct * 100) / 100 })
-        .then(ok => { claimGuest(day); streakBump(day); paintStreak(); ls.set(key, Object.assign(cur, { st, fin: true, sent: true, score })); sub.innerHTML = ok ? '<b>SCORE SENT.</b> <span class="muted">You are on today\'s board.</span>' : '<b>ALREADY ON THE BOARD.</b> <span class="muted">One score a day for each era.</span>'; showStd(); })
+      if (cur.sent) { sub.innerHTML = `<b>SCORE SENT.</b> <span class="muted">One try a day for each era.</span>`; showStd(); showFives(); return; }
+      UI.profile.rpc('submit_daily', { p_day: day, p_era: era, p_score: score, p_lineup: { names: five.map(p => p.name), seasons: five.map(p => p.season || null), ovrs: five.map(ovrOf), prices: st.won[0].map(id => (st.log.filter(x => x.id === id && x.side === 0)[0] || {}).price || 0), score, era }, p_pct: pct == null ? null : Math.round(pct * 100) / 100 })
+        .then(ok => { claimGuest(day); streakBump(day); paintStreak(); ls.set(key, Object.assign(cur, { st, fin: true, sent: true, score })); sub.innerHTML = ok ? '<b>SCORE SENT.</b> <span class="muted">You are on today\'s board.</span>' : '<b>ALREADY ON THE BOARD.</b> <span class="muted">One score a day for each era.</span>'; showStd(); showFives(); })
         .catch(e => { sub.innerHTML = '<span class="rk-err">' + esc(failMsg(e)) + '</span>'; });
       return;
     }
@@ -895,7 +903,7 @@
     app.innerHTML = `${hdr}
       <div class="auc">${side(0, 'l', 'YOU')}
         <main class="auc-stage">
-          <div class="vs-timer" id="vsTimer"><i style="--w:100%"></i><span>${Math.max(0, Math.ceil((st.until - Date.now()) / 1000))}</span></div>
+          ${UI.timerBar(st.until, DAILY_CLOCK)}
           <section class="auc-card"><div class="auc-face">${UI.faceImg(cur, '#555')}</div>
             <div class="auc-info"><small>UP FOR BID</small><h2>${esc(cur.name)}</h2><p>${esc(C.posLabel(cur))}${cur.season ? ' | \'' + String(cur.season - 1).slice(2) + '-\'' + String(cur.season).slice(2) : ''} | <b class="ch-ovr ${UI.ovrClass(cur.ovr)}">${esc(cur.ovr)}</b></p></div>
             <div class="auc-price"><small>${st.holder === 0 ? 'YOU HOLD' : 'THE HOUSE HOLDS'}</small><b>${money(st.price)}</b></div></section>
@@ -1273,6 +1281,24 @@
   }
 
   // ---------- #/daily: today's theme, the board and the practice archive. No account needed to play; an account puts the score on the board. ----------
+  // friends' fives: the five each friend built today, with the rating and what each one cost. Only shown once you have played, so nothing is spoiled.
+  function fivesHtml(list, perf, me) {
+    const pctOf = x => x.lineup && x.lineup.pct != null ? f1(x.lineup.pct) + '%' : perf > 0 ? Math.min(100, 100 * Number(x.score) / perf).toFixed(1) + '%' : f1(x.score);
+    return `<div class="fr-fives">${list.map(x => {
+      const L = x.lineup || {}, names = Array.isArray(L.names) ? L.names : [], ovrs = Array.isArray(L.ovrs) ? L.ovrs : [], prices = Array.isArray(L.prices) ? L.prices : [];
+      return `<div class="fr-five${x.username === me ? ' me' : ''}"><div class="fr-h"><b>${esc(x.username)}${x.username === me ? ' (YOU)' : ''}</b><span>${pctOf(x)}</span></div>
+        <ol>${names.map((n, i) => `<li>${ovrs[i] != null ? `<b class="ch-ovr ${UI.ovrClass(ovrs[i])}">${esc(ovrs[i])}</b>` : ''}<span>${esc(n)}</span>${prices[i] != null ? `<small>$${esc(prices[i])}</small>` : ''}</li>`).join('')}</ol></div>`;
+    }).join('')}</div>`;
+  }
+  async function friendFives(day, perf) {   // null: not signed in or no friends feature yet; [] : no friend has played
+    if (!UI.profile.signedIn()) return null;
+    let fr = null, rows = null;
+    try { fr = ((await UI.profile.rpc('my_friends')) || []).map(x => x.username); } catch (e) { return null; }
+    try { rows = (await UI.profile.rpc('lb_daily', { p_day: day, p_era: 'ALL', p_region: null, p_limit: 100 })) || []; } catch (e) { return null; }
+    const me = UI.profile.account(), set = new Set(fr.concat(me || []));
+    return { list: rows.filter(r => set.has(r.username)), friends: fr.length, me };
+  }
+
   async function dailyHub(app) {
     stopRefresh();
     const day = today(), signed = UI.profile.signedIn();
@@ -1314,8 +1340,8 @@
       if (!body.isConnected) return;   // you left while the boards were loading
       UI.$('#dyHero', app).innerHTML = hero(); wire();   // the synced result, the real theme and the score can change the top
       const me = UI.profile.account();
-      const avgOf = x => x.avg_pct != null ? f1(x.avg_pct) + '%' : f1(x.avg_score);
-      const statHtml = x => (x && x.played ? `<p class="rk-stat"><b>${x.played}</b> PLAYED TODAY | AVERAGE <b>${avgOf(x)}</b>${x.best_pct != null ? ' | BEST <b>' + f1(x.best_pct) + '%</b>' : ''}</p>` : '');
+      const avgOf = x => x.avg_pct != null ? f1(x.avg_pct) + '%' : x.avg_score != null ? f1(x.avg_score) : '';
+      const statHtml = x => (x && x.played ? `<p class="rk-stat"><b>${x.played}</b> PLAYED TODAY${avgOf(x) ? ' | AVERAGE <b>' + avgOf(x) + '</b>' : ''}${x.best_pct != null ? ' | BEST <b>' + f1(x.best_pct) + '%</b>' : ''}</p>` : '');
       body.innerHTML = `<h2 class="dy-h">TODAY'S BOARD</h2>
         ${statHtml(st)}
         <div class="rk-bt" id="dyTabs"><button type="button" class="btn btn-small btn-gold" data-bt="today">TODAY</button><button type="button" class="btn btn-small" data-bt="friends">FRIENDS</button><button type="button" class="btn btn-small" data-bt="week">THIS WEEK</button></div>
@@ -1335,8 +1361,9 @@
           let fr = null; try { fr = ((await UI.profile.rpc('my_friends')) || []).map(x => x.username); } catch (e) { fr = null; }
           if (!board.isConnected) return;
           if (!fr) { board.innerHTML = msg('Friends boards arrive with the latest SQL.'); return; }
-          const set = new Set(fr.concat(me || [])), list = (rows || []).filter(r => set.has(r.username));
-          board.innerHTML = todayTbl(list) || msg(fr.length ? 'None of your friends have played today.' : 'No friends yet. Add some from their profiles.');
+          const set = new Set(fr.concat(me || [])), list = (rows || []).filter(r => set.has(r.username)), mine = ls.get(dKey(day), null);
+          if (!list.length) { board.innerHTML = msg(fr.length ? 'None of your friends have played today.' : 'No friends yet. Add some from their profiles.'); return; }
+          board.innerHTML = mine && mine.fin ? fivesHtml(list, perf, me) : todayTbl(list) + msg("Play today's auction to see the fives your friends built.");
           return;
         }
         board.innerHTML = msg('Loading...');
