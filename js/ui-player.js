@@ -407,7 +407,7 @@
         <div class="pk-photo">${UI.headshot(p, 'hs-big pk-hs')}</div>
         <div class="pk-main">
           ${onTeam
-            ? `<a class="pk-team" href="#/team/${esc(p.team)}">${UI.logo(p.team, 30)}<span>${esc(teamLabel)}</span></a>`
+            ? `<a class="pk-team" href="#/team/${esc(p.team)}">${UI.logo(p.team, 30)}<span>${esc(teamLabel)}${p.jersey != null && p.jerseyTeam === p.team ? ' <b class="pk-num">#' + esc(p.jersey) + '</b>' : ''}</span></a>`
             : `<span class="pk-team">${UI.logo('FA', 30)}<span>${esc(teamLabel)}</span></span>`}
           <h1 class="pk-name">${first ? `<span>${esc(first)}</span>` : ''}${esc(last)}</h1>
           <div class="pk-cells">

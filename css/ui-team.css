@@ -464,3 +464,7 @@ i.m-great { background: var(--gold2); } i.m-good { background: #8fcf6a; } i.m-ok
   .ftx-prow { grid-template-columns: minmax(0, 1fr); }
   .ftx-ask { justify-self: end; }
 }
+
+/* jersey numbers */
+.fr-num { font-family: var(--display); color: var(--gold); font-weight: 600; margin-right: 2px; }
+.pk-num { font-family: var(--display); color: var(--gold2); letter-spacing: .04em; margin-left: 6px; }

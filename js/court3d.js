@@ -190,7 +190,7 @@
       thigh: G.cyl(0.24, 0.19, 1.6), shin: G.cyl(0.18, 0.13, 1.55), shoe: G.box(0.62, 0.28, 0.34),
       shorts: G.cyl(0.6, 0.66, 1.0, 14), torso: G.cyl(0.66, 0.52, 2.2, 14), upper: G.cyl(0.15, 0.13, 1.2), fore: G.cyl(0.13, 0.11, 1.15),
       hand: G.sph(0.17, 8, 6), neck: G.cyl(0.17, 0.19, 0.4), head: G.sph(0.43, 14, 12), hair: keep(new T.SphereGeometry(0.445, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2.1)),
-      hit: G.cyl(1.5, 1.5, 7.5, 8), ring: keep(new T.RingGeometry(1.25, 1.6, 28))
+      hit: G.cyl(1.5, 1.5, 7.5, 8), ring: keep(new T.RingGeometry(1.25, 1.6, 28)), num: keep(new T.PlaneGeometry(0.95, 0.95))
     };
     const skin = mat(SKIN), hairM = mat('#141416'), hitM = keep(new T.MeshBasicMaterial({ visible: false }));
     const ringM = { ball: keep(new T.MeshBasicMaterial({ color: 0xf5d76e, transparent: true, opacity: 0.55, side: T.DoubleSide })), sel: keep(new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8, side: T.DoubleSide })) };
@@ -202,6 +202,19 @@
       const joint = new T.Group(); joint.position.y = -l1; top.add(joint);
       const b = new T.Mesh(g2, m2); b.position.y = -l2 / 2; joint.add(b);
       return { top, joint };
+    }
+    // a number painted for a jersey (one texture per number and color)
+    const numCache = {};
+    function numTex(n, color) {
+      const k = n + '|' + color;
+      if (numCache[k]) return numCache[k];
+      const c = document.createElement('canvas'); c.width = c.height = 128;
+      const x = c.getContext('2d');
+      x.font = `700 ${String(n).length > 1 ? 92 : 104}px ${FONT}`; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.lineWidth = 7; x.strokeStyle = 'rgba(255,255,255,.55)'; x.strokeText(n, 64, 70);
+      x.fillStyle = color || '#111'; x.fillText(n, 64, 70);
+      const t = keep(new T.CanvasTexture(c)); t.encoding = T.sRGBEncoding;
+      return (numCache[k] = t);
     }
     const figs = {};
     function figure(key) {
@@ -216,6 +229,13 @@
       const shorts = new T.Mesh(geo.shorts, km.jersey); shorts.position.y = 3.05; body.add(shorts);
       const torso = new T.Mesh(geo.torso, km.jersey); torso.position.y = 4.4; torso.scale.x = 0.66; body.add(torso);
       const band = new T.Mesh(G.cyl(0.62, 0.62, 0.14, 14), km.trim); band.position.y = 3.52; band.scale.x = 0.7; body.add(band);
+      // the number, front (smaller) and back, in the trim color
+      if (inf.num) {
+        const nt = numTex(inf.num, cfg.kit[inf.side].ring);
+        const nm = new T.MeshBasicMaterial({ map: nt, transparent: true, depthWrite: false }); disposables.push(nm);
+        const back = new T.Mesh(geo.num, nm); back.position.set(-0.4, 4.55, 0); back.rotation.y = -Math.PI / 2; body.add(back);
+        const front = new T.Mesh(geo.num, nm); front.position.set(0.4, 4.6, 0); front.rotation.y = Math.PI / 2; front.scale.set(0.62, 0.62, 1); body.add(front);
+      }
       const arms = [0.78, -0.78].map(z => {
         const A = limb(body, geo.upper, geo.fore, skin, skin, 1.2, 1.15, [0, 5.3, z]);
         const hand = new T.Mesh(geo.hand, skin); hand.position.y = -1.2; A.joint.add(hand);

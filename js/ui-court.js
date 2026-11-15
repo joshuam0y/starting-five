@@ -200,8 +200,13 @@
       const name = r.name || (p && p.name) || r.id;
       const pos = String((p && p.pos) || 'SF').toUpperCase().split(/[-\/ ,]/)[0];
       const sn = p && p.season ? Number(p.season) : 0;
-      info[keyOf(side, i)] = { id: r.id, name, pos, ht: p && p.ht ? +p.ht : 0, ini: initials(name), last: lastName(name), side, yr: sn ? "'" + String(sn - 1).slice(2) + "-'" + String(sn).slice(2) : '' };
+      // his jersey number: the one he wears in this league, else the real one he wore that season (js/jersey.js)
+      const J = window.JERSEY, gy = +(opts.year || (opts.game && opts.game.year)) || 0;
+      const num = p && p.jersey != null ? String(p.jersey) : J ? J.real(p || { id: r.id }, sn || gy || 9999, game[side] && game[side].abbr) : null;
+      info[keyOf(side, i)] = { id: r.id, name, pos, num: num != null ? String(num) : '', ht: p && p.ht ? +p.ht : 0, ini: initials(name), last: lastName(name), side, yr: sn ? "'" + String(sn - 1).slice(2) + "-'" + String(sn).slice(2) : '' };
     }));
+    // two teammates from different seasons can share a real number: the second shows his initials
+    SIDES.forEach(side => { const seen = {}; Object.keys(info).filter(k => info[k].side === side).forEach(k => { const n = info[k].num; if (n && seen[n]) info[k].num = ''; else if (n) seen[n] = 1; }); });
     const start = clamp(opts.start | 0, 0, evs.length);
     const st = {
       cur: start, done: start, ev: null, beats: [], beat: null, bt: 0, evDur: 0, evT: 0, tPrev: start ? evs[start - 1].t : 0,
@@ -293,7 +298,7 @@
         mk('circle', { class: 'ct-arm', cx: 1.0, cy: 1.35, r: 0.42, fill: k.ring }, fig);
         mk('circle', { class: 'ct-head', cx: 0, cy: 0, r: 1.12, fill: '#1c1c1e', stroke: k.ring }, g);
         const t = mk('text', { class: 'ct-ini', fill: '#ffffff', x: 0, y: 0.05 }, g);
-        t.textContent = info[key].ini;
+        t.textContent = info[key].num || info[key].ini;
         const n = mk('text', { class: 'ct-nm', y: R_DOT + 1.6 }, g);
         n.textContent = info[key].last.toUpperCase();
         g.addEventListener('click', () => select(key));
@@ -559,7 +564,7 @@
       const box = $('.ct-floor-list');
       box.innerHTML = ['away', 'home'].map(side => `<div class="ct-row" data-side="${side}">${st.on[side].map(key => {
         const k = kit[side];
-        return `<button type="button" class="ct-chip${st.sel === key ? ' on' : ''}" data-key="${key}" style="--cf:${esc(k.fill)};--cr:${esc(k.ring)};--ct:${esc(k.text)}"><i>${esc(info[key].ini)}</i><span>${esc(info[key].last)}</span></button>`;
+        return `<button type="button" class="ct-chip${st.sel === key ? ' on' : ''}" data-key="${key}" style="--cf:${esc(k.fill)};--cr:${esc(k.ring)};--ct:${esc(k.text)}"><i>${esc(info[key].num || info[key].ini)}</i><span>${esc(info[key].last)}</span></button>`;
       }).join('')}</div>`).join('');
     }
     $('.ct-floor-list').addEventListener('click', e => { const b = e.target.closest('[data-key]'); if (b) select(b.getAttribute('data-key')); });

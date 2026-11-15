@@ -683,7 +683,10 @@
         var score = bt.pts / 1000 * 2.2 + bt.reb / 1000 * 1.1 + bt.ast / 1000 * 1.6 + awardPoints(teamAwards);
         var ok = (bt.seasons >= 6 && score >= 34) || (bt.seasons >= 4 && career >= 55 && score >= 30);
         if (!ok) return;
-        var number = p.jersey != null ? p.jersey : (p.number != null ? p.number : null);
+        // the number he wore longest for this team (js/jersey.js)
+        var J = typeof window !== 'undefined' ? window.JERSEY : null;
+        var number = J && J.longest ? J.longest(p, abbr) : null;
+        if (number == null) number = p.jersey != null ? p.jersey : (p.number != null ? p.number : null);
         var list = book[abbr] || (book[abbr] = []);
         if (number != null && list.some(function (x) { return String(x.number) === String(number); })) return;
         list.push({ number: number, name: p.name, id: id, year: year });

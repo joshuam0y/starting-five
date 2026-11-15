@@ -773,7 +773,7 @@
     };
     const line = (p, act) => `<li class="fr-gl-row">
       <span class="fr-rot-hs">${fr.head(p)}</span>
-      <span class="fr-rot-main"><span class="fr-rot-name">${fr.plink(p)}</span><span class="fr-rot-meta">${esc(p.pos || '')} | ${esc(p.age || '-')} yrs | ${esc(p.yearsPro != null ? p.yearsPro + ' yrs pro' : '')} ${fr.badges(p)}</span>${extra(p)}</span>
+      <span class="fr-rot-main"><span class="fr-rot-name">${p.jersey != null && p.jerseyTeam === p.team ? '<b class="fr-num">#' + esc(p.jersey) + '</b> ' : ''}${fr.plink(p)}</span><span class="fr-rot-meta">${esc(p.pos || '')} | ${esc(p.age || '-')} yrs | ${esc(p.yearsPro != null ? p.yearsPro + ' yrs pro' : '')} ${fr.badges(p)}</span>${extra(p)}</span>
       ${fr.ovr(p)}
       ${can ? `<button type="button" class="btn btn-small${act === 'recall' ? ' btn-gold' : ''}" data-${act}="${esc(p.id)}">${act === 'recall' ? 'RECALL' : 'ASSIGN'}</button>` : '<span></span>'}
     </li>`;

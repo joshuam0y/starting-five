@@ -203,6 +203,8 @@
     if (mod("PROG") && W.PROG.rollFates) safe("fates", function () { W.PROG.rollFates(state); });
     // coaches are cosmetic: names and records for display
     if (mod("COACH") && W.COACH.init) safe("coaches", function () { W.COACH.init(state); });
+    // jersey numbers: the real ones, a free number for everyone else (js/jersey.js)
+    if (mod("JERSEY")) safe("jerseys", function () { W.JERSEY.assign(state); });
     // a start's first season: AI rotations lean on who really played (real minutes per game that season)
     if (other && base.seasonStats) Object.keys(base.seasonStats).forEach(function (id) { var rp = state.players[id]; if (rp) rp.realMpg = { year: base.season, mpg: base.seasonStats[id].mpg }; });
     var today = opts.today && base.today ? base.today : null;
@@ -445,6 +447,7 @@
   }
   function startSeason(state) {
     safe("realPositions", function () { realPositions(state); });
+    if (mod("JERSEY")) safe("jerseys", function () { W.JERSEY.assign(state); });
     // opening night rosters (chemistry's continuity); chemistry carries over half its distance from 60
     Object.keys(state.teams).forEach(function (a) {
       var t = state.teams[a];
@@ -581,6 +584,7 @@
     safe("injuryReturns", function () { injuryReturns(state, injBefore, inj); });
     if (state.realLife && mod("REALLIFE")) safe("realLife", function () { var nd = currentDate(state); if (nd) W.REALLIFE.applyUntil(state, state.season.phase === "done" ? nd : W.REALLIFE.dayBefore(nd)); });
     if (mod("COACH") && W.COACH.realSync) safe("coachReal", function () { var cd = currentDate(state); if (cd) W.COACH.realSync(state, cd); });
+    if (mod("JERSEY")) safe("jerseys", function () { W.JERSEY.assign(state); });   // a trade or a signing: his new number
     if (mod("TRADE") && state.season.phase === "regular") {
       if (!state.realLife) safe("aiTrades", function () { W.TRADE.aiTrades(state, rng); });
       if (rng() < 0.08 * days) safe("aiOffers", function () { (W.TRADE.aiOffers(state, rng) || []).forEach(function (o) { state.events.push({ type: "tradeOffer", offer: o, quiet: !autoOn(state, "tradeOffers") }); }); });
@@ -1060,6 +1064,7 @@
     });
     state.news = state.news || []; state.events = state.events || []; state.transactions = state.transactions || [];
     safe("migrate brands", function () { applyBrands(state); });
+    if (mod("JERSEY")) safe("migrate jerseys", function () { W.JERSEY.assign(state); });
     if (mod("COACH") && W.COACH.init && +state.startYear < 2004 && state.coachOld !== 2) safe("migrate old coaches", function () { W.COACH.init(state); });
     safe("migrate news", function () { worldSeen(state); });
     if (mod("FUTURE")) safe("migrate future", function () { W.FUTURE.activate(state); });
