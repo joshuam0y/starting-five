@@ -971,3 +971,20 @@ body.no-assoc-nav .navmore-list a[data-nav="settings"], body.no-assoc-nav .navmo
   .mm-grid { grid-template-rows: none; grid-auto-rows: minmax(82px, auto); }
   .mm-grid .mt-hero, .mm-grid .mt-hero.mt-challenge, .mm-grid .mt-hero.mt-versus { grid-row: span 1; min-height: 132px; }
 }
+
+/* phone menu: compact tiles (icon left, text right) so the whole menu fits in about one screen */
+@media (max-width: 560px) {
+  .mm .mm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; grid-auto-rows: auto; gap: 8px; }
+  .mm .mm-grid .mt-hero { grid-column: 1 / -1; grid-row: auto; min-height: 0; padding: 12px 14px; display: grid; grid-template-columns: 38px minmax(0, 1fr); grid-template-areas: 'ic l' 'ic s'; column-gap: 14px; row-gap: 3px; align-items: center; }
+  .mm .mm-grid .mt-hero .mt-ic { grid-area: ic; margin: 0; align-self: center; }
+  .mm .mm-grid .mt-hero .ic { width: 34px; height: 34px; }
+  .mm .mm-grid .mt-hero .mt-l { grid-area: l; font-size: 24px; }
+  .mm .mm-grid .mt-hero .mt-s { grid-area: s; justify-self: start; font-size: 10px; letter-spacing: .1em; }
+  .mm .mm-grid .mt-assoc, .mm .mm-grid .mt-continue { grid-column: span 1; min-height: 78px; }
+  .mm .mm-grid .mt-tn { min-height: 0; padding: 12px 14px; display: grid; grid-template-columns: 30px minmax(0, 1fr); grid-template-areas: 'ic l' 'ic s'; column-gap: 14px; row-gap: 2px; align-items: center; }
+  .mm .mm-grid .mt-tn .mt-ic { grid-area: ic; margin: 0; }
+  .mm .mm-grid .mt-tn .ic { width: 28px; height: 28px; }
+  .mm .mm-grid .mt-tn .mt-l { grid-area: l; font-size: 19px; }
+  .mm .mm-grid .mt-tn .mt-s { grid-area: s; font-size: 10px; letter-spacing: .1em; }
+  .mm .mm-k { margin: 4px 0 10px; }
+}
