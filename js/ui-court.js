@@ -282,8 +282,14 @@
         const k = kit[info[key].side];
         const g = mk('g', { class: 'ct-dot', 'data-key': key, opacity: 0 }, dl);
         mk('circle', { class: 'ct-hit', r: R_HIT }, g);
-        mk('circle', { class: 'ct-body', r: R_DOT, fill: k.fill, stroke: k.ring }, g);
-        const t = mk('text', { class: 'ct-ini', fill: k.text, y: 0.05 }, g);
+        // a player from above: shoulders in the team's jersey, the head on the side he faces (turned toward the ball each
+        // frame), and his initials on his back
+        const fig = mk('g', { class: 'ct-fig' }, g);
+        mk('ellipse', { class: 'ct-body', cx: -0.1, cy: 0, rx: 1.0, ry: R_DOT, fill: k.fill, stroke: k.ring }, fig);
+        mk('circle', { class: 'ct-arm', cx: 1.0, cy: -1.35, r: 0.42, fill: k.ring }, fig);
+        mk('circle', { class: 'ct-arm', cx: 1.0, cy: 1.35, r: 0.42, fill: k.ring }, fig);
+        mk('circle', { class: 'ct-head', cx: 0, cy: 0, r: 1.12, fill: '#1c1c1e', stroke: k.ring }, g);
+        const t = mk('text', { class: 'ct-ini', fill: '#ffffff', x: 0, y: 0.05 }, g);
         t.textContent = info[key].ini;
         const n = mk('text', { class: 'ct-nm', y: R_DOT + 1.6 }, g);
         n.textContent = info[key].last.toUpperCase();
@@ -332,8 +338,11 @@
       }
       return out;
     }
+    let lastBall = null;
     function render(dt) {
       st.lastDt = dt;
+      st.ang = st.ang || {};
+      lastBall = ballPos();
       const DP = displayPos(); lastDP = DP;
       Object.keys(dots).forEach(key => {
         const a = st.alpha[key] || 0;
@@ -342,6 +351,18 @@
         const p = DP[key] || st.pos[key] || [47, 25];
         const s = toScreen(p[0], p[1]);
         g.setAttribute('transform', `translate(${s[0].toFixed(2)} ${s[1].toFixed(2)})`);
+        // face the ball (smoothly, so turns look like turns)
+        const fg = g.firstChild && g.firstChild.nextSibling;
+        if (fg) {
+          const bp = lastBall || [47, 25], sb = toScreen(bp[0], bp[1]);
+          let want = Math.atan2(sb[1] - s[1], sb[0] - s[0]) * 180 / Math.PI;
+          if (st.holder === key) want = Math.atan2(sb[1] - s[1], sb[0] - s[0]) * 180 / Math.PI;
+          const cur = st.ang[key] == null ? want : st.ang[key];
+          let d = ((want - cur + 540) % 360) - 180;
+          const nxt = cur + d * Math.min(1, (dt || 16) / 140);
+          st.ang[key] = nxt;
+          fg.setAttribute('transform', `rotate(${nxt.toFixed(1)})`);
+        }
         g.setAttribute('opacity', a.toFixed(2));
         g.classList.toggle('sel', st.sel === key);
         g.classList.toggle('gone', a < 0.5);

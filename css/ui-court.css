@@ -236,3 +236,7 @@ body.ct-full-on { overflow: hidden; }
 .ct-dot { transition: opacity .2s; }
 .ct-svg.ct-names .ct-nm { opacity: 0; transition: opacity .2s; }
 .ct-svg.ct-names .ct-dot.ball .ct-nm, .ct-svg.ct-names .ct-dot.sel .ct-nm, .ct-svg.ct-names .ct-dot:hover .ct-nm { opacity: 1; }
+.ct-fig .ct-body { stroke-width: .3; }
+.ct-head { stroke-width: .28; }
+.ct-arm { opacity: .95; }
+.ct-dot .ct-ini { font-size: 1.05px; }
