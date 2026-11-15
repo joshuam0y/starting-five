@@ -1141,7 +1141,8 @@
       ot: Math.max(0, quarters.length - 4),
       pbp: pbp,
       injuries: injuriesOut,
-      winner: H.pts > A.pts ? H.abbr : A.abbr
+      winner: H.pts > A.pts ? H.abbr : A.abbr,
+      year: (opts && +opts.year) || null   // the season, so the court view can draw the floor of its era
     };
     log(null, 'Final: ' + A.abbr + ' ' + A.pts + ', ' + H.abbr + ' ' + H.pts + (result.ot ? ' (' + (result.ot > 1 ? result.ot : '') + 'OT)' : ''), PBX.FINAL);
     if (wantPbp) packPbx(result, H, A, pbx, pbl);

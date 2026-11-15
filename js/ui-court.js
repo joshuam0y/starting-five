@@ -148,16 +148,21 @@
   }
 
   // Lines of the floor, drawn in court coordinates.
-  function floorSvg(id, paint, paint2, abHome, abAway) {
-    const half = (col, ab) => `
-      <rect class="ct-paint" x="0" y="17" width="19" height="16" fill="${esc(col)}"/>
-      <text class="ct-end" x="-0.9" y="25" transform="rotate(-90 -0.9 25)">${esc(ab || '')}</text>
-      <rect class="ct-ln" x="0" y="17" width="19" height="16"/>
+  // The floor of its season (year = the season-ending year; none means today's): no three-point line before 1979-80 and
+  // a 22-foot one all the way around from 1994-95 to 1996-97; a 6-foot lane before 1951-52 and a 12-foot one until 1964-65;
+  // the restricted-area arc from 1997-98.
+  function floorSvg(id, paint, paint2, abHome, abAway, year) {
+    const Y = +year || 9999, lw = Y < 1952 ? 6 : Y < 1965 ? 12 : 16, ly = 25 - lw / 2;
+    const three = Y < 1980 ? '' : Y >= 1995 && Y <= 1997 ? '<path class="ct-ln" d="M0 3 H5.25 A22 22 0 0 1 5.25 47 H0"/>' : '<path class="ct-ln" d="M0 3 H14.2 A23.75 23.75 0 0 1 14.2 47 H0"/>';
+    const half = (col, ab, flip) => `
+      <rect class="ct-paint" x="0" y="${ly}" width="19" height="${lw}" fill="${esc(col)}"/>
+      <text class="ct-end" x="0" y="0" transform="${flip ? 'translate(-1.5 25) scale(-1 1) rotate(-90)' : 'translate(-1.5 25) rotate(-90)'}">${esc(ab || '')}</text>
+      <rect class="ct-ln" x="0" y="${ly}" width="19" height="${lw}"/>
       <path class="ct-ln" d="M19 19 A6 6 0 0 1 19 31"/>
       <path class="ct-ln ct-dash" d="M19 19 A6 6 0 0 0 19 31"/>
-      <path class="ct-ln" d="M5.25 21 A4 4 0 0 1 5.25 29"/>
-      <path class="ct-ln" d="M0 3 H14.2 A23.75 23.75 0 0 1 14.2 47 H0"/>
-      ${[7, 11, 14].map(x => `<path class="ct-ln" d="M${x} 17 V16.3 M${x} 33 V33.7"/>`).join('')}
+      ${Y >= 1998 ? '<path class="ct-ln" d="M5.25 21 A4 4 0 0 1 5.25 29"/>' : ''}
+      ${three}
+      ${[7, 11, 14].map(x => `<path class="ct-ln" d="M${x} ${ly} V${ly - 0.7} M${x} ${ly + lw} V${ly + lw + 0.7}"/>`).join('')}
       <path class="ct-board" d="M4 22 V28"/>
       <circle class="ct-rim" cx="5.25" cy="25" r="0.75"/>`;
     return `
@@ -171,7 +176,7 @@
       <circle class="ct-ln" cx="47" cy="25" r="6"/><circle class="ct-ln" cx="47" cy="25" r="2"/>
       <circle class="ct-mid-fill" cx="47" cy="25" r="6" fill="${esc(paint)}"/>
       ${half(paint, abHome)}
-      <g transform="translate(94 0) scale(-1 1)">${half(paint2, abAway)}</g>
+      <g transform="translate(94 0) scale(-1 1)">${half(paint2, abAway, true)}</g>
       <rect x="0" y="0" width="${CW}" height="${CH}" fill="url(#ctGloss${id})" pointer-events="none"/>`;
   }
 
@@ -267,7 +272,7 @@
       svg.classList.toggle('ct-names', !v && el.clientWidth >= 760);
       svg.innerHTML = '';
       const floor = mk('g', { transform: v ? `translate(${CH + M} ${M}) rotate(90)` : `translate(${M} ${M})` }, svg);
-      floor.innerHTML = floorSvg(id, kit.home.paint, kit.away.fill, abbr.home, abbr.away);
+      floor.innerHTML = floorSvg(id, kit.home.paint, kit.away.fill, abbr.home, abbr.away, opts.year || (opts.game && opts.game.year));
       const mid = toScreen(47, 25);
       mk('text', { class: 'ct-mid', x: mid[0], y: mid[1] }, svg).textContent = tl.home;
       const dl = mk('g', { class: 'ct-dots' }, svg);
@@ -291,12 +296,50 @@
       render(0);
     }
 
+    // Where each dot is drawn: its spot, a little life (players shift their weight and the ball handler sways while he
+    // dribbles, so nobody stands frozen between plays), then pushed apart so two players never sit on top of each other.
+    const seedOf = key => { let h = 0; for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) | 0; return (h % 1000) / 159; };
+    function displayPos() {
+      const now = (typeof performance !== 'undefined' ? performance.now() : Date.now()), moving = st.beat && st.beat.move ? st.beat.move : {};
+      const out = {}, keys = Object.keys(dots).filter(k => (st.alpha[k] || 0) > 0.01);
+      keys.forEach(k => {
+        const p = st.pos[k] || [47, 25], h = seedOf(k), still = !moving[k];
+        const amp = still ? (st.holder === k ? 0.55 : 0.32) : 0.08, sp = st.holder === k ? 0.0042 : 0.0014;
+        out[k] = [p[0] + Math.sin(now * sp + h) * amp, p[1] + Math.cos(now * sp * 0.8 + h * 1.7) * amp];
+      });
+      // man-to-man: in a half-court possession each defender stays between his man and the basket, sliding as his man
+      // moves (eased, so it looks like footwork), unless the play itself is moving him (a closeout, a steal, a block)
+      if (st.off && st.on && st.on[st.off] && st.on[other(st.off)] && st.pos) {
+        const O = st.off, h = hoop(O, st.per), os = ordered(st.on[O]), ds = ordered(st.on[other(O)]), k = Math.min(1, (st.lastDt || 16) / 260);
+        ds.forEach((dk, i) => {
+          const mk2 = os[i] || os[0], man = out[mk2], me = out[dk];
+          if (!man || !me || moving[dk]) return;
+          const d = Math.max(0.01, Math.hypot(h[0] - man[0], h[1] - man[1])), gap = Math.min(d * 0.8, Math.max(2.7, d * 0.28));
+          const tx = man[0] + (h[0] - man[0]) / d * gap, ty = man[1] + (h[1] - man[1]) / d * gap;
+          const base = st.pos[dk];
+          base[0] += (tx - base[0]) * k; base[1] += (ty - base[1]) * k;
+          me[0] = base[0]; me[1] = base[1];
+        });
+      }
+      const min = R_DOT * 1.9;
+      for (let pass = 0; pass < 3; pass++) {
+        for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) {
+          const a = out[keys[i]], b = out[keys[j]], dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 0.01;
+          if (d >= min) continue;
+          const push = (min - d) / 2, ux = dx / d, uy = dy / d;
+          a[0] -= ux * push; a[1] -= uy * push; b[0] += ux * push; b[1] += uy * push;
+        }
+      }
+      return out;
+    }
     function render(dt) {
+      st.lastDt = dt;
+      const DP = displayPos(); lastDP = DP;
       Object.keys(dots).forEach(key => {
         const a = st.alpha[key] || 0;
         const g = dots[key];
         if (a <= 0.01) { if (g.getAttribute('opacity') !== '0') { g.setAttribute('opacity', 0); g.classList.add('gone'); } return; }
-        const p = st.pos[key] || [47, 25];
+        const p = DP[key] || st.pos[key] || [47, 25];
         const s = toScreen(p[0], p[1]);
         g.setAttribute('transform', `translate(${s[0].toFixed(2)} ${s[1].toFixed(2)})`);
         g.setAttribute('opacity', a.toFixed(2));
@@ -314,14 +357,15 @@
       st.tags = st.tags.filter(tg => (tg.age += dt) < tg.ttl);
       tagLayer.innerHTML = '';
       st.tags.forEach(tg => {
-        const p = tg.key ? (st.pos[tg.key] || [47, 25]) : tg.at;
+        const p = tg.key ? (DP[tg.key] || st.pos[tg.key] || [47, 25]) : tg.at;
         const s = toScreen(p[0], p[1]);
         const f = tg.age / tg.ttl;
         if (tg.ring) {
           mk('circle', { class: 'ct-ringfx', cx: s[0], cy: s[1], r: (1 + f * 4).toFixed(2), opacity: (1 - f).toFixed(2) }, tagLayer);
           return;
         }
-        const t = mk('text', { class: 'ct-tag ' + (tg.cls || ''), x: s[0].toFixed(2), y: (s[1] - R_DOT - 1.4 - f * 2.5).toFixed(2), opacity: (f < 0.75 ? 1 : (1 - f) * 4).toFixed(2) }, tagLayer);
+        const lift = tg.cls === 'kind' ? R_DOT + 3.6 : R_DOT + 1.4 + f * 2.5;
+        const t = mk('text', { class: 'ct-tag ' + (tg.cls || ''), x: s[0].toFixed(2), y: (s[1] - lift).toFixed(2), opacity: (f < 0.75 ? 1 : (1 - f) * 4).toFixed(2) }, tagLayer);
         t.textContent = tg.text;
       });
       if (st.mode === 'v') {
@@ -333,9 +377,10 @@
       drawClock();
     }
 
+    let lastDP = {};
     function ballPos() {
       if (st.holder && !st.flight) {
-        const p = st.pos[st.holder] || [47, 25];
+        const p = lastDP[st.holder] || st.pos[st.holder] || [47, 25];
         const right = attacksRight(sideOf(st.holder), st.per);
         st.ball.x = p[0] + (right ? HAND[0] : -HAND[0]); st.ball.y = p[1] + HAND[1]; st.ball.z = 0;
       }
