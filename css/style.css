@@ -890,9 +890,6 @@ html { scroll-padding-bottom: calc(var(--mb-h, var(--bar-h)) + 12px); }
 }
 /* Basketball-Reference photos are portraits: fill the headshot box from the top */
 img.hs.hs-br { object-fit: cover; object-position: center 18%; }
-/* the credit under the title, like "A Spike Lee Joint" */
-.mm-joint { margin-top: 10px; font-family: var(--display); font-style: italic; font-weight: 700; font-size: clamp(15px, 2vw, 20px); letter-spacing: .22em; color: #fff; display: inline-block; padding: 4px 12px 4px 10px; border-left: 3px solid var(--gold); background: linear-gradient(90deg, rgba(243, 207, 94, .14), transparent); }
-.mm-joint span { color: var(--gold2); font-weight: 500; }
 
 .mm-foot { margin-top: 22px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
 .mm-foot a { color: var(--muted, #9aa); text-decoration: none; }
@@ -943,7 +940,6 @@ body.no-assoc-nav .navmore-list a[data-nav="settings"], body.no-assoc-nav .navmo
 .mm-2k { font-size: clamp(46px, 6.4vw, 88px); }
 .mm-a { font-size: clamp(26px, 3.6vw, 50px); }
 .mm-k { font-size: 12px; margin: 8px 0 18px; }
-.mm-joint { font-size: clamp(13px, 1.5vw, 17px); }
 .mm-grid { grid-template-rows: 130px 130px auto auto; gap: 10px; }
 .mm-grid .mt-hero { padding: 20px; }
 .mm-grid .mt-hero .ic { width: 42px; height: 42px; }
@@ -961,8 +957,7 @@ body.no-assoc-nav .navmore-list a[data-nav="settings"], body.no-assoc-nav .navmo
   .mm-2k { font-size: 44px; }
   .mm-a { font-size: 24px; letter-spacing: .08em; }
   .mm-brand { gap: 0 10px; }
-  .mm-joint { font-size: 12px; letter-spacing: .16em; margin-top: 6px; }
-  .mm-k { font-size: 10px; letter-spacing: .2em; margin: 6px 0 12px; }
+    .mm-k { font-size: 10px; letter-spacing: .2em; margin: 6px 0 12px; }
   .mm-grid { grid-auto-rows: minmax(84px, auto); gap: 8px; }
   .mm-grid .mt-hero, .mm-grid .mt-hero.mt-challenge, .mm-grid .mt-hero.mt-versus { min-height: 96px; padding: 12px; }
   .mm-grid .mt-hero .ic { width: 30px; height: 30px; }

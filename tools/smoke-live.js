@@ -61,6 +61,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       document.querySelector('#tNext').click();
       out.push(['finishing starts the auction and sets the flag', await until(() => location.hash === '#/daily/play') && localStorage.getItem('a13-dy-tour') === '1']);
       await w(1500);   // let the auction page finish loading before leaving it
+      out.push(['the auction screen has a ? that opens the tour', !!document.querySelector('#aucHelp') && (document.querySelector('#aucHelp').click(), await until(() => /HOW TO PLAY \| 1 OF 4/.test(slide())))]);
+      if (document.querySelector('#tSkip')) document.querySelector('#tSkip').click();
+      out.push(['bid button says just BID', (document.querySelector('#aucRaise') || {}).textContent === 'BID']);
       location.hash = '#/daily'; await until(() => document.querySelector('#dyHow')); await w(300);
       document.querySelector('a[href="#/daily/play"]').click(); await w(400);
       out.push(['next time Play goes straight in, no tour', !document.querySelector('#rkTour') && location.hash === '#/daily/play']);
