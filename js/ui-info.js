@@ -6,7 +6,7 @@
   const UI = window.UI;
   if (!UI) return;
   const P = UI.pages = UI.pages || {};
-  const CONTACT_FORM = 'https://formsubmit.co/jmoy2077@gmail.com';
+  const CONTACT_FORM = 'https://formsubmit.co/hello@playstartingfive.com';
   const REPO = 'https://github.com/joshuam0y/starting-five';
   const UPDATED = 'November 12, 2026';
 
@@ -24,6 +24,7 @@
     contact: ['CONTACT', `
       <p>Found a bug, have an idea, or want something fixed? Tell me.</p>
       __FORM__
+      <p>Or email <a href="mailto:hello@playstartingfive.com">hello@playstartingfive.com</a>.</p>
       <p><a class="btn btn-gold" href="${REPO}/issues/new" target="_blank" rel="noopener">REPORT AN ISSUE ON GITHUB</a></p>
       <p class="muted">Include the page you were on and what phone or browser you use. Please do not post personal information in a public issue.</p>`],
     faq: ['FAQ', `
@@ -76,7 +77,7 @@
       <label>Your name<input name="name" required maxlength="80" autocomplete="name"></label>
       <label>Your email (so I can reply)<input name="email" type="email" required maxlength="120" autocomplete="email"></label>
       <label>Message<textarea name="message" required rows="5" maxlength="2000"></textarea></label>
-      <input type="hidden" name="_subject" value="Message from the site contact form"><input type="hidden" name="_template" value="table"><input type="hidden" name="_next" value="https://joshuam0y.github.io/starting-five/#/contact"><input type="text" name="_honey" tabindex="-1" autocomplete="off" style="display:none">
+      <input type="hidden" name="_subject" value="Message from the site contact form"><input type="hidden" name="_template" value="table"><input type="hidden" name="_next" value="https://playstartingfive.com/#/contact"><input type="text" name="_honey" tabindex="-1" autocomplete="off" style="display:none">
       <button class="btn btn-gold" type="submit">SEND</button></form>`;
   }
 
