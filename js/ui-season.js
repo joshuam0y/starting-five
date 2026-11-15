@@ -619,7 +619,7 @@
     }
     const next = myGames().find(x => !x.played);
     if (sp === 'regular') {
-      if (next) return { label: 'NEXT GAME ' + vsLabel(next, u), title: 'Sim to your next game: ' + UI.gameDay(next), kind: 'sim', run: () => simNextGame() };
+      if (next) return { label: 'NEXT GAME ' + vsLabel(next, u), title: 'Sim to your next game: ' + UI.gameDay(next), kind: 'sim', watch: true, run: () => simNextGame() };
       return { label: 'NEXT DAY', title: 'Your team has no game left. Sim one day of the regular season.', kind: 'sim', run: () => { markSim(); return UI.sim({ days: 1 }); } };
     }
     // the regular season is over: the awards show (once), then the playoffs page, then the games
@@ -628,12 +628,12 @@
     if (!started && !poSeen[yr] && !/^#\/playoffs/.test(location.hash)) return { label: 'TO THE PLAYOFFS', title: 'See the ' + (s.playoffs && s.playoffs.stage === 'playIn' ? 'Play-In and the ' : '') + 'playoff picture', kind: 'go', run: () => goTo('#/playoffs') };
     if (next) {
       const pi = (s.days[next.day] || {}).playIn;
-      return { label: (pi ? 'PLAY-IN ' : 'NEXT GAME ') + vsLabel(next, u), title: 'Sim to your next game: ' + UI.gameDay(next), kind: 'sim', run: () => simNextGame() };
+      return { label: (pi ? 'PLAY-IN ' : 'NEXT GAME ') + vsLabel(next, u), title: 'Sim to your next game: ' + UI.gameDay(next), kind: 'sim', watch: true, run: () => simNextGame() };
     }
     if (canSimNext()) {
       const ser = userSeries();
-      if (ser && !ser.winner) return { label: 'NEXT GAME vs ' + (ser.a === u ? ser.b : ser.a), title: seriesText(ser), kind: 'sim', run: () => simNextGame() };
-      return { label: 'TO PLAYOFF GAME 1', title: 'Sim the Play-In and your first playoff game', kind: 'sim', run: () => simNextGame() };
+      if (ser && !ser.winner) return { label: 'NEXT GAME vs ' + (ser.a === u ? ser.b : ser.a), title: seriesText(ser), kind: 'sim', watch: true, run: () => simNextGame() };
+      return { label: 'TO PLAYOFF GAME 1', title: 'Sim the Play-In and your first playoff game', kind: 'sim', watch: true, run: () => simNextGame() };
     }
     return { label: 'NEXT PLAYOFF DAY', title: 'Your team is out. Sim one day of the playoffs.', kind: 'sim', run: () => { markSim(); return UI.sim({ days: 1 }); } };
   };

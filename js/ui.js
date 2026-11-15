@@ -126,6 +126,16 @@
     }
     b.hidden = !a;
     document.body.classList.toggle('has-next', !!a);
+    // your next game: a WATCH button beside NEXT GAME, so watching it live is one tap from anywhere in the Association
+    let wb = document.getElementById('watchBtn');
+    if (!wb && b.parentNode) {
+      wb = document.createElement('a'); wb.id = 'watchBtn'; wb.className = 'watch-btn'; wb.href = '#/live';
+      wb.innerHTML = '<i class="nx-ar" aria-hidden="true"></i>WATCH'; wb.title = 'Watch your next game live';
+      b.parentNode.insertBefore(wb, b);
+    }
+    const watch = !!(a && a.watch && UI.pages && UI.pages.live);
+    if (wb) wb.hidden = !watch;
+    document.body.classList.toggle('has-watch', watch);
     if (a) {
       b.querySelector('.nx-l').textContent = a.label;
       b.title = a.title + ' (N)';
