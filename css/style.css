@@ -1009,3 +1009,31 @@ body.no-assoc-nav .navmore-list a[data-nav="settings"], body.no-assoc-nav .navmo
   .watch-btn { position: fixed; right: var(--gutter); bottom: calc(var(--mb-h, var(--bar-h)) + 10px); z-index: 39; min-height: 52px; width: 104px; justify-content: center; font-size: 16px; box-shadow: 0 10px 28px rgba(0, 0, 0, .85); }
   body.has-watch .next-btn { right: calc(var(--gutter) + 112px); }
 }
+
+/* main menu: one box to join any online room */
+.mm-join { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 14px auto 0; max-width: 520px; }
+.mm-join label { font-family: var(--display); letter-spacing: .14em; font-size: 13px; color: var(--muted); }
+.mm-join input { width: 9.5em; min-height: 40px; padding: 0 10px; background: var(--bg3); border: 1px solid var(--line2); color: #fff; font-family: var(--display); font-size: 16px; letter-spacing: .2em; text-transform: uppercase; }
+.mm-join .btn { min-height: 40px; }
+
+/* dropdowns in the site's own look (js/ui-select.js), like the MENU */
+.fs { position: relative; display: block; min-width: 0; }
+.fs.fs-inline { display: inline-block; vertical-align: middle; }
+.fs-native { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; opacity: 0; pointer-events: none; }
+.fs-btn { position: relative; display: flex; align-items: center; width: 100%; min-height: 44px; padding: 0 36px 0 12px; background: var(--bg3); border: 1px solid var(--line2); color: #fff; font-family: var(--display); font-weight: 600; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; text-align: left; cursor: pointer; }
+.fs-btn span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-btn i { position: absolute; right: 14px; top: 50%; width: 8px; height: 8px; margin-top: -6px; border-right: 2px solid var(--gold); border-bottom: 2px solid var(--gold); transform: rotate(45deg); transition: transform .15s; }
+.fs.open .fs-btn { border-color: var(--gold); }
+.fs.open .fs-btn i { transform: rotate(225deg); margin-top: -2px; }
+.fs-btn:hover:not(:disabled) { border-color: var(--gold-dim); }
+.fs-btn:focus-visible { outline: 2px solid var(--gold2); outline-offset: 2px; }
+.fs-btn:disabled { opacity: .5; cursor: default; }
+.fs-list { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 80; min-width: 200px; max-height: 340px; overflow-y: auto; padding: 6px; background: #0b0b0e; border: 1px solid var(--gold-dim); box-shadow: 0 14px 40px rgba(0, 0, 0, .7); -webkit-overflow-scrolling: touch; }
+.fs.up .fs-list { top: auto; bottom: calc(100% + 4px); }
+.fs-list[hidden] { display: none; }
+.fs-k { padding: 10px 10px 6px; font-family: var(--display); font-size: 12px; letter-spacing: .2em; color: var(--gold); border-bottom: 1px solid var(--line); margin: 4px 0; }
+.fs-opt { display: block; width: 100%; padding: 10px 10px; background: none; border: 0; border-radius: 2px; color: var(--text2); font-family: var(--display); font-size: 15px; letter-spacing: .08em; text-transform: uppercase; text-align: left; cursor: pointer; }
+.fs-opt:hover, .fs-opt:focus { background: var(--bg3); color: #fff; outline: none; }
+.fs-opt.on { color: var(--gold2); }
+.fs-opt.on::before { content: '\2713  '; }
+.fs-opt:disabled { opacity: .4; cursor: default; }

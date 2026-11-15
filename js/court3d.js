@@ -247,7 +247,10 @@
       renderer.setSize(W, H, false);
       over.width = Math.round(W * dpr); over.height = Math.round(H * dpr);
       cam.aspect = W / H; cam.updateProjectionMatrix();
+      // a resized canvas is blank: draw the last frame again (a paused or finished game draws no more frames)
+      if (lastS && !inFrame) { snap = true; frame(lastS, 0); }
     }
+    let lastS = null, inFrame = false;
     const ro = window.ResizeObserver ? new ResizeObserver(resize) : null;
     if (ro) ro.observe(stage); else window.addEventListener('resize', resize);
     resize();
@@ -301,23 +304,27 @@
     function pose(f, p, S, dt) {
       const R = f.root, B = f.body;
       const prev = f.last;
-      const sp = prev ? Math.hypot(p.x - prev[0], p.y - prev[1]) / Math.max(1, dt) * 1000 : 0;
-      f.speed = lerp(f.speed, Math.min(sp, 26), smooth(dt, 120));
+      const sp = p.vx != null ? Math.hypot(p.vx, p.vy) : prev ? Math.hypot(p.x - prev[0], p.y - prev[1]) / Math.max(1, dt) * 1000 : 0;
+      f.speed = lerp(f.speed, Math.min(sp, 26), smooth(dt, 90));
       f.last = [p.x, p.y];
       R.position.set(p.x, 0, p.y);
       R.visible = p.a > 0.05;
       f.shadow.visible = R.visible;
       f.shadow.position.set(p.x, 0.03, p.y);
       // facing: where he runs when he runs, else the ball (the ball handler: the basket)
+      // facing: a runner looks where he runs; a defender keeps his eyes on the ball while he slides, until he has to sprint
       let want = p.ang;
-      if (f.speed > 7 && prev) want = Math.atan2(p.y - prev[1], p.x - prev[0]);
+      const run0 = p.vx != null ? Math.hypot(p.vx, p.vy) : f.speed;
+      if (p.vx != null && run0 > (p.def ? 15 : 6)) want = Math.atan2(p.vy, p.vx);
+      else if (p.vx == null && f.speed > 7 && prev) want = Math.atan2(p.y - prev[1], p.x - prev[0]);
       if (f.ang == null) f.ang = want;
       const d = Math.atan2(Math.sin(want - f.ang), Math.cos(want - f.ang));
-      f.ang += d * smooth(dt, 110);
+      f.ang += d * smooth(dt, 160);
       R.rotation.y = -f.ang;
       // the run: legs and arms swing with speed
-      const run = clamp(f.speed / 14, 0, 1);
-      f.ph += (dt || 16) / 1000 * (4 + f.speed * 0.65);
+      const side = p.vx != null && run0 > 1 ? Math.abs(Math.sin(Math.atan2(p.vy, p.vx) - f.ang)) : 0;
+      const run = clamp(f.speed / 14, 0, 1) * (1 - side * 0.55);
+      f.ph += (dt || 16) / 1000 * (3 + f.speed * 0.55);
       const swing = Math.sin(f.ph) * 0.95 * run;
       const crouch = p.def && run < 0.4 ? 0.28 : 0.1;
       f.legs[0].top.rotation.z = swing + crouch; f.legs[1].top.rotation.z = -swing + crouch;
@@ -384,6 +391,10 @@
     //      dir, tags: [{ key?, x, y, text, cls, f }], rings: [{ x, y, f }], zoom: { x, y } | null, crowd: 0..1, replay: { kind, x, y, a0 } | null }
     let crowdT = 0;
     function frame(S, dt) {
+      lastS = S; inFrame = true;
+      try { draw(S, dt); } finally { inFrame = false; }
+    }
+    function draw(S, dt) {
       if (!W) resize();
       const seen = {};
       S.players.forEach(p => { const f = figs[p.key]; if (!f) return; seen[p.key] = 1; pose(f, p, S, dt); });

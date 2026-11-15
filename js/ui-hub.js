@@ -70,9 +70,18 @@
           ${UI.tile('#/challenge/tournament/online', 'live', 'ONLINE TOURNAMENT', { cls: 'mt-tn', disabled: !engineOk, sub: 'EVERYONE ON THEIR OWN PHONE' })}
           ${UI.tile('#/saves', 'load', 'LOAD', { cls: 'mt-half' })}
         </div>
+        <form class="mm-join" id="mmJoin" autocomplete="off"><label for="mmCode">HAVE A CODE?</label><input id="mmCode" maxlength="5" placeholder="ROOM CODE" autocapitalize="characters" spellcheck="false"><button type="submit" class="btn btn-gold btn-small">JOIN</button></form>
         <nav class="mm-foot" aria-label="About and legal">${UI.infoLinks ? UI.infoLinks() : ''}</nav>
         ${window.SFX ? `<div class="mm-sfx"><button type="button" class="btn btn-small" id="mmSfx">SOUND EFFECTS: ${window.SFX.on ? 'ON' : 'OFF'}</button></div>` : ''}
       </section>`;
+    // one place to join any online room: a tournament code starts with T, anything else is Head to Head
+    const jf = UI.$('#mmJoin', app);
+    if (jf) jf.addEventListener('submit', e => {
+      e.preventDefault();
+      const c = UI.$('#mmCode', app).value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (c.length !== 5) { UI.toast('A room code has five letters and numbers.'); return; }
+      location.hash = c[0] === 'T' ? '#/challenge/tournament/join/' + c : '#/challenge/vs/join/' + c;
+    });
     const sfxB = UI.$('#mmSfx', app); if (sfxB) sfxB.addEventListener('click', () => { window.SFX.set(!window.SFX.on); sfxB.textContent = 'SOUND EFFECTS: ' + (window.SFX.on ? 'ON' : 'OFF'); });
   };
 

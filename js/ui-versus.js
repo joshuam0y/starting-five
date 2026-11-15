@@ -289,9 +289,11 @@
       seal({ from: NET.me, role: NET.role, ep: VS.epoch || 0, t: 'bye' }).then(txt => { try { c.publish(tp, txt, { qos: 1 }, end); } catch (e) { end(); } setTimeout(end, 1500); }).catch(end);
     } else end();
     Object.assign(NET, { role: null, code: '', status: '', err: '', client: null, key: null, peerSeen: 0, peerAcct: undefined });
+    if (UI.onlineDrop) UI.onlineDrop('vs');
   }
   // connects to a relay (falling back to the next if one will not answer), joins the room, starts the pings
   function connectRoom(role, code, opt) {
+    if (role !== 'watch' && UI.onlineClaim) UI.onlineClaim('vs', () => { forgetRoom(); hangUp(); });
     NET.timers.forEach(t => clearInterval(t)); NET.timers = [];
     try { if (NET.client) NET.client.end(true); } catch (e) { /* gone */ }
     Object.assign(NET, { role, side: role === 'host' ? (opt && opt.side != null ? opt.side : 0) : role === 'watch' ? -1 : (opt && opt.side != null ? opt.side : 1), code, status: role === 'host' ? 'starting' : 'connecting', err: '', client: null, peerSeen: 0, me: Math.random().toString(36).slice(2, 10) });
@@ -335,7 +337,7 @@
     }).catch(e => { NET.status = 'error'; NET.err = e.message || 'The connection failed.'; route(); });
   }
   const CODE_CH = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  const newCode = () => Array.from({ length: 5 }, () => CODE_CH[Math.floor(Math.random() * CODE_CH.length)]).join('');
+  const newCode = () => Array.from({ length: 5 }, (_, i) => { const ch = i ? CODE_CH : CODE_CH.replace('T', ''); return ch[Math.floor(Math.random() * ch.length)]; }).join('');   // never starts with T (tournament rooms do)
   function host() { connectRoom('host', newCode()); }
   function watchRoom(code) { const c = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (c.length >= 4) connectRoom('watch', c); }
   // a phone that reloads or drops can get back into its room from the setup page
@@ -394,7 +396,7 @@
       : st === 'lost' ? 'Lost the other phone. Reconnecting on its own when it is back...'
       : st === 'error-wait' ? esc(NET.err) : esc(NET.err || 'Not connected.');
     return `<div class="vs-net ${st}"><span class="vs-net-dot"></span><span>${msg}</span>
-      ${st === 'waiting' ? `<button type="button" class="btn btn-small" id="vsCopy">COPY LINK</button>` : ''}
+      ${st === 'waiting' ? `<button type="button" class="btn btn-small btn-gold" id="vsCopy">COPY LINK</button>` : ''}
       ${NET.role === 'host' && (st === 'waiting' || st === 'connected') ? `<button type="button" class="btn btn-small" id="vsCopyWatch">COPY WATCH LINK</button>` : ''}
       ${st === 'connected' && (VS.watching || 0) ? `<span class="vs-spec">&#128065; ${VS.watching} WATCHING</span>` : ''}
       ${NET.role === 'host' && st === 'connected' ? `<button type="button" class="btn btn-small" id="vsHand">MAKE ${esc(who(1 - NET.side).toUpperCase())} HOST</button>` : ''}
@@ -423,14 +425,12 @@
     const rb = UI.$('#vsRules', app); if (rb) rb.addEventListener('click', () => { const bx = UI.$('#vsRulesBox', app); if (bx) bx.hidden = !bx.hidden; });
     const cp = UI.$('#vsCopy', app);
     if (cp) cp.addEventListener('click', async () => {
-      const link = joinLink(), text = 'Draft me on Starting Five. Room ' + NET.code + ': ' + link;
-      if (navigator.share) { try { await navigator.share({ text, url: link }); return; } catch (e) { /* closed */ } }
-      try { await navigator.clipboard.writeText(link); UI.toast('Link copied. Send it to your friend.'); } catch (e) { UI.toast(link); }
+      UI.copy(joinLink(), 'Link copied. Send it to your friend.');
     });
     const hd = UI.$('#vsHand', app); if (hd) hd.addEventListener('click', handOver);
     const rt = UI.$('#vsRetry', app); if (rt) rt.addEventListener('click', () => (NET.role === 'host' ? host() : join(NET.code)));
     const cw = UI.$('#vsCopyWatch', app);
-    if (cw) cw.addEventListener('click', async () => { try { await navigator.clipboard.writeText(watchLink()); UI.toast('Watch link copied. Anyone with it can watch.'); } catch (e) { UI.toast(watchLink()); } });
+    if (cw) cw.addEventListener('click', () => UI.copy(watchLink(), 'Watch link copied. Anyone with it can watch.'));
     const lv = UI.$('#vsLeave', app); if (lv) lv.addEventListener('click', () => { forgetRoom(); hangUp(); route(); });
     const ff = UI.$('#vsForfeit', app); if (ff) ff.addEventListener('click', () => {   // two taps, so a stray tap never costs rating
       if (Date.now() < FF) { FF = 0; ff.textContent = 'FORFEITING...'; ff.disabled = true; concede().then(() => { if (ff.isConnected) { ff.disabled = false; ff.textContent = 'FORFEIT'; } }); return; }
@@ -563,7 +563,7 @@
       ${row('b', 'MONEY EACH', 'aBudget', [[10, '$10'], [15, '$15'], [20, '$20'], [30, '$30'], [50, '$50']])}
       ${row('s', 'OPENING PRICE', 'aStart', [[1, '$1'], [2, '$2'], [3, '$3']], 'Each side must keep this much for every empty roster spot.')}
       ${row('r', 'EACH RAISE', 'aRaise', [[1, '+$1'], [2, '+$2'], [5, '+$5']])}
-      ${row('q', 'WHO IS IN THE POOL', 'aQ', [['stars', 'STARS'], ['mixed', 'MIXED'], ['any', 'ANYONE']], o.aQ === 'stars' ? 'Drawn from the 60 best players in the seasons you picked.' : o.aQ === 'mixed' ? 'Drawn from the 200 best.' : 'Anyone who played, stars and role players.')}
+      ${row('q', 'WHO IS IN THE POOL', 'aQ', [['stars', 'TOP 60'], ['mixed', 'TOP 200'], ['any', 'EVERYONE']], o.aQ === 'stars' ? 'Drawn from the 60 best players in the seasons you picked.' : o.aQ === 'mixed' ? 'Drawn from the 200 best.' : 'Anyone who played, stars and role players.')}
       ${themeRow(o, dis)}
       ${row('v', 'THE POOL', 'aShow', [[0, 'HIDDEN'], [1, 'VISIBLE']], o.aShow ? 'Everyone sees who is still to come.' : 'You only see the player who is up.')}
     </div>`;
@@ -917,9 +917,14 @@
       groupKey: p => (era ? p.season : cfg.year) + ':' + p.team };
   }
   const short = y => "'" + String(y - 1).slice(2) + "-'" + String(y).slice(2);
+  const AUC = () => VS.auc;
+  const paidSm = id => { const a = AUC(), s = a && a.log ? a.log.filter(x => x.id === id)[0] : null; return s ? ` <em class="ch-paid sm">${s.price ? '$' + s.price : 'FREE'}</em>` : ''; };
+  // what the auction paid for each player, next to his name on every roster after the auction
   function playerRow(p, B, btn, blind) {
     const t = B.teamFor(p.team, p.season);
-    return `<li class="ch-pl">${UI.faceImg(p, (t.colors || ['#444'])[0])}<span class="ch-pl-b"><b>${esc(p.name)}</b><small>${logo(t, 18)} ${esc(C.posLabel(p))}${UI.heightStr && UI.heightStr(p) ? ' | ' + UI.heightStr(p) : ''}${B.era && p.season ? ' | ' + short(p.season) : p.age ? ' | ' + p.age : ''}</small>${blind || !UI.gradesHtml ? '' : UI.gradesHtml(p)}</span>${B.cap ? UI.challengeCap.priceTag(p) : ''}${ovrTag(p, blind)}${btn}</li>`;
+    const sale = AUC() && AUC().log ? AUC().log.filter(x => x.id === p.id)[0] : null;
+    const paid = sale ? `<em class="ch-paid" title="What the auction paid for him">${sale.price ? '$' + sale.price : 'FREE'}</em>` : '';
+    return `<li class="ch-pl">${UI.faceImg(p, (t.colors || ['#444'])[0])}<span class="ch-pl-b"><b>${esc(p.name)}</b><small>${logo(t, 18)} ${esc(C.posLabel(p))}${UI.heightStr && UI.heightStr(p) ? ' | ' + UI.heightStr(p) : ''}${B.era && p.season ? ' | ' + short(p.season) : p.age ? ' | ' + p.age : ''}</small>${blind || !UI.gradesHtml ? '' : UI.gradesHtml(p)}</span>${B.cap ? UI.challengeCap.priceTag(p) : ''}${paid}${ovrTag(p, blind)}${btn}</li>`;
   }
   function spinFor(cfg, B, taken, avoid) {
     const tk = B.takenSet(taken.concat(cfg.bans || [])), groups = {};
@@ -1118,7 +1123,7 @@
       const fives = cfg.sides.map((sd, i) => {
         const t = tOf(teams, sd.team), mine = sd.picks.map(id => byId[id]).filter(Boolean);
         return `<div class="vs-side${on === i ? ' on' : ''}" style="--c1:${esc(t.colors[0])}"><div class="vs-side-h">${logo(t, 36)}<div><small>${esc(who(i))}${me() === i ? ' (YOU)' : ''}</small><b>${esc(sd.name || tName(t))}</b>${pay(sd)}</div></div>
-          ${UI.swapOl(C.vsPer(cfg), k => (mine[k] ? esc(mine[k].name) + ' <small class="muted">' + esc(C.posLabel(mine[k])) + (B.era && mine[k].season ? ' ' + short(mine[k].season) : '') + '</small>' + (blind ? '' : ' <b class="' + UI.ovrClass(mine[k].ovr) + '">' + esc(mine[k].ovr) + '</b>') : '<span class="muted">-</span>'), VS.sw && VS.sw.s === i ? VS.sw.k : null, !!cfg.bench && canAct(i) && mine.length > 5)}</div>`;
+          ${UI.swapOl(C.vsPer(cfg), k => (mine[k] ? esc(mine[k].name) + ' <small class="muted">' + esc(C.posLabel(mine[k])) + (B.era && mine[k].season ? ' ' + short(mine[k].season) : '') + '</small>' + paidSm(mine[k].id) + (blind ? '' : ' <b class="' + UI.ovrClass(mine[k].ovr) + '">' + esc(mine[k].ovr) + '</b>') : '<span class="muted">-</span>'), VS.sw && VS.sw.s === i ? VS.sw.k : null, !!cfg.bench && canAct(i) && mine.length > 5)}</div>`;
       }).join('');
       const fitCard = (sd, i) => {
         if (!sd.picks.length) return '';

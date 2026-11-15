@@ -649,6 +649,7 @@
 
   function jerseysTab(s) {
     const H = prior(s);
+    if (window.AWARDS && window.AWARDS.retiredNumbers) { try { window.AWARDS.retiredNumbers(s); } catch (e) { /* the list below */ } }
     const book = s.history && s.history.retiredJerseys;
     let all;
     if (book && typeof book === 'object') {
@@ -681,6 +682,8 @@
       return (H ? '' : fr.building('Retired jerseys before 2012', 'The franchise history file (<code>data/history.js</code>) has not loaded yet, so the real retired numbers are not shown.'))
         + UI.empty('NO JERSEYS RETIRED YET', 'When a franchise great retires, his team may hang his number in the rafters. They will be listed here.', '');
     }
+    // only the franchises in this league (an old season has no Magic or Raptors yet)
+    all = all.filter(x => !s.teams || s.teams[x.team] || !x.before);
     const teams = Array.from(new Set(all.map(x => x.team))).sort((a, b) => fr.teamName(s, a).localeCompare(fr.teamName(s, b)));
     return `${H ? '' : fr.building('Retired jerseys before 2012', 'The franchise history file (<code>data/history.js</code>) has not loaded yet, so only jerseys retired in this Association are shown.')}
       <div class="fr-jerseys">${teams.map(t => `<section class="fr-jt" style="--c1:${esc(UI.teamColor(t))}">

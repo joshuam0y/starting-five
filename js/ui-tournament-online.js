@@ -83,8 +83,10 @@
     try { if (NET.client) NET.client.end(true); } catch (e) { /* gone */ }
     Object.assign(NET, { role: null, code: '', status: '', err: '', client: null, key: null, peerSeen: 0 });
     stopTick(); HOOK.host = false;
+    if (UI.onlineDrop) UI.onlineDrop('tn');
   }
   function connect(role, code) {
+    if (role !== 'watch' && UI.onlineClaim) UI.onlineClaim('tn', () => leave());
     NET.timers.forEach(t => clearInterval(t)); NET.timers = [];
     try { if (NET.client) NET.client.end(true); } catch (e) { /* gone */ }
     Object.assign(NET, { role, code, status: 'connecting', err: '', client: null, peerSeen: 0, me: Math.random().toString(36).slice(2, 10) });
@@ -140,7 +142,7 @@
   });
   const hello = () => (NET.role === 'watch' ? send({ t: 'watch' }) : send({ t: 'hello', name: lsName.get() || '' }));
   const CODE_CH = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  const newCode = () => Array.from({ length: 5 }, () => CODE_CH[Math.floor(Math.random() * CODE_CH.length)]).join('');
+  const newCode = () => 'T' + Array.from({ length: 4 }, () => CODE_CH[Math.floor(Math.random() * CODE_CH.length)]).join('');   // T: a tournament room (the main menu's join box sends it here)
   const joinLink = () => location.origin + location.pathname + '#/challenge/tournament/join/' + NET.code;
 
   // ---------- trash talk and chat for the whole room: reactions pop up on every phone, a message panel ----------
@@ -481,11 +483,11 @@
     if (!NET.role) return '';
     const st = NET.status, host = NET.role === 'host';
     const msg = st === 'connected' ? (NET.role === 'watch' ? 'Watching room <b>' + esc(NET.code) + '</b>. You see everything live.' : 'Connected to the host.')
-      : st === 'ready' ? `Room <b>${esc(NET.code)}</b>: send the link to your friends.`
+      : st === 'ready' ? `Room <button type="button" class="vs-code" id="tnCodeCopy" title="Copy the room code">${esc(NET.code)}</button> send the link to your friends.`
       : st === 'lost' ? 'Lost the host. Reconnecting on its own when they are back...'
       : st === 'error' ? esc(NET.err || 'Not connected.') : (NET.err ? esc(NET.err) : 'Connecting...');
     return `<div class="vs-net ${st === 'ready' ? 'waiting' : st}"><span class="vs-net-dot"></span><span>${msg}</span>
-      ${host && NET.code ? '<button type="button" class="btn btn-small" id="tnCopy">COPY LINK</button><button type="button" class="btn btn-small" id="tnCopyWatch">COPY WATCH LINK</button>' : ''}
+      ${host && NET.code ? '<button type="button" class="btn btn-small btn-gold" id="tnCopy">COPY LINK</button><button type="button" class="btn btn-small" id="tnCopyWatch">COPY WATCH LINK</button>' : ''}
       ${(TN() && TN().watching) ? '<span class="vs-spec">&#128065; ' + TN().watching + ' WATCHING</span>' : ''}
       ${st === 'lost' || st === 'error' ? '<button type="button" class="btn btn-small" id="tnRetry">TRY AGAIN</button>' : ''}
       <button type="button" class="btn btn-small" id="tnLeaveRoom">LEAVE</button></div>`;
@@ -510,11 +512,10 @@
     el.innerHTML = netBar();
     const cp = el.querySelector('#tnCopy');
     if (cp) cp.addEventListener('click', async () => {
-      const link = joinLink(), text = 'Join my tournament on Starting Five. Room ' + NET.code + ': ' + link;
-      if (navigator.share) { try { await navigator.share({ text, url: link }); return; } catch (e) { /* closed */ } }
-      try { await navigator.clipboard.writeText(link); UI.toast('Link copied. Send it around.'); } catch (e) { UI.toast(link); }
+      UI.copy(joinLink(), 'Link copied. Send it around.');
     });
-    const cw = el.querySelector('#tnCopyWatch'); if (cw) cw.addEventListener('click', async () => { const link = location.origin + location.pathname + '#/challenge/tournament/watch/' + NET.code; try { await navigator.clipboard.writeText(link); UI.toast('Watch link copied. Anyone with it can watch.'); } catch (e) { UI.toast(link); } });
+    const cw = el.querySelector('#tnCopyWatch'); if (cw) cw.addEventListener('click', () => UI.copy(location.origin + location.pathname + '#/challenge/tournament/watch/' + NET.code, 'Watch link copied. Anyone with it can watch.'));
+    const cc = el.querySelector("#tnCodeCopy"); if (cc) cc.addEventListener('click', () => UI.copy(NET.code, 'Room code copied.'));
     const rt = el.querySelector('#tnRetry'); if (rt) rt.addEventListener('click', () => connect(NET.role, NET.code));
     const lv = el.querySelector('#tnLeaveRoom'); if (lv) lv.addEventListener('click', () => HOOK.quit());
   }
@@ -612,7 +613,7 @@
               <small class="muted">${o.auction ? 'A hidden pool of players goes up one at a time and every team bids, round the table. Raise or drop out; the last team in gets him. Everyone has the same money.' : o.board ? 'No wheel: pick anyone left on the board. Every season you picked loads in on each phone.' : 'Every pick comes from the team the wheel lands on.'}</small></div>
             ${o.auction ? `<div><span class="ts-start-k">MONEY EACH</span><div class="ch-chips">${chips([[10, '$10'], [15, '$15'], [20, '$20'], [30, '$30']], o.aBudget || 20, 'abud')}</div>
               <small class="muted">Bidding opens at $1 and goes up by at least $1. Everyone keeps $1 for each spot they still have to fill.</small></div>
-            <div><span class="ts-start-k">WHO IS IN THE POOL</span><div class="ch-chips">${chips([['stars', 'STARS'], ['mixed', 'MIXED'], ['any', 'ANYONE']], o.aQ || 'mixed', 'aq')}</div></div>
+            <div><span class="ts-start-k">WHO IS IN THE POOL</span><div class="ch-chips">${chips([['stars', 'TOP 60'], ['mixed', 'TOP 200'], ['any', 'EVERYONE']], o.aQ || 'mixed', 'aq')}</div></div>
             <div><span class="ts-start-k">THE POOL</span><div class="ch-chips">${chips([[0, 'HIDDEN'], [1, 'VISIBLE']], o.aShow ? 1 : 0, 'ashow')}</div></div>` : ''}
             ${o.auction ? '' : `<div><span class="ts-start-k">BANS</span><div class="ch-chips">${chips([[0, 'NONE'], [1, '1 EACH'], [2, '2 EACH']], o.bans || 0, 'tbans')}</div>
               <small class="muted">${o.bans ? 'Before the draft, each player bans ' + o.bans + ' in turn. Banned players are off the wheel and the board.' : 'Nobody is banned.'}</small></div>`}

@@ -636,15 +636,32 @@
     return inducted;
   }
 
+  // the season (season-ending year) a real retired number can first be up (data/jersey-years.js)
+  function jerseyYears() {
+    if (typeof window !== 'undefined' && window.JERSEY_YEARS) return window.JERSEY_YEARS;
+    if (typeof require === 'function') { try { return require('../data/jersey-years.js'); } catch (e) { /* ignore */ } }
+    return null;
+  }
   function retiredNumbers(state) {
     state.history = state.history || {};
+    // a league that starts before 2012-13: only the real numbers retired by its first season (older saves fixed once)
+    var JY = jerseyYears(), Y0 = +state.startYear || 2013;
+    if (state.history.retiredJerseys && JY && Y0 < 2013 && !state.history.jerseyYears) {
+      var book0 = state.history.retiredJerseys;
+      Object.keys(book0).forEach(function (a) {
+        book0[a] = (book0[a] || []).filter(function (x) { return x.id || !(JY[a + '|' + x.number] > Y0); });
+      });
+    }
+    if (state.history.retiredJerseys) state.history.jerseyYears = 1;
     if (!state.history.retiredJerseys) {
       var seed = {}, prior = priorData();
       var src = (state.history.prior && state.history.prior.retiredNumbers) || (prior && prior.retiredNumbers) || {};
       Object.keys(src).forEach(function (a) {
-        seed[a] = src[a].map(function (x) { return { number: x.number, name: x.name, id: null, year: x.year || null }; });
+        seed[a] = src[a].filter(function (x) { return !(JY && Y0 < 2013 && JY[a + '|' + x.number] > Y0); })
+          .map(function (x) { return { number: x.number, name: x.name, id: null, year: x.year || null }; });
       });
       state.history.retiredJerseys = seed;
+      state.history.jerseyYears = 1;
     }
     return state.history.retiredJerseys;
   }

@@ -9,7 +9,7 @@ const ok = (c, m) => { if (c) pass++; else { fail++; console.log('  FAIL ' + m);
 const src = fs.readFileSync(__dirname + '/test-newstarts.js', 'utf8');
 eval(src.match(/const files = \[[\s\S]*?\];\nfiles\.forEach[^\n]*\n/)[0].replace(/const files/, 'var files').replace(/require\('\.\.\//g, "require('../"));
 require('../data/historic-moves.js');
-const L = window.LEAGUE, E = window.ENGINE;
+const L = window.LEAGUE, E = window.ENGINE, COACH = window.COACH;
 const years = process.argv.slice(2).map(Number).filter(Boolean);
 const list = years.length ? years : [1947, 1949, 1952, 1958, 1961, 1964, 1968, 1971, 1974, 1976];
 const eraTeams = y => { if (!window.ERA_ROSTERS || !window.ERA_ROSTERS[y]) require('../data/era-' + y + '.js'); const ab = a => ({ PHW: 'GSW', SFW: 'GSW', MNL: 'LAL', ROC: 'SAC', CIN: 'SAC', KCO: 'SAC', KCK: 'SAC', SYR: 'PHI', FTW: 'DET', MLH: 'ATL', STL: 'ATL', TRI: 'ATL', CHP: 'WAS', CHZ: 'WAS', BAL: 'WAS', CAP: 'WAS', WSB: 'WAS', SDR: 'HOU', NYN: 'BKN', NJN: 'BKN', BUF: 'LAC', SDC: 'LAC', NOJ: 'UTA' }[a] || a); return window.ERA_ROSTERS[y].teams.map(t => ab(t.abbr)).sort(); };
@@ -26,6 +26,8 @@ for (const y of list) {
   const CO = require('../data/coach-old.js'), op = CO.open[y] || {};
   const coachOf = a => s.coaches[s.teams[a].coach] || {};
   ok(Object.keys(s.teams).every(a => !op[a] || s.teams[a].coach === op[a][0]), y + ': the real opening-night coaches (' + Object.keys(s.teams).map(a => a + ' ' + coachOf(a).name).slice(0, 4).join(', ') + ')');
+  const pre = COACH.available(s, y).filter(c => !(CO.coaches[c.id] && CO.coaches[c.id][5].some(x => x <= y)));
+  ok(!pre.length, y + ': every coach on the market had coached by then (' + pre.map(c => c.name).join(', ') + ')');
   const early = () => Object.keys(s.teams).map(coachOf).filter(c => (c.available || 0) > s.year).map(c => c.name);
   let bad = null;
   for (let k = 0; k < 4 && !bad; k++) {

@@ -965,9 +965,18 @@
         </div></div>`;
     const shareB = UI.$('#lvShare');
     if (shareB) shareB.addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(shareText); UI.toast('Copied. Paste it anywhere.'); } catch (e) { UI.toast(shareText); }
+      UI.copy(shareText, 'Copied. Paste it anywhere.');
     });
     if ($('lvRun')) $('lvRun').textContent = S.changes + ' LEAD CHANGE' + (S.changes === 1 ? '' : 'S') + (S.run.pts >= 7 ? ' | BIGGEST RUN ' + S.run.pts + '-0 ' + S.run.team : '');
+    // watching on the court: out of full screen, and the result with its buttons above the court, no scrolling to find them
+    const ctHost = $('lvCourt');
+    if (live.court && live.court.exitFull) live.court.exitFull();
+    if (ctHost && !ctHost.hidden && ctHost.parentNode) {
+      ctHost.parentNode.insertBefore($('lvAfter'), ctHost);
+      const fin0 = $('lvAfter').querySelector('.lv-final');
+      if (fin0) $('lvAfter').insertBefore(fin0, $('lvAfter').firstChild);
+      setTimeout(() => { const a = $('lvAfter'); if (a && a.getBoundingClientRect().top > window.innerHeight * 0.6) a.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
+    }
     UI.$('#lvNext').addEventListener('click', () => {
       live = null;
       if (location.hash === '#/live/next') UI.route(); else location.hash = '#/live/next';

@@ -148,9 +148,14 @@
     return g ? { abbr: g.abbr, year: g.year, key: g.key, who: TN.who, pick: TN.picks[TN.who].length, n: Date.now() + '-' + Math.floor(Math.random() * 1e6) } : null;
   }
   const ovrTag = p => `<b class="ch-ovr ${UI.ovrClass(p.ovr)}">${esc(p.ovr)}</b>`;
+  const AUC = () => TN.auc;
+  const paidSm = id => { const a = AUC(), s = a && a.log ? a.log.filter(x => x.id === id)[0] : null; return s ? ` <em class="ch-paid sm">${s.price ? '$' + s.price : 'FREE'}</em>` : ''; };
+  // what the auction paid for each player, next to his name on every roster after the auction
   function playerRow(p, B, btn) {
     const t = B.teamFor(p.team, p.season);
-    return `<li class="ch-pl">${UI.faceImg(p, (t.colors || ['#444'])[0])}<span class="ch-pl-b"><b>${esc(p.name)}</b><small>${logo(t, 18)} ${esc(C.posLabel(p))}${UI.heightStr && UI.heightStr(p) ? ' | ' + UI.heightStr(p) : ''}${B.era && p.season ? ' | ' + short(p.season) : p.age ? ' | ' + p.age : ''}</small>${UI.gradesHtml ? UI.gradesHtml(p) : ''}</span>${B.cap ? UI.challengeCap.priceTag(p) : ''}${ovrTag(p)}${btn}</li>`;
+    const sale = AUC() && AUC().log ? AUC().log.filter(x => x.id === p.id)[0] : null;
+    const paid = sale ? `<em class="ch-paid" title="What the auction paid for him">${sale.price ? '$' + sale.price : 'FREE'}</em>` : '';
+    return `<li class="ch-pl">${UI.faceImg(p, (t.colors || ['#444'])[0])}<span class="ch-pl-b"><b>${esc(p.name)}</b><small>${logo(t, 18)} ${esc(C.posLabel(p))}${UI.heightStr && UI.heightStr(p) ? ' | ' + UI.heightStr(p) : ''}${B.era && p.season ? ' | ' + short(p.season) : p.age ? ' | ' + p.age : ''}</small>${UI.gradesHtml ? UI.gradesHtml(p) : ''}</span>${B.cap ? UI.challengeCap.priceTag(p) : ''}${paid}${ovrTag(p)}${btn}</li>`;
   }
 
   // ---------- bracket logic (pure, no DOM) ----------
@@ -244,7 +249,7 @@
             <div><span class="ts-start-k">DRAFT STYLE</span><div class="ch-chips"><button type="button" class="ch-chip${!o.board && !o.auction ? ' on' : ''}" data-board="0">THE WHEEL</button><button type="button" class="ch-chip${o.board && !o.auction ? ' on' : ''}" data-board="1">OPEN BOARD</button><button type="button" class="ch-chip${o.auction ? ' on' : ''}" data-board="2">AUCTION</button></div>
               <small class="muted">${o.auction ? 'A hidden pool of players goes up one at a time and every team bids, round the table. Raise or drop out; the last team in gets him. Bidding is public, so everyone watches the same screen.' : o.board ? 'No wheel: take turns picking anyone left on the board. Every season you picked loads in, so anyone who ever played can go.' : 'Every pick comes from the team the wheel lands on.'}</small></div>
             ${o.auction ? `<div><span class="ts-start-k">MONEY EACH</span><div class="ch-chips">${[10, 15, 20, 30].map(v => `<button type="button" class="ch-chip${(o.aBudget || 20) === v ? ' on' : ''}" data-habud="${v}">$${v}</button>`).join('')}</div></div>
-            <div><span class="ts-start-k">WHO IS IN THE POOL</span><div class="ch-chips">${[['stars', 'STARS'], ['mixed', 'MIXED'], ['any', 'ANYONE']].map(([v, l]) => `<button type="button" class="ch-chip${(o.aQ || 'mixed') === v ? ' on' : ''}" data-haq="${v}">${l}</button>`).join('')}</div></div>
+            <div><span class="ts-start-k">WHO IS IN THE POOL</span><div class="ch-chips">${[['stars', 'TOP 60'], ['mixed', 'TOP 200'], ['any', 'EVERYONE']].map(([v, l]) => `<button type="button" class="ch-chip${(o.aQ || 'mixed') === v ? ' on' : ''}" data-haq="${v}">${l}</button>`).join('')}</div></div>
             <div><span class="ts-start-k">THE POOL</span><div class="ch-chips">${[[0, 'HIDDEN'], [1, 'VISIBLE']].map(([v, l]) => `<button type="button" class="ch-chip${(o.aShow ? 1 : 0) === v ? ' on' : ''}" data-hashow="${v}">${l}</button>`).join('')}</div></div>` : ''}
             <div><span class="ts-start-k">BENCH</span><div class="ch-chips"><button type="button" class="ch-chip${!o.bench ? ' on' : ''}" data-bench="0">JUST THE FIVE</button><button type="button" class="ch-chip${o.bench ? ' on' : ''}" data-bench="3">8-MAN: +3 BENCH</button></div>
               <small class="muted">${o.bench ? 'Everyone drafts eight. The first five start, the last three come off the bench.' + (o.cap ? ' The cap grows to $' + C.capFor(o.cap, o.bench) + 'M to cover all eight.' : '') : 'Five players each, all 48 minutes.'}</small></div>
@@ -723,7 +728,7 @@
       const rosters = TN.seeds.map((p, s) => {
         const t = teamOf(p), five = TN.picks[p].map(id => B.byId[id]).filter(Boolean);
         return `<details class="tn-roster" style="--c1:${esc((t.colors || ['#333'])[0])}"><summary>${logo(t, 24)}<b>#${s + 1} ${esc(nm(p))}${aiTag(p)}</b><small>${esc(t.name)} | ${f1(TN.rating && TN.rating[p])} AVG</small></summary>
-          <ul>${five.map(q => `<li>${esc(q.name)} <small class="muted">${esc(C.posLabel(q))}${B.era && q.season ? ' ' + short(q.season) : ''}</small> <b class="tn-ovr ${UI.ovrClass(q.ovr)}">${esc(q.ovr)}</b></li>`).join('')}</ul></details>`;
+          <ul>${five.map(q => `<li>${esc(q.name)} <small class="muted">${esc(C.posLabel(q))}${B.era && q.season ? ' ' + short(q.season) : ''}</small>${paidSm(q.id)} <b class="tn-ovr ${UI.ovrClass(q.ovr)}">${esc(q.ovr)}</b></li>`).join('')}</ul></details>`;
       }).join('');
       const over = TN.champ >= 0;
       app.innerHTML = `<div class="ch-top"><div><div class="ch-top-k">${esc(lblC(TN.cfg))} | ${TN.n} TEAMS | BEST OF ${TN.opts.bestOf}${TN.cfg.cap ? ' | $' + TN.cfg.cap + 'M CAP' : ''}</div><div class="ch-top-t">THE BRACKET</div></div>

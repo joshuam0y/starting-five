@@ -144,7 +144,7 @@
           <div class="ch-seg">
             <button type="button" class="ch-seg-b${!isAll ? ' on' : ''}" data-mode="year"><b>ONE SEASON</b><small>The real league of one year</small></button>
             <button type="button" class="ch-seg-b${isAll ? ' on' : ''}" data-mode="alltime"><b>ALL-TIME</b><small>Vets from every season, 30 teams draft</small></button>
-            <a class="ch-seg-b" href="#/challenge/vs"><b>VERSUS</b><small>Two players, one phone, then a showdown</small></a>
+            <a class="ch-seg-b" href="#/challenge/vs"><b>HEAD TO HEAD</b><small>Draft against a friend, online or one phone</small></a>
           </div>
           <small class="ch-hint">${isAll ? 'Seasons: every season you leave on is in one big pool, and nobody can be drafted twice.' : 'Seasons: you draft from the real league of the one season you pick.'}</small>
           ${isAll ? `<div class="ch-sub">SEASONS IN THE POOL <span class="muted">(${C.SEASONS.length - skip.length} of ${C.SEASONS.length} on)</span></div>
@@ -830,7 +830,6 @@
   // Shared with js/ui-versus.js as UI.slib. The code is compact JSON in base64url; nothing is simmed when it opens.
   function slUrl(kind, o) { return location.origin + location.pathname + '#/challenge/' + (kind === 'vs' ? 'vs/r/' : 'r/') + b64(JSON.stringify(o)); }
   function slCopy(url, title, text) {
-    if (navigator.share) { return navigator.share({ title: title, text: text || title, url: url }).catch(e => { if (e && e.name === 'AbortError') return; return slClip(url); }); }
     return slClip(url);
   }
   function slClip(url) {
@@ -1100,6 +1099,6 @@
       banner: r.exit === 'champion' ? 'NBA CHAMPIONS' : String(r.result || '').toUpperCase(), colors: me.colors, logo: me.logo,
       lines: r.five.map(x => [C.primaryPos(x.pos), x.name + (x.line ? '   ' + x.line.pts.toFixed(1) + ' PTS' : '')]) };
     if (UI.shareResult) { UI.shareResult(spec, text, url, 'draft-challenge'); return; }
-    if (navigator.share) navigator.share({ title: 'Draft Challenge', text, url }).catch(() => {});
+    UI.copy(text + '\n' + url, 'Copied. Paste it anywhere.');
   }
 })();

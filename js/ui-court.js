@@ -208,7 +208,7 @@
       on: { home: [], away: [] }, pos: {}, alpha: {}, ball: { x: 47, y: 25, z: 0 }, holder: null, ph: null,
       off: null, set: false, form: null, hs: 0, as: 0, per: 'Q1', clock: '12:00', shownT: 0,
       playing: opts.autoplay !== false, speed: 1, tab: 'box', pnl: null, holdAt: null, ended: false, tags: [], sel: null, mode: null, camY: 0, raf: 0, last: 0, dead: false,
-      simT: 0, act: {}, rec: [], replay: null, hl: null, lastReplay: -1e9, crowd: 0, zoom: null, possT: 0, possLen: 24, tf: { home: 0, away: 0, per: '' }
+      simT: 0, act: {}, rec: [], tgt: {}, vel: {}, top: {}, replay: null, hl: null, lastReplay: -1e9, crowd: 0, zoom: null, possT: 0, possLen: 24, tf: { home: 0, away: 0, per: '' }
     };
     if (start > 0) { const p = evs[start - 1]; st.hs = p.hs; st.as = p.as; st.per = p.per; st.shownT = p.t; }
 
@@ -313,13 +313,13 @@
       const out = {}, keys = Object.keys(dots).filter(k => (st.alpha[k] || 0) > 0.01);
       keys.forEach(k => {
         const p = st.pos[k] || [47, 25], h = seedOf(k), still = !moving[k];
-        const amp = still ? (st.holder === k ? 0.55 : 0.32) : 0.08, sp = st.holder === k ? 0.0042 : 0.0014;
+        const sp0 = st.vel[k] ? Math.hypot(st.vel[k][0], st.vel[k][1]) : 0, amp = sp0 > 3 ? 0.04 : still ? (st.holder === k ? 0.35 : 0.2) : 0.08, sp = st.holder === k ? 0.0042 : 0.0014;
         out[k] = [p[0] + Math.sin(now * sp + h) * amp, p[1] + Math.cos(now * sp * 0.8 + h * 1.7) * amp];
       });
       // man-to-man: in a half-court possession each defender stays between his man and the basket, sliding as his man
       // moves (eased, so it looks like footwork), unless the play itself is moving him (a closeout, a steal, a block)
       if (st.off && st.on && st.on[st.off] && st.on[other(st.off)] && st.pos) {
-        const O = st.off, h = hoop(O, st.per), os = ordered(st.on[O]), ds = ordered(st.on[other(O)]), k = Math.min(1, (st.lastDt || 16) / 260);
+        const O = st.off, h = hoop(O, st.per), os = ordered(st.on[O]), ds = ordered(st.on[other(O)]), k = 0;
         ds.forEach((dk, i) => {
           const mk2 = os[i] || os[0], man = out[mk2], me = out[dk];
           if (!man || !me || moving[dk]) return;
@@ -328,9 +328,10 @@
           // help: when the ball gets into the paint, the defenders away from it sag toward it
           const bh = st.holder && sideOf(st.holder) === O ? out[st.holder] : null;
           if (bh && mk2 !== st.holder && Math.hypot(h[0] - bh[0], h[1] - bh[1]) < 17) { tx += (bh[0] - tx) * 0.3; ty += (bh[1] - ty) * 0.3; }
-          const base = st.pos[dk];
-          base[0] += (tx - base[0]) * k; base[1] += (ty - base[1]) * k;
-          me[0] = base[0]; me[1] = base[1];
+          // a target, not a position: he runs back in transition, then slides in his stance
+          st.tgt[dk] = [tx, clamp(ty, 0.5, 49.5)];
+          const far = Math.hypot(tx - st.pos[dk][0], ty - st.pos[dk][1]);
+          st.top[dk] = far > 14 ? 23 : far > 6 ? 18 : 13;
         });
       }
       const min = R_DOT * 1.9;
@@ -354,7 +355,8 @@
         const p = DP[key] || st.pos[key] || [47, 25], hold = st.holder === key;
         const tgt = hold ? hoop(sideOf(key), st.per) : bp;
         const A = st.act[key], f = A ? (st.simT - A.t0) / A.d : 2;
-        players.push({ key, x: p[0], y: p[1], a, ang: Math.atan2(tgt[1] - p[1], tgt[0] - p[0]), act: f >= 0 && f < 1 ? { k: A.k, f } : null, hold, sel: st.sel === key, def: !!st.off && sideOf(key) !== st.off });
+        const vv = st.vel[key] || [0, 0];
+        players.push({ key, vx: vv[0], vy: vv[1], x: p[0], y: p[1], a, ang: Math.atan2(tgt[1] - p[1], tgt[0] - p[0]), act: f >= 0 && f < 1 ? { k: A.k, f } : null, hold, sel: st.sel === key, def: !!st.off && sideOf(key) !== st.off });
       });
       const tags = [], rings = [];
       st.tags.forEach(tg => { const f = tg.age / tg.ttl; if (tg.ring) rings.push({ x: tg.at[0], y: tg.at[1], f }); else tags.push({ key: tg.key, x: tg.at ? tg.at[0] : 0, y: tg.at ? tg.at[1] : 0, text: tg.text, cls: tg.cls, f }); });
@@ -668,7 +670,7 @@
       off[h] = at(O, per, rnd(25, 29), rnd(19, 31));
       const def = defenseSet(O, per, off);
       const far = Math.max.apply(null, Object.keys(off).map(k => dist(st.pos[k] || off[k], off[k])));
-      B.push({ dur: clamp(far * 42, 700, 2300), move: Object.assign({}, off, def) });
+      B.push({ dur: clamp(far * 30, 700, 2600), move: Object.assign({}, off, def), arrive: [h], near: 4, wait: 2400 });
       st.off = O; st.set = true; st.form = Object.assign({}, off, def);
       return h;
     }
@@ -699,7 +701,7 @@
       const back = [[9, 25], [15, 18], [19, 32], [25, 12], [30, 38]];
       ordered(st.on[D]).forEach((k, i) => { const l = back[i] || back[4]; mv[k] = at(O, per, l[0] + rnd(0, 6), l[1] + rnd(-3, 3)); });
       const far = Math.max.apply(null, Object.keys(mv).map(k => dist(st.pos[k] || mv[k], mv[k])));
-      B.push({ dur: clamp(far * 26, 900, 1700), move: mv, hold: hd, at0: () => { tag(hd, 'FAST BREAK', 'play', 1500); cheer(O, 1); } });
+      B.push({ dur: clamp(far * 34, 900, 2200), pace: 24, move: mv, hold: hd, arrive: [hd], near: 5, wait: 1400, at0: () => { tag(hd, 'FAST BREAK', 'play', 1500); cheer(O, 1); } });
       st.off = O; st.set = false; st.form = Object.assign({}, mv);
       if (shooter !== hd) pass(B, shooter, { dur: 420, move: { [shooter]: spot } });
       else B.push({ dur: 380, move: { [shooter]: spot } });
@@ -776,7 +778,7 @@
           any = true;
           const repl = outs[j];
           const spot = repl && st.pos[repl] ? st.pos[repl].slice() : [47 + rnd(-6, 6), rnd(8, 42)];
-          st.pos[k] = [47 + rnd(-2, 2), 51.5];
+          st.pos[k] = [47 + rnd(-2, 2), 51.5]; st.vel[k] = [0, 0];
           move[k] = spot; fade[k] = 1; ins.push(k);
           if (st.ph === repl) st.ph = k;
         });
@@ -848,6 +850,9 @@
         const label = dunk ? 'DUNK' : { close: 'AT THE RIM', post: 'POST', mid: 'MID-RANGE', three: '3PT' }[ev.shot];
         // the rise: he gathers and goes up (a dunker toward the rim), his man comes out to contest
         const rise = dunk ? 240 : near ? 180 : 260;
+        const prep = B[B.length - 1];
+        if (prep && !prep.ball && prep.move && prep.move[shooter]) { prep.arrive = [shooter]; prep.near = 1.5; }
+        else B.push({ dur: 200, move: { [shooter]: spot }, arrive: [shooter], near: 1.5 });
         const riseMove = Object.assign({}, closeout); if (dunk) riseMove[shooter] = [spot[0] + (h[0] - spot[0]) * 0.35, spot[1] + (h[1] - spot[1]) * 0.35];
         B.push({ dur: rise, move: riseMove, at0: () => { tag(shooter, label, 'kind', rise + dur + 200); act(shooter, dunk ? 'dunk' : 'shoot', dunk ? rise + dur * 1.6 : rise * 2.6); if (dfd) act(dfd, 'contest', rise + dur); } });
         st.ph = null;
@@ -892,7 +897,7 @@
         const crash = {};
         // the rebounder goes where the miss came down
         crash[r] = st.lastBallTo ? st.lastBallTo.slice() : [st.ball.x, st.ball.y];
-        B.push({ dur: 520, move: crash });
+        B.push({ dur: 420, move: crash, arrive: [r], near: 2.5, wait: 700 });
         B.push({ dur: 220, ball: { to: r, arc: 0.6, h1: 8.5 }, hold: r, fire: true, at0: () => act(r, 'jump', 640), at: () => tag(r, k === 'oreb' ? 'O-REB' : 'REB', 'reb', 900) });
         st.ph = r; st.off = O; st.set = k === 'oreb'; if (k === 'dreb') st.form = null;
         return B;
@@ -905,7 +910,7 @@
         const lane = { D: [[7, 16.2], [7, 33.8], [11, 16.2]], O: [[11, 33.8], [14, 16.2]] };
         ordered(st.on[D]).forEach((key, i) => { const s = lane.D[i]; mv[key] = s ? at(O, per, s[0], s[1]) : at(O, per, rnd(26, 29), i % 2 ? 12 : 38); });
         ordered(st.on[O]).filter(x => x !== shooter).forEach((key, i) => { const s = lane.O[i]; mv[key] = s ? at(O, per, s[0], s[1]) : at(O, per, rnd(27, 30), i % 2 ? 14 : 36); });
-        B.push({ dur: 900, move: mv, ball: { to: shooter, arc: 1.2 }, hold: shooter });
+        B.push({ dur: 1200, pace: 9, move: mv, ball: { to: shooter, arc: 1.2 }, hold: shooter });
         const reb = evs[ev.i + 1] && (evs[ev.i + 1].k === 'oreb' || evs[ev.i + 1].k === 'dreb');
         const lastMade = ev.made > 0 && !(reb && ev.made < ev.att);
         // made ones first when the last one misses, missed ones first otherwise
@@ -1025,8 +1030,14 @@
     }
     function beginBeat(b) {
       st.beat = b; st.bt = 0;
-      b.from = {};
-      Object.keys(b.move || {}).forEach(k => { b.from[k] = (st.pos[k] || b.move[k]).slice(); });
+      // each move is a target: the player runs there at a pace for the distance (a sprint across the floor, a jog
+      // to a spot nearby), speeding up and slowing down like a player, so nobody slides or jumps
+      Object.keys(b.move || {}).forEach(k => {
+        const to = b.move[k], from = st.pos[k] || to, d = Math.hypot(to[0] - from[0], to[1] - from[1]);
+        if (!st.pos[k]) st.pos[k] = to.slice();
+        st.tgt[k] = to.slice();
+        st.top[k] = b.pace || (d > 30 ? 24 : d > 14 ? 20 : d > 5 ? 15 : 11);
+      });
       b.a0 = {};
       Object.keys(b.fade || {}).forEach(k => { b.a0[k] = st.alpha[k] || 0; });
       if (b.ball) {
@@ -1045,7 +1056,6 @@
       if (b.at0) b.at0();
     }
     function endBeat(b) {
-      Object.keys(b.move || {}).forEach(k => { st.pos[k] = b.move[k].slice(); });
       Object.keys(b.fade || {}).forEach(k => { st.alpha[k] = b.fade[k]; });
       if (b.ball) {
         const to = typeof b.ball.to === 'string' ? st.pos[b.ball.to] : b.ball.to;
@@ -1059,11 +1069,7 @@
     }
     function stepBeat(b, ms) {
       st.bt += ms;
-      const p = clamp(st.bt / b.dur, 0, 1), e = ease(p);
-      Object.keys(b.move || {}).forEach(k => {
-        const f = b.from[k], t = b.move[k];
-        st.pos[k] = [f[0] + (t[0] - f[0]) * e, f[1] + (t[1] - f[1]) * e];
-      });
+      const p = clamp(st.bt / b.dur, 0, 1);
       Object.keys(b.fade || {}).forEach(k => { st.alpha[k] = b.a0[k] + (b.fade[k] - b.a0[k]) * p; });
       if (b.ball) {
         const to = typeof b.ball.to === 'string' ? ballHand(b.ball.to) : b.ball.to;
@@ -1073,6 +1079,39 @@
         st.ball.h = b.h0 + (b.h1 - b.h0) * p + (b.ball.arc || 0) * 0.9 * 4 * p * (1 - p);
       }
       return p >= 1;
+    }
+    // Footwork: each player accelerates toward his target (26 ft/s2), never past his top speed (a sprint is 24 ft/s,
+    // a jog 11), eases off as he arrives, and steps around a teammate or opponent in his way.
+    const ACC = 26, BRAKE = 30;
+    function legs(ms) {
+      const dt = ms / 1000, keys = Object.keys(st.tgt).filter(k => (st.alpha[k] || 0) > 0.01 || (st.beat && st.beat.fade && k in st.beat.fade));
+      keys.forEach(k => {
+        const p = st.pos[k], t = st.tgt[k];
+        if (!p || !t) return;
+        const v = st.vel[k] || (st.vel[k] = [0, 0]);
+        const dx = t[0] - p[0], dy = t[1] - p[1], d = Math.hypot(dx, dy);
+        const want = d < 0.08 ? 0 : Math.min(st.top[k] || 15, Math.sqrt(2 * BRAKE * d) * 0.92);
+        const wx = d ? dx / d * want : 0, wy = d ? dy / d * want : 0;
+        let ax = wx - v[0], ay = wy - v[1];
+        const a = Math.hypot(ax, ay), lim = ACC * dt;
+        if (a > lim) { ax *= lim / a; ay *= lim / a; }
+        v[0] += ax; v[1] += ay;
+        p[0] += v[0] * dt; p[1] += v[1] * dt;
+        if (d < 0.08 && Math.hypot(v[0], v[1]) < 0.6) { v[0] = 0; v[1] = 0; }
+      });
+      // personal space: two bodies never share a spot
+      for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) {
+        const a = st.pos[keys[i]], b = st.pos[keys[j]];
+        if (!a || !b) continue;
+        const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 0.01;
+        if (d >= 2.4) continue;
+        const push = (2.4 - d) * 0.25, ux = dx / d, uy = dy / d;
+        a[0] -= ux * push; a[1] -= uy * push; b[0] += ux * push; b[1] += uy * push;
+      }
+    }
+    // the beat waits for the players it needs where it needs them (a shooter on his spot), at most `wait` ms
+    function arrived(b) {
+      return (b.arrive || []).every(k => { const p = st.pos[k], t = st.tgt[k]; return !p || !t || Math.hypot(t[0] - p[0], t[1] - p[1]) < (b.near || 1.2); });
     }
     function ballHand(key) {
       const p = st.pos[key] || [47, 25];
@@ -1089,9 +1128,10 @@
         }
         const b = st.beat;
         const left = b.dur - st.bt;
-        const use = Math.min(ms, left);
+        const use = left > 0 ? Math.min(ms, left) : Math.min(ms, 50);
         st.evT += use; st.simT += use;
-        if (stepBeat(b, use)) endBeat(b);
+        for (let r = use; r > 0; r -= 25) legs(Math.min(25, r));
+        if (stepBeat(b, use) && (!b.arrive || arrived(b) || st.bt >= b.dur + (b.wait || 1600))) endBeat(b);
         ms -= use;
       }
     }
@@ -1162,6 +1202,7 @@
         chips();
       }
       st.holder = null; st.ph = null; st.off = null; st.set = false; st.form = null;
+      Object.keys(st.pos).forEach(k => { st.tgt[k] = st.pos[k].slice(); st.vel[k] = [0, 0]; });
       st.ball = { x: 47, y: 25, z: 0 };
       st.ev = null;
       wake();
@@ -1281,6 +1322,7 @@
       SIDES.forEach(side => ordered(st.on[side]).forEach((key, i) => { st.pos[key] = at(side, 'Q1', 47 + 8 + rnd(0, 3), [11, 19, 25, 31, 39][i]); }));
     }
     if (start >= evs.length) { st.ended = true; st.per = evs[evs.length - 1].per; }
+    Object.keys(st.pos).forEach(k => { st.tgt[k] = st.pos[k].slice(); st.vel[k] = [0, 0]; });
     applyFull();  card();
     build();
     syncCam();
@@ -1297,10 +1339,12 @@
       pause() { st.playing = false; syncControls(); },
       setSpeed(s) { st.speed = s; syncControls(); },
       skipQuarter,
+      exitFull() { if (!full) return; full = false; applyFull(); build(); wake(); },
       seek(i) { i = clamp(i | 0, 0, evs.length - 1); if (st.ended || i <= st.cur) return; jumpTo(i); },   // catch up to event i
       hold(i) { st.holdAt = i == null ? null : i; wake(); },                                              // never run ahead of event i
       state: () => ({ cur: st.cur, done: st.done, playing: st.playing, speed: st.speed, ended: st.ended }),
       done: () => st.done,
+      probe: () => ({ t: st.simT, pos: Object.keys(st.pos).filter(k => (st.alpha[k] || 0) > 0.5).map(k => [k, st.pos[k][0], st.pos[k][1]]) }),   // for tools: where everyone is
       timeline: tl
     };
   };

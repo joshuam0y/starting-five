@@ -1320,3 +1320,9 @@ a.pr-i:hover { border-color: var(--gold); }
 .dy-h3 { font-family: var(--display); font-size: 13px; letter-spacing: .18em; color: var(--gold); margin: 14px 0 6px; }
 .dy-past select { min-height: 48px; padding: 0 12px; background: var(--bg3); color: var(--text); border: 1px solid var(--gold-dim); font-family: var(--display); letter-spacing: .1em; font-size: 14px; max-width: 100%; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* the price a player went for at auction */
+.ch-paid { flex: none; font-style: normal; font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: .04em; color: #111; background: var(--gold); padding: 2px 7px; border-radius: 3px; margin-right: 6px; align-self: center; }
+.ch-paid.sm { font-size: 11px; padding: 1px 5px; margin: 0 4px; vertical-align: 1px; }
+.vs-code { font: inherit; font-family: var(--display); font-weight: 700; letter-spacing: .14em; color: var(--gold2); background: var(--bg3); border: 1px dashed var(--gold-dim); padding: 2px 8px; margin: 0 4px; cursor: pointer; }
+.vs-code:hover { border-color: var(--gold); }

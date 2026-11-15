@@ -25,6 +25,32 @@
   UI.$ = (sel, root) => (root || document).querySelector(sel);
   UI.$$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
 
+  // One tap copies: the text goes on the clipboard (an older browser: the hidden-textarea copy), a toast says so.
+  // No share sheet, so a desktop never opens a menu. Returns a promise that resolves true when it copied.
+  // One online room at a time (Head to Head or a tournament; watching does not count): joining one leaves the other.
+  UI.onlineClaim = function (kind, leave) {
+    const cur = UI._online;
+    if (cur && cur.kind !== kind) { try { cur.leave(); } catch (e) { /* gone */ } UI.toast('You left your other online room: one online game at a time.'); }
+    UI._online = { kind, leave };
+  };
+  UI.onlineDrop = function (kind) { if (UI._online && UI._online.kind === kind) UI._online = null; };
+  UI.copy = function (text, msg) {
+    // the button that was clicked says COPIED for a moment
+    const btn = document.activeElement && document.activeElement.tagName === 'BUTTON' ? document.activeElement : null;
+    const ok = () => {
+      UI.toast(msg || 'Copied.');
+      if (btn && !btn.dataset.was) { btn.dataset.was = btn.innerHTML; btn.innerHTML = 'COPIED &#10003;'; setTimeout(() => { if (btn.dataset.was) { btn.innerHTML = btn.dataset.was; delete btn.dataset.was; } }, 1500); }
+      return true;
+    };
+    const old = () => {
+      let done = false;
+      try { const t = document.createElement('textarea'); t.value = text; t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;top:0;left:0;opacity:0'; document.body.appendChild(t); t.select(); done = document.execCommand('copy'); t.remove(); } catch (e) { /* no copy */ }
+      if (done) return ok();
+      UI.toast(text); return false;
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text).then(ok, old);
+    return Promise.resolve(old());
+  };
   UI.toast = function (msg, kind) {
     const el = document.getElementById('toast');
     el.textContent = msg;

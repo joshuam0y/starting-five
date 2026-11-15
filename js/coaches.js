@@ -52,12 +52,12 @@
     var early = !!state.coaches && +state.startYear !== 2013 && !!state.startYear;
     // a save started before 2003-04 with the 2012-13 coaches (before data/coach-old.js): the real coaches of the
     // season it is in, once
-    if (state.coaches && +state.startYear < 2004 && +state.year < 2004 && !state.coachOld && oldData()) {
+    if (state.coaches && +state.startYear < 2004 && +state.year < 2004 && state.coachOld !== 2 && oldData()) {
       Object.keys(state.teams || {}).forEach(function (a) { state.teams[a].coach = null; });
       state.coaches = null;
       if (startCoaches(state, d, +state.year)) early = true;
     }
-    if (state.coaches && +state.startYear < 2004) state.coachOld = 1;
+    if (state.coaches && +state.startYear < 2004) state.coachOld = 2;
     if (!state.coaches) {
       early = startCoaches(state, d);
       if (!early) {
@@ -127,7 +127,8 @@
       if (!/^\d{4}$/.test(k) || +k <= Y) return;
       Object.keys(H[k]).forEach(function (a) { var c = byName[H[k][a]]; if (c) seen(c.id, +k); });
     });
-    (H.changes || []).forEach(function (c) { if (+c.season > Y && !c.interim && byName[c['in']]) seen(byName[c['in']].id, +c.season); });
+    // a later hire, interim jobs included (an interim head coach was still not on a bench before that season)
+    (H.changes || []).forEach(function (c) { if (+c.season > Y && byName[c['in']] && (!c.interim || O)) seen(byName[c['in']].id, +c.season); });
     var hired = {};
     Object.keys(open).forEach(function (a) { hired[open[a].id] = a; });
     state.coaches = {};
@@ -141,6 +142,8 @@
       } else {
         delete src.team; delete src.since;
         src.available = next[id] ? Math.min(next[id], src.available || 9999) : src.available || 1900;
+        // a league before 2003-04: a coach with no season on a bench up to then waits for the modern era
+        if (O && !next[id] && !(O.coaches[id] && O.coaches[id][5].some(function (y) { return y <= Y; }))) src.available = Math.max(src.available, 2004);
         // done coaching in real life before the start: retired
         state.coaches[id] = makeCoach(src, src.last != null && src.last < Y && !next[id] ? 'retired' : 'free');
       }
