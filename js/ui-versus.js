@@ -1027,7 +1027,7 @@
     const timed = cfg.timer > 0;
     if (timed && !st.until) st.until = Date.now() + cfg.timer * 1000;
     const dots = st.ids.map((id, k) => `<i class="${k < st.i ? 'sold' : k === st.i ? 'now' : ''}"></i>`).join('');
-    const quick = [A.raise, 2, 5].filter((v, k, a2) => v >= A.raise && a2.indexOf(v) === k).map(v => ({ to: st.price + v, label: '+' + money(v) })).filter(x => x.to >= min && x.to <= max);
+    const quick = [A.raise, 2, 5].filter((v, k, a2) => v >= A.raise && a2.indexOf(v) === k).map(v => ({ to: v, label: '+' + money(v) })).filter(x => st.price + x.to <= max);
     const broke = !canRaise;   // cannot top the bid: pass is all that is left
     const reserve = Math.max(0, per - st.won[st.turn].length - 1) * A.start, have = A.budget - st.spent[st.turn];
     const whyBroke = who => `${who} ${who === 'You' ? 'have' : 'has'} ${money(have)}${reserve ? ' and must keep ' + money(reserve) + ' for the other open spot' + (reserve / A.start > 1 ? 's' : '') : ''}, so the most ${who === 'You' ? 'you' : 'they'} can bid is ${money(Math.max(0, max))}. The bid is ${money(st.price)}.`;
@@ -1036,7 +1036,7 @@
           <div class="auc-go"><button type="button" class="btn btn-big" disabled>BID<small>can't top ${money(st.price)}</small></button><button type="button" class="btn btn-gold btn-big" id="aucPass">PASS<small>${esc(who(st.holder))} gets him for ${money(st.price)}</small></button></div></div>`
       : mineTurn
       ? `<div class="auc-bid"><div class="auc-maxline">YOUR MAX BID IS <b>${money(max)}</b></div><div class="auc-step"><button type="button" class="btn" id="aucDown" aria-label="Lower the bid"${AB.amt - A.raise < min ? ' disabled' : ''}>&minus;</button><div class="auc-amt"><small>YOUR BID</small><b id="aucAmt">${money(AB.amt)}</b></div><button type="button" class="btn" id="aucUp" aria-label="Raise the bid"${AB.amt + A.raise > max ? ' disabled' : ''}>+</button></div>
-          <div class="auc-chips">${quick.map(x => `<button type="button" class="ch-chip" data-to="${x.to}">${x.label}</button>`).join('')}<button type="button" class="ch-chip" data-to="${max}"${canRaise ? '' : ' disabled'}>ALL IN ${money(max)}</button></div>
+          <div class="auc-chips">${quick.map(x => `<button type="button" class="ch-chip" data-add="${x.to}">${x.label}</button>`).join('')}<button type="button" class="ch-chip" data-to="${max}"${canRaise ? '' : ' disabled'}>ALL IN ${money(max)}</button></div>
           <div class="auc-go"><button type="button" class="btn btn-gold btn-big" id="aucRaise"${canRaise ? '' : ' disabled'}>BID</button><button type="button" class="btn btn-big" id="aucPass">PASS<small>${esc(who(st.holder))} gets him for ${money(st.price)}</small></button></div></div>`
       : `<div class="auc-wait"><b>${esc(who(st.turn))} ${broke ? "can't top the bid" : 'is deciding'}...</b><span>${broke ? whyBroke(esc(who(st.turn))) + ' They can only pass. ' : ''}${esc(who(st.holder))} holds the bid at ${money(st.price)}.</span></div>`;
     const sold = st.log.slice().reverse().map(x => `<li><b>${esc(byId[x.id] ? byId[x.id].name : x.id)}${yearOf(byId[x.id])}</b><span>${esc(who(x.side))}</span><i>${money(x.price)}</i></li>`).join('');
@@ -1071,6 +1071,7 @@
     const dn = UI.$('#aucDown', app); if (dn) dn.addEventListener('click', () => setAmt(AB.amt - A.raise));
     const up = UI.$('#aucUp', app); if (up) up.addEventListener('click', () => setAmt(AB.amt + A.raise));
     app.querySelectorAll('[data-to]').forEach(b => b.addEventListener('click', () => setAmt(+b.dataset.to)));
+    app.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', () => setAmt(AB.amt + +b.dataset.add)));
     const rs = UI.$('#aucRaise', app); if (rs) rs.addEventListener('click', () => { if (C.auctionAct(st, st.turn, 'raise', AB.amt)) done(); });
     const ps = UI.$('#aucPass', app); if (ps) ps.addEventListener('click', () => { if (C.auctionAct(st, st.turn, 'pass')) done(); });
     // the shot clock: when it runs out the player on the clock passes; online, the other phone steps in five seconds later if his is gone

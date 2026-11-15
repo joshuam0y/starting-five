@@ -404,7 +404,7 @@
         <div class="auc-go"><button type="button" class="btn btn-big" disabled>BID<small>can't top ${money(st.price)}</small></button><button type="button" class="btn btn-gold btn-big" id="tAucPass">PASS<small>drop out on him</small></button></div></div>`;
     else if (mineTurn) bid = `<div class="auc-bid">${o.hot ? `<div class="auc-turn">${who2(w).toUpperCase()}'S TURN</div>` : ''}<div class="auc-maxline">${o.hot ? 'MAX BID' : 'YOUR MAX BID'} IS <b>${money(max)}</b></div>
         <div class="auc-step"><button type="button" class="btn" id="tAucDn"${TA.amt - ao.raise < min ? ' disabled' : ''}>&minus;</button><div class="auc-amt"><small>${o.hot ? 'THE BID' : 'YOUR BID'}</small><b>${money(TA.amt)}</b></div><button type="button" class="btn" id="tAucUp"${TA.amt + ao.raise > max ? ' disabled' : ''}>+</button></div>
-        <div class="auc-chips">${[ao.raise, 2, 5].filter((v, k, a2) => a2.indexOf(v) === k && v >= ao.raise).map(v => ({ to: st.price + v, label: '+' + money(v) })).filter(x => x.to >= min && x.to <= max).map(x => `<button type="button" class="ch-chip" data-tto="${x.to}">${x.label}</button>`).join('')}<button type="button" class="ch-chip" data-tto="${max}">ALL IN ${money(max)}</button></div>
+        <div class="auc-chips">${[ao.raise, 2, 5].filter((v, k, a2) => a2.indexOf(v) === k && v >= ao.raise).map(v => ({ to: v, label: '+' + money(v) })).filter(x => st.price + x.to <= max).map(x => `<button type="button" class="ch-chip" data-tadd="${x.to}">${x.label}</button>`).join('')}<button type="button" class="ch-chip" data-tto="${max}">ALL IN ${money(max)}</button></div>
         <div class="auc-go"><button type="button" class="btn btn-gold btn-big" id="tAucBid">BID</button><button type="button" class="btn btn-big" id="tAucPass">PASS<small>drop out on him</small></button></div></div>`;
     else bid = `<div class="auc-wait"><b>${who2(st.turn)} ${t.ai && t.ai[st.turn] ? '(AI) ' : ''}is deciding...</b><span>${who2(st.holder)} holds the bid at ${money(st.price)}.${w >= 0 && !inIt ? ' You are out on this one.' : ''}</span></div>`;
     const dots = st.ids.map((id, k) => `<i class="${k < st.i ? 'sold' : k === st.i ? 'now' : ''}"></i>`).join('');
@@ -428,6 +428,7 @@
     if (dn) dn.addEventListener('click', () => setAmt(TA.amt - ao.raise));
     if (up) up.addEventListener('click', () => setAmt(TA.amt + ao.raise));
     app.querySelectorAll('[data-tto]').forEach(b => b.addEventListener('click', () => setAmt(+b.dataset.tto)));
+    app.querySelectorAll('[data-tadd]').forEach(b => b.addEventListener('click', () => setAmt(TA.amt + +b.dataset.tadd)));
     const bd = UI.$('#tAucBid', app); if (bd) bd.addEventListener('click', () => o.act('raise', TA.amt));
     const ps = UI.$('#tAucPass', app); if (ps) ps.addEventListener('click', () => o.act('pass'));
     const qt = UI.$('#tnQuit', app); if (qt && o.quit) qt.addEventListener('click', o.quit);

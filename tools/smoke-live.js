@@ -63,6 +63,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       await w(1500);   // let the auction page finish loading before leaving it
       out.push(['the auction screen has a ? that opens the tour', !!document.querySelector('#aucHelp') && (document.querySelector('#aucHelp').click(), await until(() => /HOW TO PLAY \| 1 OF 4/.test(slide())))]);
       if (document.querySelector('#tSkip')) document.querySelector('#tSkip').click();
+      const amt0 = () => document.querySelector('.auc-amt b').textContent.replace('$', '') * 1, a0 = amt0();
+      document.querySelector('.auc-chips [data-add="1"]').click(); await w(150);
+      out.push(['+$1 adds one to the bid (not just the price)', amt0() === a0 + 1]);
+      document.querySelector('.auc-chips [data-add="2"]').click(); await w(150);
+      out.push(['+$2 stacks on top', amt0() === a0 + 3]);
       out.push(['bid button says just BID', (document.querySelector('#aucRaise') || {}).textContent === 'BID']);
       location.hash = '#/daily'; await until(() => document.querySelector('#dyHow')); await w(300);
       document.querySelector('a[href="#/daily/play"]').click(); await w(400);

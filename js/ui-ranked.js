@@ -890,7 +890,7 @@
     const slots = i => Array.from({ length: per }, (_, k) => { const id = st.won[i][k]; const x = id && st.log.filter(l => l.id === id)[0]; return id ? `<li class="on"><span>${esc(byId[id] ? byId[id].name : '?')}${byId[id] && byId[id].season ? ' <small class="auc-yr">' + esc("'" + String(byId[id].season - 1).slice(2) + "-'" + String(byId[id].season).slice(2)) + '</small>' : ''}</span><b>${money(x ? x.price : 0)}</b></li>` : '<li class="empty"><span>OPEN</span></li>'; }).join('');
     const side = (i, cls, name) => `<aside class="auc-side ${cls}${st.turn === i ? ' turn' : ''}${st.holder === i ? ' holds' : ''}"><div class="auc-who"><small>${name}</small><b class="auc-cash">${money(A.budget - st.spent[i])}</b><small>${st.won[i].length} OF ${per} SPOTS</small></div><ol class="auc-slots">${slots(i)}</ol></aside>`;
     if (!st.until) st.until = Date.now() + DAILY_CLOCK * 1000;
-    const quick = [A.raise, 2, 5].filter((v, k, a2) => a2.indexOf(v) === k && v >= A.raise).map(v => ({ to: st.price + v, label: '+' + money(v) })).filter(x => x.to >= min && x.to <= max);
+    const quick = [A.raise, 2, 5].filter((v, k, a2) => a2.indexOf(v) === k && v >= A.raise).map(v => ({ to: v, label: '+' + money(v) })).filter(x => st.price + x.to <= max);
     const tm = cur.colors || null;
     app.innerHTML = `${hdr}
       <div class="auc">${side(0, 'l', 'YOU')}
@@ -901,7 +901,7 @@
             <div class="auc-price"><small>${st.holder === 0 ? 'YOU HOLD' : 'THE HOUSE HOLDS'}</small><b>${money(st.price)}</b></div></section>
           ${mine && !canRaise ? `<div class="auc-bid"><div class="auc-broke"><b>YOU CAN'T TOP ${money(st.price)}</b><span>You have ${money(A.budget - st.spent[0])}${per - st.won[0].length > 1 ? ' and must keep ' + money((per - st.won[0].length - 1) * A.start) + ' for your other open spots' : ''}, so the most you can bid is ${money(Math.max(0, max))}.</span></div><div class="auc-go"><button type="button" class="btn btn-big" disabled>BID<small>can't top ${money(st.price)}</small></button><button type="button" class="btn btn-gold btn-big" id="aucPass">PASS<small>${st.holder === 0 ? 'You get him' : 'The house gets him'} for ${money(st.price)}</small></button></div></div>` : `
           <div class="auc-bid"><div class="auc-maxline">YOUR MAX BID IS <b>${money(max)}</b></div><div class="auc-step"><button type="button" class="btn" id="aucDown"${DB.amt - A.raise < min ? ' disabled' : ''}>&minus;</button><div class="auc-amt"><small>YOUR BID</small><b>${money(DB.amt)}</b></div><button type="button" class="btn" id="aucUp"${DB.amt + A.raise > max ? ' disabled' : ''}>+</button></div>
-            <div class="auc-chips">${quick.map(x => `<button type="button" class="ch-chip" data-to="${x.to}">${x.label}</button>`).join('')}<button type="button" class="ch-chip" data-to="${max}"${canRaise ? '' : ' disabled'}>ALL IN ${money(max)}</button></div>
+            <div class="auc-chips">${quick.map(x => `<button type="button" class="ch-chip" data-add="${x.to}">${x.label}</button>`).join('')}<button type="button" class="ch-chip" data-to="${max}"${canRaise ? '' : ' disabled'}>ALL IN ${money(max)}</button></div>
             <div class="auc-go"><button type="button" class="btn btn-gold btn-big" id="aucRaise"${mine && canRaise ? '' : ' disabled'}>BID</button><button type="button" class="btn btn-big" id="aucPass"${mine ? '' : ' disabled'}>PASS<small>${st.holder === 0 ? 'You get him' : 'The house gets him'} for ${money(st.price)}</small></button></div></div>`}
           <div class="auc-dots">${st.ids.map((id, k) => `<i class="${k < st.i ? 'sold' : k === st.i ? 'now' : ''}"></i>`).join('')}</div><p class="auc-more">${left} MORE IN THE HIDDEN POOL | ${isPr ? 'PRACTICE' : 'ONE TRY A DAY'}</p>
         </main>${side(1, 'r', 'THE HOUSE')}</div>`;
@@ -929,6 +929,7 @@
     const dn = UI.$('#aucDown', app); if (dn) dn.addEventListener('click', () => setAmt(DB.amt - A.raise));
     const up = UI.$('#aucUp', app); if (up) up.addEventListener('click', () => setAmt(DB.amt + A.raise));
     app.querySelectorAll('[data-to]').forEach(b => b.addEventListener('click', () => setAmt(+b.dataset.to)));
+    app.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', () => setAmt(DB.amt + +b.dataset.add)));
     const r = UI.$('#aucRaise', app); if (r) r.addEventListener('click', () => go('raise', DB.amt));
     const p = UI.$('#aucPass', app); if (p) p.addEventListener('click', () => go('pass'));
     const hp = UI.$('#aucHelp', app); if (hp) hp.addEventListener('click', () => { stopClock(); const left = st.until - Date.now(); UI.ranked.dailyTour(() => { st.until = Date.now() + Math.max(3000, left); draw(app, era, day, st, byId, key, house, save); }); });
