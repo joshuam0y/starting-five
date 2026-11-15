@@ -42,7 +42,7 @@
   })();
   const FAok = () => !!(F.fn('FA', 'offerZone') && F.fn('FA', 'capSummary') && F.fn('FA', 'market'));
   const money = n => F.money(n);
-  const m2 = n => '$' + ((Number(n) || 0) / 1e6).toFixed(2) + 'M';
+  const m2 = n => { n = Number(n) || 0; return n > 0 && n < 1e6 ? '$' + Math.round(n / 1e3) + 'K' : '$' + (n / 1e6).toFixed(2) + 'M'; };
   const yrs = n => n + (n === 1 ? ' year' : ' years');
   const season = y => UI.fmtSeasonEnd(y);
   const zoneText = z => (z.atMin ? 'He will sign for the minimum.'

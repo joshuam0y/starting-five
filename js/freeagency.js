@@ -83,7 +83,7 @@
   // ---------------------------------------------------------------------------
   function clamp(x, lo, hi) { return x < lo ? lo : x > hi ? hi : x; }
   function r10k(x) { return Math.round(x / 10000) * 10000; }
-  function money(x) { return '$' + (x / 1e6).toFixed(x >= 1e7 ? 1 : 2).replace(/\.?0+$/, '') + 'M'; }
+  function money(x) { return x > 0 && x < 1e6 ? '$' + Math.round(x / 1e3) + 'K' : '$' + (x / 1e6).toFixed(x >= 1e7 ? 1 : 2).replace(/\.?0+$/, '') + 'M'; }
   function pers(p) { return p.personality || { loyalty: 50, winning: 50, money: 50, market: 50, ego: 50 }; }
   function isTeam(state, abbr) { return !!(state.teams && state.teams[abbr]); }
 

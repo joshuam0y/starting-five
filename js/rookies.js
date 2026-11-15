@@ -29,7 +29,7 @@
     var t = state.teams && state.teams[abbr];
     return t ? ((t.city ? t.city + ' ' : '') + (t.name || abbr)) : abbr;
   }
-  function money(x) { return '$' + ((+x || 0) / 1e6).toFixed(2) + 'M'; }
+  function money(x) { x = +x || 0; return x > 0 && x < 1e6 ? '$' + Math.round(x / 1e3) + 'K' : '$' + (x / 1e6).toFixed(2) + 'M'; }
   function ordinal(round) { return round === 1 ? 'first-round' : round === 2 ? 'second-round' : 'round ' + round; }
   // The draft whose picks are decided now (the offseason after it), and the season their deals start.
   function draftYear(state) { return state.draft && state.draft.year != null ? +state.draft.year : +state.year; }

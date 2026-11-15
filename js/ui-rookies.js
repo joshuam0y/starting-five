@@ -16,7 +16,7 @@
   const RK = () => window.ROOKIES || null;
   const view = { key: null, choices: {} };   // choices: playerId -> 'decline' | 'stash' (missing means sign)
   let current = null;                        // { app, st } while the page is open, for NEXT
-  const m2 = n => '$' + ((Number(n) || 0) / 1e6).toFixed(2) + 'M';
+  const m2 = n => { n = Number(n) || 0; return n > 0 && n < 1e6 ? '$' + Math.round(n / 1e3) + 'K' : '$' + (n / 1e6).toFixed(2) + 'M'; };
   const yrs = n => n + (n === 1 ? ' YR' : ' YRS');
   const season = y => UI.fmtSeasonEnd(y);
   function goTo(h) { if (location.hash !== h) location.hash = h; else UI.route(); window.scrollTo(0, 0); }

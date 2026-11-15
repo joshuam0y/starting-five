@@ -835,7 +835,7 @@
     p.contractEnd = salaries[salaries.length - 1].year;
     p.yearsWithTeam = 0;
     addTx(state, signYear, 'sign', teamName(state, p.team) + ' signed ' + p.name + ', whose draft rights they held (' + salaries.length + ' years, $' +
-      (salaries[0].amount / 1e6).toFixed(2) + 'M first season).', [p.id]);
+      (salaries[0].amount < 1e6 ? Math.round(salaries[0].amount / 1e3) + 'K' : (salaries[0].amount / 1e6).toFixed(2) + 'M') + ' first season).', [p.id]);
   }
 
   // ---------------------------------------------------------------------------
@@ -1171,7 +1171,7 @@
     p.salary = salaries[0].amount;
     p.contractEnd = salaries[salaries.length - 1].year;
     addTx(state, signYear, 'sign', teamName(state, p.team) + ' signed ' + (p.draft && p.draft.round === 1 ? 'first-round pick ' : 'second-round pick ') + p.name +
-      ' (' + salaries.length + ' years, $' + (salaries[0].amount / 1e6).toFixed(2) + 'M first season).', [p.id]);
+      ' (' + salaries.length + ' years, $' + (salaries[0].amount < 1e6 ? Math.round(salaries[0].amount / 1e3) + 'K' : (salaries[0].amount / 1e6).toFixed(2) + 'M') + ' first season).', [p.id]);
   }
 
   // Signs this year's draftees on NBA teams and brings stashed players over when they arrive.

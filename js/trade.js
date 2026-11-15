@@ -794,7 +794,7 @@
 
   function teamName(state, a) { var t = state.teams[a]; return t ? t.city + " " + t.name : a; }
   function shortName(state, a) { var t = state.teams[a]; return t ? t.name : a; }
-  function fmtM(x) { return (x / 1e6).toFixed(1) + "M"; }
+  function fmtM(x) { return x > 0 && x < 1e6 ? Math.round(x / 1e3) + "K" : (x / 1e6).toFixed(1) + "M"; }
 
   function valueMessage(state, ctx, e) {
     var who = "The " + shortName(state, e.team), short = e.required - e.gain;
@@ -1786,7 +1786,7 @@
   //   mode "shop":   explain(state, { mode: "shop", user, ids })          (the trading block)
   //   mode "finder": explain(state, { mode: "finder", user, partner, ids, picks })  (What would it take)
   // ---------------------------------------------------------------------------
-  function fmtMoney(x) { return "$" + (x / 1e6).toFixed(1) + "M"; }
+  function fmtMoney(x) { return x > 0 && x < 1e6 ? "$" + Math.round(x / 1e3) + "K" : "$" + (x / 1e6).toFixed(1) + "M"; }
   function explain(state, o) {
     o = o || {};
     var user = o.user || state.userTeam;

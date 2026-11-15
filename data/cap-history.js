@@ -184,3 +184,25 @@
       mle: r[2], taxMle: cba11 ? 3000000 : null, roomException: cba11 ? 2500000 : null, bae: r[3], minSalary0: r[4], minSalary10: r[5] };
   });
 })(typeof window !== 'undefined' ? window : globalThis);
+
+/* 1946-47 through 2002-03, for Associations that start in the older eras. The NBA salary cap began in 1984-85; the caps
+   below are the published figures through 2002-03. Before 1984-85 there was no cap, so the game uses the 1984-85 cap
+   shrunk 8% a year (salaries grew about that fast), which keeps old payrolls, minimums and rookie deals at the right size.
+   Every other figure (tax line, mid-level, minimums, max tiers, rookie scale) is the 2003-04 figure scaled by the cap,
+   so the game's spending rules work the same way in every era. There was no luxury tax before 2002-03 or mid-level before
+   1999; the game keeps them at the same proportions only so teams spend sensibly. */
+(function (g) {
+  var H = g.CAP_HISTORY;
+  if (!H || !H.seasons || !H.seasons[2004]) return;
+  var caps = { 1985: 3600000, 1986: 4233000, 1987: 4945000, 1988: 6164000, 1989: 7232000, 1990: 9802000, 1991: 11871000,
+    1992: 12500000, 1993: 14000000, 1994: 15175000, 1995: 15964000, 1996: 23000000, 1997: 24363000, 1998: 26900000,
+    1999: 30000000, 2000: 34000000, 2001: 35500000, 2002: 42500000, 2003: 40271000 };
+  var base = H.seasons[2004];
+  for (var y = 1947; y <= 2003; y++) {
+    if (H.seasons[y]) continue;
+    var cap = caps[y] || Math.round(caps[1985] * Math.pow(1.08, y - 1985) / 1000) * 1000, f = cap / base.cap, row = {};
+    for (var k in base) { var v = base[k]; row[k] = typeof v === 'number' ? Math.round(v * f / 1000) * 1000 : v; }
+    row.cap = cap; row.minSalary0 = Math.round(base.minSalary0 * f); row.minSalary10 = Math.round(base.minSalary10 * f);
+    H.seasons[y] = row;
+  }
+})(typeof window !== 'undefined' ? window : globalThis);

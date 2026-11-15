@@ -3,7 +3,8 @@
 //   node tools/build-start.js 2003            (the 2002-03 season; several years: node tools/build-start.js 2003 2002 ...)
 // What the era files do not have is made here, deterministically from the player id and the year:
 //   contracts   a salary from the rating (a 95 about $22M, a 70 about $4M, the minimum $0.9M), scaled so each team's
-//               payroll lands in the range the real 2004 start has ($35M to $75M), lengths by age; rookies on short deals
+//               payroll lands in the range the real 2004 start has ($35M to $75M), then shrunk by that season's cap against
+//               2003-04's (a real salary from tools/salary-cache.json wins where there is one); lengths by age; rookies on short deals
 //   draft       the classes from the start on come from the next seasons' rookies (board by rating, potential from the
 //               later seasons' peak); 2004 to 2012 are copied from data/start-2004.js (the real classes)
 //   career      each player's earlier seasons, chained from the older era files
@@ -14,6 +15,10 @@ const ROOT = path.join(__dirname, '..');
 const run = f => vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f });
 const FIRST = 1947, LAST = 2004;
 run('data/targets.js');
+run('data/cap-history.js');
+// made-up salaries are priced on the 2003-04 scale, then shrunk to the season's cap (data/cap-history.js), so a 1970 star earns 1970 money
+const CAPF = y => (CAP_HISTORY.seasons[y] || CAP_HISTORY.seasons[2004]).cap / CAP_HISTORY.seasons[2004].cap;
+const MIN0 = y => (CAP_HISTORY.seasons[y] || CAP_HISTORY.seasons[2004]).minSalary0;
 // 2003-04 comes from the real 2004 start file (its first-year players are the ones with no career before it)
 function era(y) {
   if (y < FIRST) return null;
@@ -105,7 +110,7 @@ function build(Y) {
     const h = hash(p.id + ':' + Y);
     const rookie = p.rookie || ((p.yearsPro || 9) <= 2 && p.age <= 22);
     const len = rookie ? Math.max(1, 3 - (p.yearsPro || 0)) : p.age <= 25 ? 2 + Math.floor(h * 4) : p.age <= 30 ? 1 + Math.floor(h * 5) : 1 + Math.floor(h * 3);
-    const amount = Math.round(salary[p.id] * 1e6 / 1000) * 1000;
+    const amount = Math.max(MIN0(Y), Math.round(salary[p.id] * 1e6 * CAPF(Y) / 1000) * 1000);
     const q = { id: p.id, name: p.name, team: ab(p.team), pos: p.pos, age: p.age, ht: p.ht, wt: p.wt, attrs: p.attrs, ovr: p.ovr, nbaId: p.nbaId || null,
       tend: p.tend, stats: p.stats ? CAREER_KEYS.reduce((o, k) => { if (p.stats[k] != null) o[k] = p.stats[k]; return o; }, {}) : null,
       injury: null, face: null, rated2k13: false, salaries: [{ year: Y, amount }], contractEnd: Y + len - 1, salary: amount };
@@ -209,14 +214,35 @@ function build(Y) {
   }
   Object.keys(awards).forEach(id => awards[id].sort((x, z) => x.year - z.year));
   const A04 = P04.alltime, alltime = { keys: A04.keys, cut: A04.cut, retired: A04.retired.filter(r => r[3] < Y), active: {}, games: (A04.games || []).filter(g => g[4] < seasonLabel(Y).slice(0, 4) + '-07-01') };
-  const lineOf = {}; d.players.forEach(p => { if (p.stats) lineOf[p.id] = p.stats; });
-  Object.keys(A04.active || {}).forEach(id => {
-    const a = JSON.parse(JSON.stringify(A04.active[id])), ln = lineOf[id];
-    if (ln && a[0]) { const g = ln.g || 0, sub = [g, ln.pts, ln.reb, ln.ast, ln.stl, ln.blk].map((v, i) => (i ? Math.round((v || 0) * g) : g)); sub.forEach((v, i) => { if (a[0][i] != null) a[0][i] = Math.max(0, a[0][i] - v); }); }
-    alltime.active[id] = a;
+  // career totals before this season, for everyone still playing: the real seasons before Y counted from the per-season lines
+  // (career, above). What those lines lack (steals and blocks before 1974, threes, playoffs) is the player's real career total
+  // times the share of his career games played before Y. A player who has not played yet starts at zero, so a 1946-47 league
+  // shows nobody's later career on the all-time boards.
+  const before = id => {
+    const rows = (career[id] || []).filter(x => x.year < Y);
+    const g = rows.reduce((t, x) => t + (x.g || 0), 0);
+    const sum = k => rows.some(x => x[k] != null) ? rows.reduce((t, x) => t + Math.round((x[k] || 0) * (x.g || 0)), 0) : null;
+    return { g, pts: sum('pts'), reb: sum('reb'), ast: sum('ast'), stl: sum('stl'), blk: sum('blk') };
+  };
+  const scaled = (full, b) => {
+    const share = full[0][0] ? Math.min(1, b.g / full[0][0]) : 0, sc = v => (v == null ? null : Math.round(v * share));
+    const reg = [b.g, b.pts, b.reb, b.ast, b.stl, b.blk].map((v, i) => (v != null ? v : sc(full[0][i])));
+    reg.push(sc(full[0][6]));
+    return [reg, full[1].map(sc)];
+  };
+  const fullOf = {};
+  Object.keys(A04.active || {}).forEach(id => { fullOf[id] = A04.active[id]; });
+  A04.retired.filter(r => r[3] >= Y).forEach(r => { if (!fullOf[r[0]]) fullOf[r[0]] = [r[5], r[6]]; });
+  Object.keys(fullOf).forEach(id => {
+    const b = before(id);
+    if (b.g > 0) alltime.active[id] = scaled(fullOf[id], b);
   });
-  // players who retired at the end of this season are still active at its start
-  A04.retired.filter(r => r[3] >= Y).forEach(r => { if (!alltime.active[r[0]]) alltime.active[r[0]] = [r[5].map(v => v), r[6].map(v => v)]; });
+  // everyone else who played real seasons before Y (careers below the all-time cut): the per-season lines alone
+  Object.keys(career).forEach(id => {
+    if (alltime.active[id]) return;
+    const b = before(id);
+    if (b.g > 0) alltime.active[id] = [[b.g, b.pts, b.reb, b.ast, b.stl, b.blk, null], [null, null, null, null, null, null, null]];
+  });
   const out = { season: Y, label: (Y - 1) + '-' + String(Y).slice(2), teams, players, rights, drafts, targetsPrior: {}, prior: { career, awards, history: { champions: [], mvp: {}, records }, alltime }, real, champion: ab(d.champion || '') || null, seasonStats };
   console.log(Y, 'real contracts', realN, 'of', d.players.length, 'free agents', players.filter(p => p.team === 'FA').length);
   return out;
