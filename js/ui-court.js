@@ -671,7 +671,7 @@
       const def = defenseSet(O, per, off);
       const far = Math.max.apply(null, Object.keys(off).map(k => dist(st.pos[k] || off[k], off[k])));
       B.push({ dur: clamp(far * 30, 700, 2600), move: Object.assign({}, off, def), arrive: [h], near: 4, wait: 2400 });
-      st.off = O; st.set = true; st.form = Object.assign({}, off, def);
+      st.off = O; st.set = true; st.form = Object.assign({}, off, def); st.playForm = st.form; st.playFormSide = O;
       return h;
     }
     // A few passes around the perimeter, ending with the ball in `end`'s hands.
@@ -702,7 +702,7 @@
       ordered(st.on[D]).forEach((k, i) => { const l = back[i] || back[4]; mv[k] = at(O, per, l[0] + rnd(0, 6), l[1] + rnd(-3, 3)); });
       const far = Math.max.apply(null, Object.keys(mv).map(k => dist(st.pos[k] || mv[k], mv[k])));
       B.push({ dur: clamp(far * 34, 900, 2200), pace: 24, move: mv, hold: hd, arrive: [hd], near: 5, wait: 1400, at0: () => { tag(hd, 'FAST BREAK', 'play', 1500); cheer(O, 1); } });
-      st.off = O; st.set = false; st.form = Object.assign({}, mv);
+      st.off = O; st.set = false; st.form = Object.assign({}, mv); st.playForm = st.form; st.playFormSide = O;
       if (shooter !== hd) pass(B, shooter, { dur: 420, move: { [shooter]: spot } });
       else B.push({ dur: 380, move: { [shooter]: spot } });
       return true;
@@ -766,6 +766,18 @@
         B.push({ dur: 420, move: { [shooter]: [P0[0], clamp(P0[1] + rnd(-3, 3), 3, 47)] }, at0: () => tag(shooter, 'ISOLATION', 'play', 1300) });
       }
       B.push({ dur: clamp(dist(st.pos[shooter] || spot, spot) * 55, 350, 1200), move: { [shooter]: spot } });
+    }
+
+    // the shot is up: the two biggest on each side go to the glass (the defenders inside, boxing out), the rest
+    // of the offense gets back, the rest of the defense turns to find a body
+    function crashBoards(O, per, shooter) {
+      const D = other(O), mv = {}, h = hoop(O, per);
+      const bigs = side => ordered(st.on[side]).slice(-2);
+      bigs(O).filter(k => k !== shooter).forEach((k, i) => { mv[k] = at(O, per, rnd(7, 10), i ? rnd(30, 34) : rnd(16, 20)); });
+      bigs(D).forEach((k, i) => { mv[k] = at(O, per, rnd(5, 7), i ? rnd(28, 31) : rnd(19, 22)); });
+      ordered(st.on[O]).slice(0, 2).filter(k => k !== shooter && !mv[k]).forEach((k, i) => { mv[k] = at(O, per, rnd(30, 36), i ? 34 : 16); });
+      ordered(st.on[D]).slice(0, 3).filter(k => !mv[k]).forEach(k => { const q = st.pos[k] || h; mv[k] = [q[0] + (h[0] - q[0]) * 0.25, q[1] + (h[1] - q[1]) * 0.25]; });
+      return mv;
     }
 
     function planSubs(ev, B) {
@@ -868,7 +880,10 @@
             if (dunk && st.speed <= 2 && window.SFX) window.SFX.play('dunk');
             if (big) highlight(big, rim);
           } });
-          B.push({ dur: dunk ? 420 : 260, ball: { to: at(O, per, HOOP - 1.4, 25 + rnd(-1, 1)), arc: 0, h1: 0.5 }, hold: null });
+          // a big one: he lets the building know (and a teammate comes over)
+          const mate = big ? ordered(st.on[O]).filter(x => x !== shooter).sort((x, y) => dist(st.pos[x] || [0, 0], spot) - dist(st.pos[y] || [0, 0], spot))[0] : null;
+          B.push({ dur: dunk ? 420 : 260, ball: { to: at(O, per, HOOP - 1.4, 25 + rnd(-1, 1)), arc: 0, h1: 0.5 }, hold: null,
+            at: big ? () => { act(shooter, 'cheer', 1300); if (mate) { act(mate, 'cheer', 1100); st.tgt[mate] = [spot[0] + rnd(-2, 2), spot[1] + rnd(-2, 2)]; st.top[mate] = 16; } } : null });
           st.off = fouler ? O : null; st.set = !!fouler;
         } else if (k === 'sfoul') {
           const fouler = ev.b;
@@ -886,7 +901,7 @@
           B.push({ dur: 460, ball: { to: landing(O, per), arc: 2 }, hold: null });
           st.off = null; st.set = false;
         } else {
-          B.push({ dur, ball: { to: rim, arc }, shot: true, hold: null, fire: true, at: () => tag(shooter, 'MISS', 'miss', 900) });
+          B.push({ dur, ball: { to: rim, arc }, shot: true, hold: null, fire: true, move: crashBoards(O, per, shooter), at: () => tag(shooter, 'MISS', 'miss', 900) });
           B.push({ dur: 420, ball: { to: landing(O, per), arc: 3 }, hold: null });
           st.off = null; st.set = false;
         }
@@ -897,7 +912,7 @@
         const crash = {};
         // the rebounder goes where the miss came down
         crash[r] = st.lastBallTo ? st.lastBallTo.slice() : [st.ball.x, st.ball.y];
-        B.push({ dur: 420, move: crash, arrive: [r], near: 2.5, wait: 700 });
+        B.push({ dur: 260, pace: 25, move: crash, arrive: [r], near: 3, wait: 380 });
         B.push({ dur: 220, ball: { to: r, arc: 0.6, h1: 8.5 }, hold: r, fire: true, at0: () => act(r, 'jump', 640), at: () => tag(r, k === 'oreb' ? 'O-REB' : 'REB', 'reb', 900) });
         st.ph = r; st.off = O; st.set = k === 'oreb'; if (k === 'dreb') st.form = null;
         return B;
@@ -1022,6 +1037,15 @@
       st.ev = ev;
       st.tPrev = prev ? prev.t : 0;
       st.beats = plan(ev, prev);
+      // plan() leaves who has the ball after the play; during the play the defense still guards the offense and the
+      // offense keeps moving, so that state waits for the play's last beat
+      const after = { off: st.off, set: st.set, form: st.form };
+      const O2 = ev.k === 'make' || ev.k === 'miss' || ev.k === 'sfoul' || ev.k === 'tov' ? ev.side : ev.k === 'pf' ? other(ev.side) : null;
+      if (O2 && st.beats.length) {
+        st.off = O2; st.set = true; st.form = (st.playFormSide === O2 && st.playForm) || st.form;
+        const lb = st.beats[st.beats.length - 1], at1 = lb.at;
+        lb.at = () => { if (at1) at1(); st.off = after.off; st.set = after.set; st.form = after.form; };
+      }
       if (!st.beats.some(b => b.fire)) st.beats.push({ dur: 100, fire: true });
       st.evDur = st.beats.reduce((s, b) => s + b.dur, 0);
       st.evT = 0;
@@ -1036,7 +1060,7 @@
         const to = b.move[k], from = st.pos[k] || to, d = Math.hypot(to[0] - from[0], to[1] - from[1]);
         if (!st.pos[k]) st.pos[k] = to.slice();
         st.tgt[k] = to.slice();
-        st.top[k] = b.pace || (d > 30 ? 24 : d > 14 ? 20 : d > 5 ? 15 : 11);
+        st.top[k] = b.pace || (d > 30 ? 25 : d > 14 ? 22 : d > 5 ? 18 : 14);
       });
       b.a0 = {};
       Object.keys(b.fade || {}).forEach(k => { b.a0[k] = st.alpha[k] || 0; });
@@ -1082,7 +1106,7 @@
     }
     // Footwork: each player accelerates toward his target (26 ft/s2), never past his top speed (a sprint is 24 ft/s,
     // a jog 11), eases off as he arrives, and steps around a teammate or opponent in his way.
-    const ACC = 26, BRAKE = 30;
+    const ACC = 36, BRAKE = 36;
     function legs(ms) {
       const dt = ms / 1000, keys = Object.keys(st.tgt).filter(k => (st.alpha[k] || 0) > 0.01 || (st.beat && st.beat.fade && k in st.beat.fade));
       keys.forEach(k => {
@@ -1109,6 +1133,20 @@
         a[0] -= ux * push; a[1] -= uy * push; b[0] += ux * push; b[1] += uy * push;
       }
     }
+    // off the ball: in a half-court set an offensive player who has stopped cuts, fades or relocates near his spot
+    // every second or two (his man follows on his own, see displayPos)
+    function moveOffBall(ms) {
+      if (!st.off || !st.set || !st.form || st.flight) return;
+      const busy = st.beat && st.beat.move ? st.beat.move : {};
+      (st.on[st.off] || []).forEach(k => {
+        if (k === st.holder || busy[k] || !st.form[k] || !st.pos[k]) return;
+        const v = st.vel[k] || [0, 0];
+        if (Math.hypot(v[0], v[1]) > 1.5 || Math.random() > ms / 1400) return;
+        const f = st.form[k];
+        st.tgt[k] = [clamp(f[0] + rnd(-4.5, 4.5), 1, CW - 1), clamp(f[1] + rnd(-5, 5), 1.5, 48.5)];
+        st.top[k] = rnd(12, 19);
+      });
+    }
     // the beat waits for the players it needs where it needs them (a shooter on his spot), at most `wait` ms
     function arrived(b) {
       return (b.arrive || []).every(k => { const p = st.pos[k], t = st.tgt[k]; return !p || !t || Math.hypot(t[0] - p[0], t[1] - p[1]) < (b.near || 1.2); });
@@ -1130,6 +1168,7 @@
         const left = b.dur - st.bt;
         const use = left > 0 ? Math.min(ms, left) : Math.min(ms, 50);
         st.evT += use; st.simT += use;
+        moveOffBall(use);
         for (let r = use; r > 0; r -= 25) legs(Math.min(25, r));
         if (stepBeat(b, use) && (!b.arrive || arrived(b) || st.bt >= b.dur + (b.wait || 1600))) endBeat(b);
         ms -= use;

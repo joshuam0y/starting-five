@@ -258,3 +258,10 @@ body.ct-full-on { overflow: hidden; }
 .ct-tag.play { font-size: 1.2px; fill: #fff; stroke: #000; stroke-width: .3px; letter-spacing: .1px; }
 .ct-cam[hidden] { display: none; }
 @media (max-width: 560px) { .ct-sc { font-size: 12px; } .ct-bonus { font-size: 8px; padding: 0 3px; } }
+
+/* the court never takes the whole page: the play line, the controls and the players stay in view */
+.ct-stage.ct-3d { aspect-ratio: auto; height: clamp(220px, 50vh, 540px); }
+.ct-stage:not(.ct-3d) .ct-svg { max-height: 56vh; }
+@media (max-width: 560px) { .ct-stage.ct-3d { aspect-ratio: auto; height: clamp(220px, 44vh, 420px); } }
+.ct-full .ct-stage.ct-3d { height: auto; }
+.ct-full .ct-stage:not(.ct-3d) .ct-svg { max-height: 100%; }

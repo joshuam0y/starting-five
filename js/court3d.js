@@ -32,7 +32,10 @@
   function create(stage, cfg) {
     const T = window.THREE;
     const renderer = new T.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    // quality: phones draw at a lower resolution; if frames still run slow, it drops lower and the crowd sits still
+    const phone = Math.min(screen.width || 9999, screen.height || 9999) < 600;
+    let maxDpr = phone ? 1.5 : 2, lite = false, slow = 0;
+    renderer.setPixelRatio(Math.min(maxDpr, window.devicePixelRatio || 1));
     renderer.outputEncoding = T.sRGBEncoding;
     const canvas = renderer.domElement;
     canvas.className = 'ct-gl';
@@ -123,6 +126,11 @@
       crowd.setColorAt(i, col);
     });
     scene.add(crowd);
+    // heads on the crowd, so the stands read as people
+    const FACES = ['#3b2418', '#5a3a26', '#7a5034', '#9c6b48', '#c08f68', '#e0b896'];
+    const heads = new T.InstancedMesh(keep(new T.SphereGeometry(0.42, 8, 6)), keep(new T.MeshLambertMaterial({ color: 0xffffff })), seats.length);
+    seats.forEach((s, i) => { M4.makeTranslation(s.p[0], s.p[1] + 1.4, s.p[2]); heads.setMatrixAt(i, M4); col.set(FACES[Math.floor(Math.random() * FACES.length)]); col.multiplyScalar(0.7 + Math.random() * 0.25); heads.setColorAt(i, col); });
+    scene.add(heads);
     // the scorer's table and the benches, across from the TV camera
     const table = new T.Mesh(keep(new T.BoxGeometry(28, 2.6, 2.4)), mat('#101014'));
     table.position.set(47, 1.3, -5); scene.add(table);
@@ -243,7 +251,8 @@
     let W = 0, H = 0, dpr = 1;
     function resize() {
       W = Math.max(1, stage.clientWidth); H = Math.max(1, stage.clientHeight);
-      dpr = Math.min(2, window.devicePixelRatio || 1);
+      dpr = Math.min(maxDpr, window.devicePixelRatio || 1);
+      renderer.setPixelRatio(dpr);
       renderer.setSize(W, H, false);
       over.width = Math.round(W * dpr); over.height = Math.round(H * dpr);
       cam.aspect = W / H; cam.updateProjectionMatrix();
@@ -389,7 +398,8 @@
     // ---------- each frame ----------
     // S: { cam: 'tv'|'end'|'auto', players: [{ key, x, y, a, ang, act: { k, f } | null, hold, sel, def }], ball: { x, y, h, held, flight },
     //      dir, tags: [{ key?, x, y, text, cls, f }], rings: [{ x, y, f }], zoom: { x, y } | null, crowd: 0..1, replay: { kind, x, y, a0 } | null }
-    let crowdT = 0;
+    let crowdT = 0, frameN = 0;
+    const trail = [];
     function frame(S, dt) {
       lastS = S; inFrame = true;
       try { draw(S, dt); } finally { inFrame = false; }
@@ -426,21 +436,42 @@
       // the crowd: on its feet when it gets loud
       crowdT += dt || 16;
       const lv = clamp(S.crowd || 0, 0, 1);
-      if (lv > 0.04 || crowd.userData.lv > 0.04) {
-        if ((crowdT | 0) % 2 === 0 || lv > 0.3) {
+      // too slow (frames over 28 ms for a while): lower resolution, a still crowd
+      slow = (dt || 16) > 28 ? slow + 1 : Math.max(0, slow - 1);
+      if (slow > 40 && !lite) { lite = true; maxDpr = 1; resize(); }
+      frameN++;
+      if (!lite && (lv > 0.04 || crowd.userData.lv > 0.04)) {
+        if (frameN % (phone ? 4 : 2) === 0) {
           seats.forEach((s, i) => {
             const j = Math.max(0, Math.sin(crowdT * 0.006 * s.sp + s.ph)) * lv * 1.4;
             M4.makeTranslation(s.p[0], s.p[1] + j, s.p[2]); crowd.setMatrixAt(i, M4);
+            M4.makeTranslation(s.p[0], s.p[1] + 1.4 + j, s.p[2]); heads.setMatrixAt(i, M4);
           });
-          crowd.instanceMatrix.needsUpdate = true;
+          crowd.instanceMatrix.needsUpdate = true; heads.instanceMatrix.needsUpdate = true;
         }
       }
       crowd.userData.lv = lv;
       aim(S, dt);
       renderer.render(scene, cam);
+      // the ball's trail through the air (shots and long passes): the last half second of its flight
+      if (b.flight && !S.replay ? ball.position.y > 4.5 : S.replay && ball.position.y > 4.5) trail.push([ball.position.x, ball.position.y, ball.position.z, 0]);
+      trail.forEach(q => { q[3] += dt || 16; });
+      while (trail.length && (trail[0][3] > 520 || trail.length > 40)) trail.shift();
+      if (!b.flight && !S.replay && trail.length && trail[trail.length - 1][3] > 120) trail.length = 0;
       // the labels on top
       g2.setTransform(dpr, 0, 0, dpr, 0, 0);
       g2.clearRect(0, 0, W, H);
+      if (trail.length > 2) {
+        g2.lineCap = 'round';
+        for (let i = 1; i < trail.length; i++) {
+          const a = project(trail[i - 1][0], trail[i - 1][1], trail[i - 1][2]), c = project(trail[i][0], trail[i][1], trail[i][2]);
+          if (!a || !c) continue;
+          const f = i / trail.length;
+          g2.strokeStyle = 'rgba(245, 215, 110,' + (0.55 * f * (1 - trail[i][3] / 520)).toFixed(3) + ')';
+          g2.lineWidth = 1 + 4 * f;
+          g2.beginPath(); g2.moveTo(a[0], a[1]); g2.lineTo(c[0], c[1]); g2.stroke();
+        }
+      }
       (S.tags || []).forEach(tg => {
         const f = tg.key && figs[tg.key];
         const x = f ? f.root.position.x : tg.x, y = f ? f.root.position.z : tg.y, h = f ? f.hFt + 1.2 + (f.jump || 0) : 9;
@@ -458,7 +489,7 @@
         g2.fillStyle = '#f3cf5e'; g2.fillRect(12, 12, 4, 30);
         g2.font = `700 ${W < 520 ? 14 : 16}px ${FONT}`; g2.textAlign = 'left'; g2.textBaseline = 'middle'; g2.fillStyle = '#fff';
         g2.fillText('REPLAY', 24, 28);
-        if (S.replay.kind) { g2.font = `600 13px ${FONT}`; g2.fillStyle = '#f3cf5e'; g2.fillText(S.replay.kind, 12, 58); }
+        if (S.replay.kind) { g2.font = `600 13px ${FONT}`; g2.fillStyle = '#f3cf5e'; g2.fillText(S.replay.kind, 14, 62); }
       }
     }
 
