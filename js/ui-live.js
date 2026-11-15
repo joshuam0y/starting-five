@@ -734,7 +734,7 @@
       return { r, s, min };
     });
     const sum = k => rows.reduce((t, x) => t + (x.s[k] || 0), 0);
-    const body = rows.map(({ r, s, min }) => `<tr class="${r.starter ? 'lv-st' : ''}"><td class="l"><a href="#/player/${esc(r.id)}">${esc(r.name || r.id)}</a></td>
+    const body = rows.map(({ r, s, min }) => `<tr class="${r.starter ? 'lv-st' : ''}"><td class="l"><button type="button" class="lv-fw${live.follow && live.follow.id === r.id ? ' on' : ''}" data-follow="${esc(r.id)}" data-name="${esc(r.name || r.id)}" aria-label="Follow ${esc(r.name || r.id)}">&#9733;</button><a href="#/player/${esc(r.id)}">${esc(r.name || r.id)}</a></td>
       <td>${Math.round(min)}</td><td><b>${s.pts}</b></td><td>${s.fgm}-${s.fga}</td><td>${s.tpm}-${s.tpa}</td><td>${s.ftm}-${s.fta}</td>
       <td>${s.oreb + s.dreb}</td><td>${s.ast}</td><td>${s.stl}</td><td>${s.blk}</td><td>${s.tov}</td><td>${s.pf}</td></tr>`).join('');
     return `<div class="lv-box" data-side="${side}">
@@ -785,6 +785,7 @@
           <div class="lv-prog"><i id="lvProg"></i></div>
         </div>
         <div class="lv-team">${UI.logo(g.home, 76)}<b>${esc(X.teamName(g.home))}</b><em class="lv-ab">${esc(g.home)}</em><small>${esc(recordOf(season, g.home))}</small></div>
+        <div class="lv-wp" id="lvWp" title="Chance to win, from the score and the time left" style="--ca:${esc(((UI.team(g.away) || {}).colors || ['#5c6a7a'])[0])};--ch:${esc(((UI.team(g.home) || {}).colors || ['#d4af37'])[0])}"><span id="lvWpA"></span><i id="lvWpBar"><b></b></i><span id="lvWpH"></span></div>
         <div class="lv-run" id="lvRun" aria-live="polite"></div>
       </section>
       ${courtReady() ? `<div class="lv-views" role="group" aria-label="How to watch">
@@ -798,7 +799,7 @@
         <button type="button" class="btn btn-small" id="lvSkip">SKIP TO END</button>
       </div>
       <div class="lv-grid" id="lvGrid">
-        <section class="lv-feed-wrap"><div class="lv-sub">PLAY-BY-PLAY</div><ol class="pbp lv-feed" id="lvFeed"></ol></section>
+        <section class="lv-feed-wrap"><div class="lv-sub">PLAY-BY-PLAY <span class="lv-hint">Tap &#9733; in the box score to follow one player</span></div><div class="lv-follow" id="lvFollow" hidden></div><ol class="pbp lv-feed" id="lvFeed"></ol></section>
         <section><div class="lv-sub">BY QUARTER</div><div id="lvQ"></div><div class="lv-last" id="lvLast"></div></section>
       </div>
       <div id="lvBoxes" class="lv-boxes"></div>
@@ -809,6 +810,13 @@
       if (live.timer) { clearTimeout(live.timer); live.timer = setTimeout(tick, SPEEDS[live.speed]); }
     }));
     UI.$('#lvSkip').addEventListener('click', () => finish(false));
+    UI.$('#lvBoxes').addEventListener('click', e => {
+      const b = e.target.closest('[data-follow]'); if (!b || !live) return;
+      live.follow = live.follow && live.follow.id === b.dataset.follow ? null : { id: b.dataset.follow, name: b.dataset.name };
+      drawFeed();
+      document.querySelectorAll('.lv-fw').forEach(x => x.classList.toggle('on', !!live.follow && x.dataset.follow === live.follow.id));
+      document.getElementById('lvFeed').scrollIntoView({ block: 'nearest' });
+    });
     app.querySelectorAll('.lv-view').forEach(b => b.addEventListener('click', () => {
       const mode = b.getAttribute('data-view');
       if (mode !== live.mode || (mode === 'court' && !live.court)) setView(mode, true);
@@ -846,6 +854,39 @@
     else if (el && m.pts < 7 && !note && el.textContent && /RUN$/.test(el.textContent)) el.textContent = '';
   }
 
+  // chance the home team wins: the margin, a little home court that fades, and how much time is left
+  function homeChance(m, left, total) {
+    if (left <= 0) return m > 0 ? 1 : m < 0 ? 0 : 0.5;
+    const f = left / 2880;
+    return 1 / (1 + Math.exp(-(m + 2.5 * Math.min(1, f)) / (0.4 + 11 * Math.sqrt(f))));
+  }
+  const involves = (ev, id, name) => !!ev && (((ev.stats || []).some(x => x[1] === id)) || (!!name && String(ev.body || '').indexOf(name) >= 0));
+  function story() {
+    const out = { changes: 0, ties: 0, run: { team: null, pts: 0 }, lead: { away: 0, home: 0 } };
+    let a = 0, h = 0, side = null, pts = 0, lead = 0;
+    live.events.forEach(ev => {
+      if (!ev || !ev.period) return;
+      const da = ev.as - a, dh = ev.hs - h; a = ev.as; h = ev.hs;
+      if (da <= 0 && dh <= 0) return;
+      const sd = da > 0 ? 'away' : 'home', p = da > 0 ? da : dh;
+      if (sd === side) pts += p; else { side = sd; pts = p; }
+      if (pts > out.run.pts) out.run = { team: live.res[sd].abbr, pts };
+      const l = a > h ? 'away' : h > a ? 'home' : 0;
+      if (l && lead && l !== lead) out.changes++;
+      if (!l && lead) out.ties++;
+      if (l) lead = l;
+      out.lead.away = Math.max(out.lead.away, a - h); out.lead.home = Math.max(out.lead.home, h - a);
+    });
+    return out;
+  }
+  function drawFeed() {
+    const feed = document.getElementById('lvFeed'); if (!feed) return;
+    const f = live.follow, list = live.events.slice(0, live.i).filter(ev => !f || involves(ev, f.id, f.name));
+    feed.innerHTML = list.slice(-80).reverse().map(feedItem).join('') || '<li class="lv-sys"><span class="lv-tx">Nothing from him yet.</span></li>';
+    const chip = document.getElementById('lvFollow');
+    if (chip) { chip.hidden = !f; chip.innerHTML = f ? `FOLLOWING <b>${esc(f.name)}</b> <button type="button" class="btn btn-small" id="lvUnfollow">SHOW EVERYONE</button>` : ''; const u = document.getElementById('lvUnfollow'); if (u) u.onclick = () => { live.follow = null; drawFeed(); }; }
+  }
+
   let lastBoxDraw = 0;
   function update(ev) {
     if (!live) return;
@@ -859,7 +900,23 @@
     $('lvClock').textContent = live.recorded ? '' : live.clock;
     $('lvProg').style.width = Math.min(100, live.elapsed / live.totalSec * 100) + '%';
     if (ev) momentum(ev);
-    if (ev) {
+    const left = Math.max(0, live.totalSec - live.elapsed), pH = homeChance(live.hs - live.as, live.recorded ? 0 : left, live.totalSec);
+    if ($('lvWpBar')) {
+      $('lvWpBar').firstChild.style.width = Math.round((1 - pH) * 100) + '%';
+      $('lvWpA').textContent = live.game.away + ' ' + Math.round((1 - pH) * 100) + '%';
+      $('lvWpH').textContent = Math.round(pH * 100) + '% ' + live.game.home;
+    }
+    // clutch time: the last two minutes of the fourth (or overtime) within five points slows to 1X once, so you see the finish
+    if (ev && ev.period && !live.clutch && /^(Q4|OT)/.test(ev.period) && Math.abs(live.hs - live.as) <= 5) {
+      const cl = String(ev.clock || '').split(':'), secs = (+cl[0] || 0) * 60 + (+cl[1] || 0);
+      if (cl.length === 2 && secs <= 120) {
+        live.clutch = true;
+        if (live.speed > 1) { live.speed = 1; document.querySelectorAll('.lv-speed').forEach(x => x.classList.toggle('on', x.getAttribute('data-speed') === '1')); }
+        const r = $('lvRun'); if (r) { r.textContent = 'CLUTCH TIME | ' + Math.abs(live.hs - live.as) + '-POINT GAME'; r.classList.remove('flash'); void r.offsetWidth; r.classList.add('flash'); }
+      }
+    }
+    if (ev && live.follow && !involves(ev, live.follow.id, live.follow.name)) ev = Object.assign({}, ev, { _skip: true });
+    if (ev && !ev._skip) {
       const feed = $('lvFeed');
       feed.insertAdjacentHTML('afterbegin', feedItem(ev));
       while (feed.children.length > 80) feed.removeChild(feed.lastChild);
@@ -890,13 +947,27 @@
     const user = X.userTeam();
     const won = (g.home === user && g.hs > g.as) || (g.away === user && g.as > g.hs);
     const season = X.season();
-    $('lvAfter').innerHTML = `<div class="lv-final ${won ? 'won' : 'lost'}">
+    const S = story(), top = side => live.res[side].box.slice().sort((x, y) => y.pts - x.pts)[0];
+    const line = r => r ? `${r.name} ${r.pts} PTS, ${(r.oreb || 0) + (r.dreb || 0) || r.reb || 0} REB, ${r.ast} AST` : '';
+    const ta = top('away'), th = top('home'), fin = `${g.away} ${live.res.away.pts}, ${g.home} ${live.res.home.pts}`;
+    const shareText = `Starting Five | ${fin}${ot ? ' (' + (ot > 1 ? ot + 'OT' : 'OT') + ')' : ''}\n${[ta, th].filter(Boolean).sort((x, y) => y.pts - x.pts).map(line)[0] || ''}\n${S.changes} lead changes | biggest run ${S.run.pts}-0 ${S.run.team || ''}\n${location.host}`;
+    const storyHtml = `<div class="lv-story"><div class="lv-k">THE GAME</div>
+        <div class="lv-story-g"><span><small>${esc(g.away)} TOP SCORER</small><b>${esc(line(ta))}</b></span><span><small>${esc(g.home)} TOP SCORER</small><b>${esc(line(th))}</b></span>
+          <span><small>LEAD CHANGES</small><b>${S.changes}${S.ties ? ' | ' + S.ties + ' TIES' : ''}</b></span><span><small>BIGGEST RUN</small><b>${S.run.pts ? S.run.pts + '-0 ' + esc(S.run.team) : '-'}</b></span>
+          <span><small>BIGGEST LEADS</small><b>${esc(g.away)} ${S.lead.away} | ${esc(g.home)} ${S.lead.home}</b></span></div>
+        <button type="button" class="btn btn-small" id="lvShare">SHARE THIS GAME</button></div>`;
+    $('lvAfter').innerHTML = storyHtml + `<div class="lv-final ${won ? 'won' : 'lost'}">
         <div class="lv-k">${won ? 'WIN' : 'LOSS'} | ${esc(user)} NOW ${esc(recordOf(season, user))}</div>
         <div class="row-btns center">
           <button type="button" class="btn btn-gold" id="lvNext">WATCH NEXT GAME</button>
           <a class="btn" href="#/game/${esc(g.id)}">FULL BOX SCORE</a>
           <a class="btn" href="#/season">BACK TO SEASON</a>
         </div></div>`;
+    const shareB = UI.$('#lvShare');
+    if (shareB) shareB.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(shareText); UI.toast('Copied. Paste it anywhere.'); } catch (e) { UI.toast(shareText); }
+    });
+    if ($('lvRun')) $('lvRun').textContent = S.changes + ' LEAD CHANGE' + (S.changes === 1 ? '' : 'S') + (S.run.pts >= 7 ? ' | BIGGEST RUN ' + S.run.pts + '-0 ' + S.run.team : '');
     UI.$('#lvNext').addEventListener('click', () => {
       live = null;
       if (location.hash === '#/live/next') UI.route(); else location.hash = '#/live/next';

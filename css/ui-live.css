@@ -172,3 +172,19 @@
   .lv-ft { min-width: 56px; font-size: 11px; }
 }
 .bn-head { font-family: var(--display); font-size: 22px; letter-spacing: .03em; line-height: 1.15; margin: 0 0 8px; color: #fff; }
+
+/* live game: win chance, follow a player, the game story */
+.lv-wp { grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; font-family: var(--display); font-size: 11px; letter-spacing: .08em; color: var(--muted); position: relative; }
+.lv-wp i { display: block; height: 6px; background: var(--ch, var(--gold)); position: relative; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .15); }
+.lv-wp i b { display: block; height: 100%; width: 50%; background: var(--ca, #5c6a7a); transition: width .3s ease; border-right: 2px solid #000; }
+.lv-hint { font-size: 10px; letter-spacing: .08em; color: var(--muted); margin-left: 8px; text-transform: none; font-family: inherit; }
+.lv-follow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 8px; padding: 6px 10px; border: 1px solid var(--gold-dim); font-family: var(--display); font-size: 12px; letter-spacing: .1em; }
+.lv-follow b { color: var(--gold2); }
+.lv-fw { background: none; border: 0; color: var(--muted); font-size: 15px; cursor: pointer; padding: 0 6px 0 0; min-width: 28px; min-height: 28px; }
+.lv-fw.on, .lv-fw:hover { color: var(--gold2); }
+.lv-story { margin: 22px 0 8px; padding: 14px; border: 1px solid var(--gold-dim); background: var(--bg2); }
+.lv-story-g { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 10px 0 12px; }
+.lv-story-g span { display: grid; gap: 2px; }
+.lv-story-g small { font-family: var(--display); font-size: 10px; letter-spacing: .16em; color: var(--muted); }
+.lv-story-g b { font-family: var(--display); font-size: 16px; color: #fff; }
+.lv-follow[hidden] { display: none; }
