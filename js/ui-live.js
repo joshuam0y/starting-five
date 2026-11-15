@@ -514,7 +514,7 @@
         if (st) add(other(side), st.id, 'stl');
       } else if (rest === 'turnover') add(side, who.id, 'tov');
       else if (rest === 'offensive foul') { add(side, who.id, 'tov'); add(side, who.id, 'pf'); }
-      else if (rest === 'personal foul') add(side, who.id, 'pf');
+      else if (rest === 'personal foul' || /^flagrant foul [12]$/.test(rest)) add(side, who.id, 'pf');
       else if (rest === 'checks in') ev.sub = true;
       return ev;
     };
@@ -658,7 +658,7 @@
     if (!view) { err.hidden = false; err.textContent = 'The league view is missing, so the game cannot be played.'; return; }
     let res;
     try {
-      res = window.ENGINE.simGame(teamFor(season, view, g.home), teamFor(season, view, g.away), nextRng(), { injuries: season.injuries, norms: season.norms, year: season.year, era: season.era });
+      res = window.ENGINE.simGame(teamFor(season, view, g.home), teamFor(season, view, g.away), nextRng(), { injuries: season.injuries, norms: season.norms, year: season.year, era: season.era, energyLog: true });
     } catch (e) {
       console.warn('[live] simGame failed', e);
       err.hidden = false; err.textContent = 'The game engine failed: ' + (e && e.message ? e.message : e);

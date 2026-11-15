@@ -78,7 +78,7 @@ games.forEach(res => {
     if ((ev.k === 'make' || ev.k === 'miss' || ev.k === 'sfoul') && !SHOT_WORD[ev.shot].test(body)) shotBad++;
     if (ev.k === 'make' && /three point/.test(body) !== (ev.pts === 3)) shotBad++;
     if (ev.k === 'ft' && body.indexOf('makes ' + ev.made + ' of ' + ev.att + ' free throws') < 0) ftBad++;
-    const want = { make: / makes (?!\d)/, miss: / misses /, oreb: / offensive rebound$/, dreb: / defensive rebound$/, pf: / personal foul$/,
+    const want = { make: / makes (?!\d)/, miss: / misses /, oreb: / offensive rebound$/, dreb: / defensive rebound$/, pf: / (personal foul|flagrant foul [12])$/, extra: /^timeout$| technical foul$| is ejected$/,
       foulout: / fouls out$/, inj: / leaves the game/, tip: /^Tip-off/, end: /^End of /, final: /^Final: /, tov: / turnover| offensive foul$/ }[ev.k];
     if (want && !want.test(body)) kindBad++;
     if (i === 0 && ev.k !== 'tip') kindBad++;

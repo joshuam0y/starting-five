@@ -724,9 +724,14 @@
     var n = getNorms(opts);
     var wantPbp = opts.pbp !== false;
     var wantSubs = !!opts.pbpSubs;   // substitution lines in the play-by-play (off by default to keep saves small)
+    // timeouts, technicals and flagrants: league games only. Head to Head (sizeMatters: each phone plays the series
+    // from the same seed, so its random draws must never change) and the All-Star game (neutral) skip them.
+    var EXTRAS = !opts.sizeMatters && !opts.neutral;
+    var wantEnergy = !!opts.energyLog && wantPbp;   // every player's energy at each line (the watched game's bars), never saved
     var H = buildTeam(homeTeam, 0, rng, opts, n);
     var A = buildTeam(awayTeam, 1, rng, opts, n);
     var teams = [H, A];
+    H.tos = A.tos = 7; H.oppRun = A.oppRun = 0;
     var pbp = [];
     var quarters = [];
     var q = 1, clock = 720, elapsed = 0;
@@ -758,7 +763,7 @@
     // Each pbp line also gets a structured twin in pbx (kind, side and the players involved, packed into
     // one number at the end, see packPbx) and pbl notes every lineup change, for the court view.
     // Bookkeeping only: nothing here draws a random number or changes the game.
-    var pbx = [], pbl = [];
+    var pbx = [], pbl = [], pbe = [];
     var lastScore = '0-0';
     function log(team, text, k, a, b, c, x) {
       if (!wantPbp) return;
@@ -766,6 +771,7 @@
       pbp.push((q <= 4 ? 'Q' + q : 'OT' + (q - 4)) + ' ' + fmtClock(clock) + ' ' + (team ? team.abbr + ' ' : '') + text +
         (sc !== lastScore ? ' (' + sc + ')' : ''));
       pbx.push([k || 0, team === A ? 1 : 0, a || null, b || null, c || null, x || 0]);
+      if (wantEnergy) pbe.push([H.roster.map(function (s) { return Math.round(s.energy * 100); }), A.roster.map(function (s) { return Math.round(s.energy * 100); })]);
       lastScore = sc;
     }
     function noteLineups() {
@@ -891,6 +897,38 @@
       if (s.fouls >= 6 && !s.out && !team.iron) { s.out = true; log(team, s.name + ' fouls out', PBX.FOULOUT, s); chooseLineup(team, false); }
     }
 
+    function eject(team, s) {
+      s.out = true;
+      log(team, s.name + ' is ejected', PBX.EXTRA, s, null, null, XT.EJECT);
+      chooseLineup(team, false);
+    }
+    // a timeout: a minute and a half off for everyone (a little energy back), and the coach can sub
+    var lastTO = { q: 0, seg: 0 };
+    function timeout(t, charge) {
+      if (charge !== false) t.tos--;
+      t.oppRun = 0;
+      log(t, 'timeout', PBX.EXTRA, null, null, null, XT.TIMEOUT);
+      teams.forEach(function (u) { u.roster.forEach(function (s) { s.energy = Math.min(1, s.energy + 0.04); }); });
+      chooseLineup(H, false); chooseLineup(A, false);
+    }
+    // a technical: one shot for the other team's best free throw shooter, the ball stays where it was; two and he is gone
+    function technical() {
+      var all = H.lineup.concat(A.lineup).filter(function (s) { return !s.out; });
+      if (!all.length) return;
+      var tp = pickBy(all, function (s) { return s.group === 'B' ? 1.3 : 1; });
+      var tt = H.lineup.indexOf(tp) >= 0 ? H : A, ot = tt === H ? A : H;
+      tp.tech = (tp.tech || 0) + 1;
+      log(tt, tp.name + ' technical foul', PBX.EXTRA, tp, null, null, XT.TECH);
+      var sh = ot.lineup.slice().sort(function (a, b) { return b.a.ft - a.a.ft; })[0];
+      if (sh) {
+        var hp0 = H.pts, ap0 = A.pts;
+        shootFT(ot, sh, 1);
+        var d = (H.pts - hp0) - (A.pts - ap0);
+        if (d) { H.lineup.forEach(function (s) { s.box.pm += d; }); A.lineup.forEach(function (s) { s.box.pm -= d; }); }
+      }
+      if (tp.tech >= 2 && !tp.out) eject(tt, tp);
+    }
+
     function shootFT(off, shooter, count) {
       var pct = clamp(T.ftBase + T.ftK * (shooter.a.ft - n.ftShot) / n.sd.ft, 0.35, 0.93);
       var made = 0, last = true;
@@ -987,8 +1025,16 @@
           fd.box.pf++; fd.fouls++;
           var bonus = inBonus(def);
           addTeamFoul(def);
-          log(def, fd.name + ' personal foul', PBX.PF, fd);
+          // now and then it is flagrant: two shots and the ball; a flagrant 2 throws him out
+          var flag = EXTRAS && rng() < T_FLAG ? (rng() < 0.15 ? 2 : 1) : 0;
+          log(def, fd.name + (flag ? ' flagrant foul ' + flag : ' personal foul'), PBX.PF, fd, null, null, flag);
           foulOutCheck(def, fd);
+          if (flag) {
+            if (flag === 2 && !fd.out) eject(def, fd);
+            var vic = pickBy(off.lineup, function (s) { return s.usage; });
+            shootFT(off, vic, 2);
+            return { next: off, dead: true, second: true };
+          }
           if (bonus) {
             var fs = pickBy(off.lineup, function (s) { return s.usage * (0.6 + s.shares.close); });
             return afterFT(off, def, shootFT(off, fs, 2));
@@ -1107,6 +1153,23 @@
         continue;
       }
       checkInjuries();
+      if (dead && EXTRAS) {
+        // a timeout: to stop a run (saving two for the end until the 4th), the team with the ball late in a close game,
+        // or a tired five before the 4th; one per dead ball
+        var close = q >= 4 && clock <= 120 && Math.abs(H.pts - A.pts) <= 6;
+        var caller = null;
+        teams.forEach(function (t) {
+          if (caller || t.tos <= 0) return;
+          var tired = 0; t.lineup.forEach(function (s) { tired += s.energy; }); tired /= Math.max(1, t.lineup.length);
+          if ((t.oppRun >= 8 && (t.tos > 2 || q >= 4)) || (close && t === poss && rng() < 0.3) || (q < 4 && t.tos > 4 && tired < 0.72 && rng() < 0.2)) caller = t;
+        });
+        // the two mandatory ones a quarter (first dead ball under 7:00 and under 3:00, if nobody has called one since):
+        // charged to the team behind (the home team when level) while it has more than one left
+        var seg = q <= 4 ? (clock <= 179 ? 2 : clock <= 419 ? 1 : 0) : 0, charge = true;
+        if (!caller && seg && !(lastTO.q === q && lastTO.seg >= seg)) { caller = A.pts < H.pts ? A : H; charge = caller.tos > 1; }
+        if (caller) { timeout(caller, charge); lastTO = { q: q, seg: seg }; }
+        if (rng() < T_TECH) technical();
+      }
       if (dead) {
         teams.forEach(function (t) {
           var crunchTime = q >= 4 && clock <= 300;
@@ -1129,6 +1192,9 @@
       var res = play(poss, def, putback, trans);
       var dpm = (H.pts - hp0) - (A.pts - ap0);
       if (dpm) { H.lineup.forEach(function (s) { s.box.pm += dpm; }); A.lineup.forEach(function (s) { s.box.pm -= dpm; }); }
+      // runs: points the other side has scored since this team last did (what makes a coach call time)
+      if (H.pts > hp0) { H.oppRun = 0; A.oppRun += H.pts - hp0; }
+      if (A.pts > ap0) { A.oppRun = 0; H.oppRun += A.pts - ap0; }
       poss = res.next;
       second = !!res.second;
       putback = res.putback || null;
@@ -1148,6 +1214,12 @@
     };
     log(null, 'Final: ' + A.abbr + ' ' + A.pts + ', ' + H.abbr + ' ' + H.pts + (result.ot ? ' (' + (result.ot > 1 ? result.ot : '') + 'OT)' : ''), PBX.FINAL);
     if (wantPbp) packPbx(result, H, A, pbx, pbl);
+    // energy by box row (the order of result.home.box / away.box), one row per pbp line
+    if (wantEnergy) {
+      var played = function (t) { var ix = []; t.roster.forEach(function (s, i) { if (s.sec > 0) ix.push(i); }); return ix; };
+      var hi = played(H), ai = played(A);
+      result.pbe = pbe.map(function (e) { return [hi.map(function (i) { return e[0][i]; }), ai.map(function (i) { return e[1][i]; })]; });
+    }
     return result;
   }
 
@@ -1172,7 +1244,10 @@
   // 0 plain, 1 stolen, 2 offensive foul for TOV. TIP: side = the team that wins the tip.
   // res.pbl lists lineup changes: [pbp index the five applies from, home mask, away mask], mask bit i = box row i.
   var PBX = { NOTE: 0, TIP: 1, END: 2, FINAL: 3, MAKE: 4, MISS: 5, SFOUL: 6, FT: 7, OREB: 8, DREB: 9, TOV: 10,
-    PF: 11, FOULOUT: 12, INJ: 13, SUB: 14 };
+    PF: 11, FOULOUT: 12, INJ: 13, SUB: 14, EXTRA: 15 };
+  // EXTRA lines, by x: a timeout (side = the team calling it), a technical (a = who got it), an ejection (a = who)
+  var XT = { TIMEOUT: 1, TECH: 2, EJECT: 3 };
+  var T_TECH = 0.0075, T_FLAG = 0.004;   // a technical per dead ball, a flagrant per non-shooting foul
   function packPbx(result, H, A, raw, lineups) {
     [H, A].forEach(function (t) { t.roster.filter(function (s) { return s.sec > 0; }).forEach(function (s, i) { s.bx = i + 1; }); });
     var ix = function (s) { return s && s.bx ? s.bx : 0; };

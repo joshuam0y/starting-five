@@ -443,6 +443,13 @@
           if (db < 0.2 && !bouncing) { bouncing = true; if (cfg.onBounce) cfg.onBounce(); }
           if (db > 0.5) bouncing = false;
         }
+      } else if (b.hand && figs[b.hand] && b.flight) {
+        // into a hand in flight (a block): the last part of the flight bends onto his actual hand
+        const f = figs[b.hand];
+        f.root.updateMatrixWorld(true);
+        f.arms[1].hand.getWorldPosition(handW);
+        const w = Math.pow(clamp(b.p, 0, 1), 2);
+        ball.position.set(lerp(b.x, handW.x, w), lerp(Math.max(0.4, b.h == null ? 4 : b.h), handW.y + 0.25, w), lerp(b.y, handW.z, w));
       } else {
         ball.position.set(b.x, Math.max(0.4, b.h == null ? 4 : b.h), b.y);
       }

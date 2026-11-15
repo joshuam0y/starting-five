@@ -10,7 +10,8 @@
   // =====================================================================
   // Timeline: one event per pbp line, with the score and the ten on the floor
   // =====================================================================
-  const KINDS = ['note', 'tip', 'end', 'final', 'make', 'miss', 'sfoul', 'ft', 'oreb', 'dreb', 'tov', 'pf', 'foulout', 'inj', 'sub'];
+  const KINDS = ['note', 'tip', 'end', 'final', 'make', 'miss', 'sfoul', 'ft', 'oreb', 'dreb', 'tov', 'pf', 'foulout', 'inj', 'sub', 'extra'];
+  const EXTRAS = ['', 'timeout', 'tech', 'eject'];
   const SHOTS = ['close', 'post', 'mid', 'three'];
   const TOVS = ['plain', 'steal', 'foul'];
   const LINE = /^(Q\d|OT\d+) (\d+):(\d\d) (?:([A-Z][A-Z0-9]{1,3}) )?(.*?)(?: \((\d+)-(\d+)\))?$/;
@@ -77,6 +78,10 @@
         if (ev.a) ev.stats.push([ev.a, 'reb', 1]);
       } else if (k === 'tov') {
         ev.b = theirs(u.b); ev.tov = TOVS[u.x] || 'plain';
+      } else if (k === 'pf') {
+        ev.flag = u.x || 0;   // 1 or 2: a flagrant
+      } else if (k === 'extra') {
+        ev.ex = EXTRAS[u.x] || 'note';
       }
       if (ev.pts) { if (side === 'home') hs += ev.pts; else as += ev.pts; }
       ev.hs = hs; ev.as = as;
@@ -370,7 +375,8 @@
       st.tags.forEach(tg => { const f = tg.age / tg.ttl; if (tg.ring) rings.push({ x: tg.at[0], y: tg.at[1], f }); else tags.push({ key: tg.key, x: tg.at ? tg.at[0] : 0, y: tg.at ? tg.at[1] : 0, text: tg.text, cls: tg.cls, f }); });
       return {
         t: st.simT, cam: camPref, players, tags, rings, names: true, crowd: st.crowd,
-        ball: { x: st.ball.x, y: st.ball.y, h: st.ball.h, held: st.holder, flight: !!st.flight },
+        ball: { x: st.ball.x, y: st.ball.y, h: st.ball.h, held: st.holder, flight: !!st.flight,
+          hand: st.flight && st.beat && st.beat.ball && st.beat.ball.hand ? st.beat.ball.to : null, p: st.beat && st.beat.dur ? Math.min(1, st.bt / st.beat.dur) : 1 },
         dir: st.off ? (attacksRight(st.off, st.per) ? 1 : -1) : 0,
         zoom: st.zoom && st.simT < st.zoom.until ? st.zoom : null, replay: null
       };
@@ -466,7 +472,7 @@
       // the shot clock (from 1954-55): from the start of the possession; off when the game clock has less on it
       const sc = $('.ct-sc');
       if (sc) {
-        const v = Math.ceil(st.possLen - (t - st.possT) - 1e-6), show = !st.ended && YEAR >= 1955 && v < left && v >= 0 && st.possT <= t;
+        const v = Math.max(1, Math.ceil(st.possLen - (t - st.possT) - 1e-6)), show = !st.ended && YEAR >= 1955 && v < left && st.possT <= t;
         sc.hidden = !show;
         if (show) { sc.textContent = Math.min(st.possLen, v); sc.classList.toggle('low', v <= 5); }
       }
@@ -567,8 +573,26 @@
       const box = $('.ct-floor-list');
       box.innerHTML = ['away', 'home'].map(side => `<div class="ct-row" data-side="${side}">${st.on[side].map(key => {
         const k = kit[side];
-        return `<button type="button" class="ct-chip${st.sel === key ? ' on' : ''}" data-key="${key}" style="--cf:${esc(k.fill)};--cr:${esc(k.ring)};--ct:${esc(k.text)}"><i>${esc(info[key].num || info[key].ini)}</i><span>${esc(info[key].last)}</span></button>`;
+        return `<button type="button" class="ct-chip${st.sel === key ? ' on' : ''}" data-key="${key}" style="--cf:${esc(k.fill)};--cr:${esc(k.ring)};--ct:${esc(k.text)}"><i>${esc(info[key].num || info[key].ini)}</i><span>${esc(info[key].last)}</span>${game.pbe ? '<b class="ct-en"><em></em></b>' : ''}</button>`;
       }).join('')}</div>`).join('');
+      drawEnergy();
+    }
+    // energy (watched games: the engine's per-line log, res.pbe): a bar under each name, green when fresh, red when spent
+    function energyAt(key, i) {
+      const row = game.pbe && game.pbe[Math.max(0, Math.min(i, game.pbe.length - 1))];
+      return row ? row[sideOf(key) === 'home' ? 0 : 1][idxOf(key)] : null;
+    }
+    function drawEnergy() {
+      if (!game.pbe) return;
+      const i = Math.max(0, st.done - 1);
+      el.querySelectorAll('.ct-floor-list .ct-chip[data-key]').forEach(b => {
+        const e = energyAt(b.getAttribute('data-key'), i), bar = b.querySelector('.ct-en em');
+        if (e == null || !bar) return;
+        const f = Math.max(0, Math.min(1, (e - 40) / 60));
+        bar.style.width = (f * 100).toFixed(0) + '%';
+        bar.style.background = 'hsl(' + Math.round(f * 120) + ' 75% 45%)';
+        b.title = info[b.getAttribute('data-key')].last + ' | energy ' + e + '%';
+      });
     }
     $('.ct-floor-list').addEventListener('click', e => { const b = e.target.closest('[data-key]'); if (b) select(b.getAttribute('data-key')); });
 
@@ -879,10 +903,14 @@
         const label = dunk ? 'DUNK' : { close: 'AT THE RIM', post: 'POST', mid: 'MID-RANGE', three: '3PT' }[ev.shot];
         // the rise: he gathers and goes up (a dunker toward the rim), his man comes out to contest
         const rise = dunk ? 240 : near ? 180 : 260;
-        const prep = B[B.length - 1];
-        if (prep && !prep.ball && prep.move && prep.move[shooter]) { prep.arrive = [shooter]; prep.near = 1.5; }
-        else B.push({ dur: 200, move: { [shooter]: spot }, arrive: [shooter], near: 1.5 });
+        // a block: the blocker is in the shooter's face before he rises (not running in from the weak side as the ball arrives)
+        const blk = k === 'miss' && ev.b ? ev.b : null;
+        const meet = blk ? [spot[0] + (h[0] - spot[0]) * 0.12, spot[1] + (h[1] - spot[1]) * 0.12] : null;
+        const prep = B[B.length - 1], need = blk ? [shooter, blk] : [shooter];
+        if (prep && !prep.ball && prep.move && prep.move[shooter]) { prep.arrive = need; prep.near = 1.5; if (blk) prep.move[blk] = meet; }
+        else B.push({ dur: 200, move: Object.assign({ [shooter]: spot }, blk ? { [blk]: meet } : {}), arrive: need, near: 1.5, wait: 1400 });
         const riseMove = Object.assign({}, closeout); if (dunk) riseMove[shooter] = [spot[0] + (h[0] - spot[0]) * 0.35, spot[1] + (h[1] - spot[1]) * 0.35];
+        if (blk) riseMove[blk] = meet;
         B.push({ dur: rise, move: riseMove, at0: () => { tag(shooter, label, 'kind', rise + dur + 200); act(shooter, dunk ? 'dunk' : 'shoot', dunk ? rise + dur * 1.6 : rise * 2.6); if (dfd) act(dfd, 'contest', rise + dur); } });
         st.ph = null;
         if (k === 'make') {
@@ -910,11 +938,9 @@
           B.push({ dur: 420, ball: { to: [spot[0] + (h[0] - spot[0]) * 0.5, spot[1] + (h[1] - spot[1]) * 0.5], arc: 2, h1: 6 }, shot: true, hold: null, fire: true, at: () => { if (fouler) tag(fouler, 'FOUL', 'foul'); } });
           st.off = O; st.set = true;
         } else if (ev.b) {
-          const blk = ev.b;
-          const meet = [spot[0] + (h[0] - spot[0]) * 0.12, spot[1] + (h[1] - spot[1]) * 0.12];
-          const mv = {}; mv[blk] = [meet[0] + rnd(-0.6, 0.6), meet[1] + rnd(-0.6, 0.6)];
-          B.push({ dur: 200, move: mv, at0: () => act(blk, 'block', 720) });
-          B.push({ dur: 240, ball: { to: meet, arc: 2.5, h1: 9.6 }, shot: true, hold: null, fire: true, at0: () => { st.zoom = { x: meet[0], y: meet[1], until: st.simT + 1300 }; }, at: () => { tag(blk, 'BLOCK', 'big'); cheer(other(O), 3); highlight('BLOCK', meet); } });
+          // he goes up as the ball leaves the hand, arms all the way up when it gets there; the ball meets his hand
+          // (ball.hand: the 3D view puts it in his actual hand), then flies off
+          B.push({ dur: 300, ball: { to: blk, arc: 2.2, h1: 10.6, hand: true }, shot: true, hold: null, fire: true, at0: () => { act(blk, 'block', 680); st.zoom = { x: meet[0], y: meet[1], until: st.simT + 1300 }; }, at: () => { tag(blk, 'BLOCK', 'big'); cheer(other(O), 3); highlight('BLOCK', meet); } });
           B.push({ dur: 460, ball: { to: landing(O, per), arc: 2 }, hold: null });
           st.off = null; st.set = false;
         } else {
@@ -942,11 +968,19 @@
         // the lane: the two defensive bigs on the spaces nearest the rim, two offensive players in the next ones, just
         // outside the lane lines of the season; everyone else behind the line, a defender behind the shooter
         const lo = 25 - LANE_W / 2 - 0.9, hi = 25 + LANE_W / 2 + 0.9;
-        const laneD = [[8.5, lo], [8.5, hi]], laneO = [[12.6, hi], [12.6, lo]];
-        const restD = [[28, 25 + rnd(-1, 1)], [25, 9], [25, 41]], restO = [[33, 15], [33, 35]];
+        // three defenders (both spaces nearest the rim and the third space on one side), two offensive players
+        const laneD = [[8.5, lo], [8.5, hi], [16, lo]], laneO = [[12.4, hi], [12.4, lo]];
+        const restD = [[28, 25 + rnd(-1, 1)], [26, 41]], restO = [[33, 15], [33, 35]];
         const inLane = {};
-        ordered(st.on[D]).reverse().forEach((key, i) => { const s = laneD[i] || restD[i - 2] || restD[2]; mv[key] = at(O, per, s[0], s[1]); if (i < 2) inLane[key] = s; });
-        ordered(st.on[O]).filter(x => x !== shooter).reverse().forEach((key, i) => { const s = laneO[i] || restO[i - 2] || restO[1]; mv[key] = at(O, per, s[0], s[1]); if (i < 2) inLane[key] = s; });
+        // a technical or flagrant shot: nobody on the lane, everyone else back at half court
+        let pj = ev.i - 1;
+        while (pj >= 0 && (evs[pj].k === 'sub' || evs[pj].k === 'foulout' || (evs[pj].k === 'extra' && evs[pj].ex === 'eject'))) pj--;
+        const pe = evs[pj], empty = !!pe && ((pe.k === 'extra' && pe.ex === 'tech') || (pe.k === 'pf' && pe.flag));
+        if (empty) {
+          ordered(st.on[D]).forEach((key, i) => { mv[key] = at(O, per, 42 + rnd(-1, 1), [6, 15, 25, 35, 44][i] || 25); });
+          ordered(st.on[O]).filter(x => x !== shooter).forEach((key, i) => { mv[key] = at(O, per, 46 + rnd(-1, 1), [10, 20, 30, 40][i] || 25); });
+        } else ordered(st.on[D]).reverse().forEach((key, i) => { const s = laneD[i] || restD[i - 3] || restD[1]; mv[key] = at(O, per, s[0], s[1]); if (i < 3) inLane[key] = s; });
+        if (!empty) ordered(st.on[O]).filter(x => x !== shooter).reverse().forEach((key, i) => { const s = laneO[i] || restO[i - 2] || restO[1]; mv[key] = at(O, per, s[0], s[1]); if (i < 2) inLane[key] = s; });
         // nobody shoots until the lane is filled
         B.push({ dur: 1000, pace: 12, move: mv, ball: { to: shooter, arc: 1.2 }, hold: shooter, arrive: Object.keys(mv), near: 1.5, wait: 3200 });
         // a miss off the last one: the lane steps in for the rebound
@@ -968,8 +1002,18 @@
           else if (made) B.push({ dur: 260, ball: { to: at(O, per, HOOP - 1.4, 25), arc: 0, h1: 0.5 }, hold: null });
           else B.push({ dur: 380, move: crash, ball: { to: landing(O, per), arc: 2.5 }, hold: null });
         });
-        st.ph = null; st.off = lastMade ? null : O; st.set = false; st.form = null;
+        st.ph = null; st.off = lastMade || empty ? null : O; st.set = false; st.form = null;
         return B;
+      }
+      if (k === 'extra') {
+        // a timeout: both fives walk to their benches, the ball goes to the official
+        if (ev.ex === 'timeout') {
+          B.push({ dur: 2400, move: huddles(), ball: { to: [47, 25], arc: 1 }, hold: null, fire: true, at0: () => banner('TIMEOUT ' + (ev.team || '')) });
+          st.ph = null; st.off = null; st.set = false; st.form = null;
+          return B;
+        }
+        if (ev.ex === 'tech') { B.push({ dur: 1000, fire: true, at0: () => { if (ev.a) tag(ev.a, 'TECHNICAL', 'big', 1600); } }); return B; }
+        if (ev.ex === 'eject') { B.push({ dur: 1200, fire: true, at0: () => { if (ev.a) tag(ev.a, 'EJECTED', 'big', 1700); } }); return B; }
       }
       if (k === 'tov') {
         const tp = ev.a;
@@ -1002,7 +1046,7 @@
         const fouler = ev.a, Off = other(O);
         const h = setUp(Off, per, B);
         const p = st.form && st.form[h] ? st.form[h] : [47, 25];
-        B.push({ dur: 480, move: { [fouler]: [p[0] + rnd(-1, 1), p[1] + rnd(-1, 1)] }, fire: true, at: () => tag(fouler, 'FOUL', 'foul') });
+        B.push({ dur: ev.flag ? 700 : 480, move: { [fouler]: [p[0] + rnd(-1, 1), p[1] + rnd(-1, 1)] }, fire: true, at: () => tag(fouler, ev.flag ? 'FLAGRANT ' + ev.flag : 'FOUL', ev.flag ? 'big' : 'foul', ev.flag ? 1600 : 1300) });
         return B;
       }
       if (k === 'foulout' || k === 'inj') {
@@ -1037,7 +1081,7 @@
       }
       const ev = evs[Math.min(i, evs.length - 1)];
       if (few) sound(ev);
-      drawScore(); drawLine(ev); pnlDraw();
+      drawScore(); drawLine(ev); pnlDraw(); drawEnergy();
       if (st.sel) card();
     }
     // the shot clock starts again on a new possession (and on an offensive rebound: 14 seconds from 2018-19);
@@ -1045,7 +1089,15 @@
     function countPoss(ev) {
       const k = ev.k;
       if (k === 'tip' || k === 'dreb' || k === 'tov' || k === 'end' || k === 'sfoul' || k === 'ft' || (k === 'make' && !ev.c)) { st.possT = ev.t; st.possLen = 24; }
-      else if (k === 'oreb') { st.possT = ev.t; st.possLen = YEAR >= 2019 ? 14 : 24; }
+      else if (k === 'oreb') {
+        // off the rim: 24 again (14 from 2018-19); a blocked shot that never touched the rim keeps the clock going
+        const pm = evs[ev.i - 1], blocked = pm && pm.k === 'miss' && pm.b;
+        if (!blocked) { st.possT = ev.t; st.possLen = YEAR >= 2019 ? 14 : 24; }
+      } else if (k === 'pf') {
+        // a defensive foul: back up to 14 when there was less on it
+        const left = st.possLen - (ev.t - st.possT);
+        if (left < 14) { st.possT = ev.t; st.possLen = 14; }
+      }
       if (st.tf.per !== ev.per) st.tf = { home: 0, away: 0, per: ev.per };
       const fouled = k === 'pf' ? ev.side : k === 'sfoul' || (k === 'make' && ev.c) ? other(ev.side) : k === 'tov' && ev.tov === 'foul' ? ev.side : null;
       if (fouled && st.tf[fouled] != null) st.tf[fouled]++;
