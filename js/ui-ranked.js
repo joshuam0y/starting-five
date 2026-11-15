@@ -139,7 +139,7 @@
     const r = RANK[day];
     return 'Starting Five Daily #' + dayNo(day) + (title ? ' | ' + title : '') + ' \u{1F3C0}\n'
       + (ovrs && ovrs.length ? ovrs.map(sqEmoji).join('') + '\n' : '')
-      + pct.toFixed(1) + '% of a perfect five' + (r ? ' | #' + r.rank + ' of ' + r.played : '');
+      + pct.toFixed(1) + '% of a perfect five' + (r && r.played >= 25 ? ' | #' + r.rank + ' of ' + r.played : '');   // a rank only once it means something
   };
   // "beat my score": shares now link to plain playstartingfive.com/daily, but older shared links to
   // #/daily/beat/<daily #>/<name>/<percent> still open the challenge for that day (shown over the Play button).
