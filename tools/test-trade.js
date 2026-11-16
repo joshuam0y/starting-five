@@ -379,8 +379,8 @@ seasons.forEach(function (r, i) {
     (r.trades.length - r.regular) + " offseason), " + r.offers.length + " offers to the user, roster problems " + r.bad.length);
 });
 var avgReg = seasons.reduce(function (s, r) { return s + r.regular; }, 0) / seasons.length;
-ok(seasons.every(function (r) { return r.trades.length >= 5 && r.trades.length <= 16; }), "every season has 5 to 15ish AI trades (in season plus offseason)");
-ok(avgReg >= 3 && avgReg <= 12, "in-season AI trades average " + avgReg.toFixed(1));
+ok(seasons.every(function (r) { return r.trades.length >= 8 && r.trades.length <= 30; }), "every season has 8 to 30 AI trades (in season plus offseason; a real year has 20 to 30 in season alone)");
+ok(avgReg >= 6 && avgReg <= 22, "in-season AI trades average " + avgReg.toFixed(1));
 ok(seasons.every(function (r) { return r.playoffs === 0; }), "no trades during the playoffs");
 ok(seasons.every(function (r) { return r.trades.filter(function (t) { return t.date > "2013-02-21" && t.date < "2013-07"; }).length === 0; }), "no in-season trades after the deadline");
 var nearDeadline = seasons.reduce(function (s, r) { return s + r.trades.filter(function (t) { return t.date >= "2013-02-01" && t.date <= "2013-02-21"; }).length; }, 0);

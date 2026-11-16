@@ -25,7 +25,7 @@
     hof: { base: 0.9, pct: 0.10 }
   };
   var AI_MARGIN = { base: 0.25, pct: 0.02 };   // AI to AI deals: each side wants a small edge
-  var MAX_AI_TRADES = 16, MAX_TEAM_TRADES = 3, MAX_OFFERS = 5;
+  var MAX_AI_TRADES = 30, MAX_TEAM_TRADES = 3, MAX_OFFERS = 5;   // a real year has about 20 to 30 in-season deals plus the summer's
 
   function cba() { return W.CBA || null; }
   function isArr(x) { return Object.prototype.toString.call(x) === "[object Array]"; }
@@ -1398,10 +1398,12 @@
     if (!d) return 0.04;
     var y = state.year, dl = y + "-" + deadlineMD(y);
     if (d > dl) return 0;
-    if (d === dl) return 2.5;
-    if (d >= y + "-02-01") return 0.18;
-    if (d >= (y - 1) + "-12-15") return 0.03;
-    return 0.005;
+    // the season builds to the deadline: quiet until mid-December (when signed free agents can be traded), busier in
+    // January, a rush in the last weeks, the most on deadline day
+    if (d === dl) return 6;
+    if (d >= y + "-02-01") return 0.5;
+    if (d >= (y - 1) + "-12-15") return 0.09;
+    return 0.015;
   }
 
   function tryAiTrade(state, rng) {
