@@ -123,7 +123,7 @@
       p.contract = p.team === "FA" ? null : contractFor(p0, state.year);
       // the salary source marks two-way deals in the name ("Micah Peavy  (TW)"): a clean name and a two-way contract (off the cap)
       var tw = /[\s\u00a0]*\(TW\)\s*$/;
-      if (tw.test(p.name || "")) { p.name = p.name.replace(tw, ""); if (p.contract) p.contract.twoWay = true; }
+      if (p0.twoWay || tw.test(p.name || "")) { p.name = p.name.replace(tw, ""); delete p.twoWay; if (p.contract) p.contract.twoWay = true; }
       delete p.salaries; delete p.options; // folded into p.contract
       // real NBA seasons before 2012-13 (0 for true rookies), and the latest run of seasons with his team
       var prior = W.CAREER_PRIOR ? (W.CAREER_PRIOR[p.id] || []) : null;
