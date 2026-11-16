@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 420, t: 'Association: big news pops up the moment it happens, the trade deadline warning never slips by, and sounds for news, decisions, trades and the draft.' },
   { v: 414, t: 'Ranked practice lets you pick the era: Classic, 80s and 90s, 2000s, 2010s, 2020s, All-Time, or random like ranked.' },
   { v: 412, t: 'Ranked and ranked practice draw from each era\'s top 80, not top 40: mostly stars plus some solid starters, so knowing values wins more.' },
   { v: 410, t: 'Ranked practice: play the CPU under ranked rules any time, without touching your rating.' },

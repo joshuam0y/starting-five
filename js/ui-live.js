@@ -697,6 +697,7 @@
     if (g.played) { live.recorded = true; return; }
     X.recordGame(season, g, live.res, live.view, !!live.day.playoff, live.day.date);
     live.recorded = true;
+    setTimeout(() => { try { if (UI.bigNews) UI.bigNews(); } catch (e) { /* never block */ } }, 600);   // what the game set off (an injury, a milestone) pops up now
     // injuries to the user's players become events and news, like the league sim does
     if (state) {
       (live.res.injuries || []).forEach(inj => {

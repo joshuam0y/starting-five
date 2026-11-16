@@ -102,7 +102,9 @@
     const cur = g.season.day || 0, ms = seasonMoments(g), target = targetDay(g, how, ms);
     const skip = (g.simAsk && g.simAsk.year === g.year && g.simAsk.skip) || {};
     // ask about every key moment the sim would pass, in order (All-Star break, then the trade deadline, ...)
-    const passing = ms.filter(x => x.idx > cur && x.idx < target && !skip[x.key]);
+    // a moment the sim would carry you past, counting the day you are on: simming one day at a time from the deadline day
+    // (or the day before it) used to slip by without the question
+    const passing = ms.filter(x => x.idx >= cur && x.idx < target && !skip[x.key]);
     for (const m of passing) {
       const name = m.name.replace(/^the /, '');
       const r = await UI.choose({
@@ -284,6 +286,8 @@
     overlay.hidden = true;
     UI.simming = false;
     UI.updateChrome();
+    // the big moments (an injury, a trade request, a milestone, a rule change) pop up as soon as the sim stops, not on the next page
+    setTimeout(() => { try { if (UI.bigNews) UI.bigNews(); } catch (e) { /* never block */ } }, 450);
     const seasonJustEnded = !offseason && UI.inOffseason();
     // short notices (a player back from injury in an auto rotation): no stop needed
     if (Array.isArray(g.notices) && g.notices.length) {
@@ -294,7 +298,7 @@
     // Where the offseason takes the user next: the draft room after the lottery and on each of his
     // picks, the progression report once progression has run (before the new season starts).
     let go = null;
-    if (result && result.stopped === 'userPick') { go = '#/draft'; UI.toast('You are on the clock with pick #' + result.pick + '.'); }
+    if (result && result.stopped === 'userPick') { go = '#/draft'; if (window.SFX) window.SFX.play('buzzer'); UI.toast('You are on the clock with pick #' + result.pick + '.'); }
     // this summer's retirements were just decided (the lottery step): the retirements screen (js/ui-retire.js), once a summer
     else if (UI.retireDue && UI.retireDue()) go = '#/retirements';
     else if (phaseBefore === 'draftLottery' && g.phase === 'draft' && UI.pages.draft) go = '#/draft';
@@ -391,6 +395,7 @@
     const modal = document.getElementById('eventModal');
     const open = g && Array.isArray(g.events) ? g.events.map((e, i) => ({ e, i })).filter(x => x.e && !x.e.resolved && !x.e.quiet) : [];
     if (!open.length) { modal.hidden = true; return; }
+    if (modal.hidden && window.SFX) window.SFX.play('chime');   // a decision is waiting
     const { e, i } = open[0];
     const text = e.text || e.message || e.headline || (e.offer && e.offer.message) || '';
     let body = '', actions = '';
@@ -464,6 +469,7 @@
         modal.hidden = true;
         await UI.saveNow();
         afterDecisions();
+        setTimeout(() => { try { if (UI.bigNews) UI.bigNews(); } catch (x) { /* never block */ } }, 500);   // the pop-ups that waited for the decisions
       } else UI.showEvents();
     };
     const first = modal.querySelector('.btn-gold') || modal.querySelector('[data-answer]');

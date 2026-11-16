@@ -57,7 +57,9 @@
     if (st.bigSeen.length > 400) st.bigSeen = st.bigSeen.slice(-300);
     busy = true;
     try {
+      const SND = { CHAMPIONS: 'crowd', INJURY: 'whistle', 'RULE CHANGE': 'whistle', 'TRADE REQUEST': 'buzzer', MILESTONE: 'chime', AWARD: 'chime' };
       for (const [kind, n] of fresh.slice(0, 3)) {
+        try { if (window.SFX) window.SFX.play(SND[kind] || 'chime'); } catch (e) { /* no sound */ }
         await UI.choose({ title: kind, text: '', html: `<p class="bn-head">${UI.esc(n.headline)}</p>${n.body ? `<p class="ev-text">${UI.esc(n.body)}</p>` : ''}`,
           buttons: [{ value: 'ok', label: 'GOT IT', gold: true }] });
       }

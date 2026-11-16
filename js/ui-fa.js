@@ -454,6 +454,7 @@
     if (res.accepted) {
       view.open = null; delete offers[id];
       await F.save();
+      if (window.SFX) window.SFX.play('chime');
       UI.toast((p ? p.name : 'The player') + (res.offerSheet ? ' signed your offer sheet.' : ' signed with the ' + UI.team(user).name + '. Saved.'));
       render(app, st);
       const top = app.querySelector('.fa-cap');

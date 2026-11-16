@@ -427,6 +427,7 @@
     ['tradeBlock', 'finderSel'].forEach(k => { if (Array.isArray(t[k])) t[k] = t[k].filter(id => onBlockStill(st, id)); });   // players and picks that left drop off
     shopRes = null; take = null;
     await F.save();
+    if (window.SFX) window.SFX.play('chime');
     UI.toast('Trade complete. Saved.');
     return null;
   }
