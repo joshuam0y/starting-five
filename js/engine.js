@@ -915,7 +915,7 @@
       if (charge !== false) t.tos--;
       t.oppRun = 0;
       log(t, 'timeout', PBX.EXTRA, null, null, null, XT.TIMEOUT);
-      teams.forEach(function (u) { u.roster.forEach(function (s) { s.energy = Math.min(1, s.energy + 0.04); }); });
+      teams.forEach(function (u) { u.roster.forEach(function (s) { s.energy = Math.min(1, s.energy + 0.025); }); });
       chooseLineup(H, false); chooseLineup(A, false);
     }
     // a technical: one shot for the other team's best free throw shooter, the ball stays where it was; two and he is gone

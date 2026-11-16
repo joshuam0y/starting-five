@@ -577,7 +577,8 @@
       }).join('')}</div>`).join('');
       drawEnergy();
     }
-    // energy (watched games: the engine's per-line log, res.pbe): a bar under each name, green when fresh, red when spent
+    // energy (watched games: the engine's per-line log, res.pbe): a bar under each name over the range games really use
+    // (75 to 100): green when fresh, yellow after a long stint, red when he is gassed
     function energyAt(key, i) {
       const row = game.pbe && game.pbe[Math.max(0, Math.min(i, game.pbe.length - 1))];
       return row ? row[sideOf(key) === 'home' ? 0 : 1][idxOf(key)] : null;
@@ -586,7 +587,7 @@
     function enBar(key) {
       const e = energyAt(key, Math.max(0, st.done - 1));
       if (e == null) return '';
-      const f = Math.max(0, Math.min(1, (e - 40) / 60));
+      const f = Math.max(0, Math.min(1, (e - 75) / 25));
       return `<span class="ct-enb" title="Energy ${e}%"><em style="width:${(f * 100).toFixed(0)}%;background:hsl(${Math.round(f * 120)} 75% 45%)"></em></span>`;
     }
     function drawEnergy() {
@@ -595,7 +596,7 @@
       el.querySelectorAll('.ct-floor-list .ct-chip[data-key]').forEach(b => {
         const e = energyAt(b.getAttribute('data-key'), i), bar = b.querySelector('.ct-en em');
         if (e == null || !bar) return;
-        const f = Math.max(0, Math.min(1, (e - 40) / 60));
+        const f = Math.max(0, Math.min(1, (e - 75) / 25));
         bar.style.width = (f * 100).toFixed(0) + '%';
         bar.style.background = 'hsl(' + Math.round(f * 120) + ' 75% 45%)';
         b.title = info[b.getAttribute('data-key')].last + ' | energy ' + e + '%';
