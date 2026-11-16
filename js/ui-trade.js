@@ -680,7 +680,7 @@
         : `${pk.original && pk.original !== user ? 'From ' + esc(UI.teamName(pk.original)) : 'Own pick'} | ${pr ? esc(pr) : 'Unprotected'}`;
       return `<button type="button" class="ft-item ft-pick ftx-blk${on ? ' on' : ''}" data-act="block" data-id="${esc(k)}" aria-pressed="${on}">
         <span class="ft-pick-yr">${ls ? '#' + esc(ls.overall) : esc(pk.year)}<small>${ls ? esc(pk.year) : pk.round === 1 ? '1ST' : '2ND'}</small></span>
-        <span class="ft-main"><b class="ft-name">${esc(F.pickLabel(pk, user))}</b><span class="ft-meta">${meta}</span></span>
+        <span class="ft-main"><b class="ft-name">${esc(F.pickLabel(pk, user))}</b>${F.starsHtml && F.pickStars ? F.starsHtml(F.pickStars(st, pk, user)) : ''}<span class="ft-meta">${meta}</span></span>
         <span class="ftx-tag">${on ? onTag : offTag}</span></button>`;
     }).join('');
     const names = block.map(id => blockName(st, id));
