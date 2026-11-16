@@ -19,6 +19,7 @@
   const FRESH = () => ({ v: 1, page: 'setup', n: 4, humans: 0, ai: [], cpu: false, names: [], skip: [], opts: { timer: 24, cap: 0, bestOf: 1, seeding: 'random', ratings: true, board: 0, dupes: 0, bench: 0, auction: 0, bans: 0 },
     cfg: null, auc: null, teams: [], picks: [], who: 0, hand: false, spin: null, spun: [], respins: [], seeds: [], rounds: [], cur: null, champ: -1 });
   let TN = Object.assign(FRESH(), ls.get() || {});
+  if (TN.page === 'setup') TN.skip = [];   // a new tournament starts with every season on, not the last one's picks
   TN.opts = Object.assign({ timer: 24, cap: 0, bestOf: 1, seeding: 'random', ratings: true }, TN.opts || {});
   const HOOK = { pages: {} };   // filled in by the online tournament (js/ui-tournament-online.js)
   const save = () => { if (HOOK.on) { if (HOOK.save) HOOK.save(TN); } else ls.set(TN); };

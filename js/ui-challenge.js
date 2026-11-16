@@ -21,6 +21,7 @@
     del(k) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } }
   };
   let SETUP = Object.assign({ mode: 'year', year: 2013, build: 'free', team: '', name: '', injuries: true, era: 2013, cap: 0, ratings: true }, ls.get(KEY_SETUP) || {});
+  SETUP.skip = [];   // every visit starts with all seasons on, not the last game's picks
   let CUR = null;        // { cfg, used: [], respins, spin, dr }
   let RUN = null;        // the season being simmed { ch, fast, paused }
   let VIEW = { pos: '', q: '', team: '', season: '', letter: '', sort: 'az', bud: '', lim: 60 };

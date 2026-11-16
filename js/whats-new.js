@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 404, t: 'Every new game starts with all seasons on instead of keeping your last picks.' },
   { v: 402, t: 'VS CPU says You and the CPU by name, and rosters show each player\'s position and team.' },
   { v: 394, t: 'Head to Head vs the CPU. In auctions, bots think before they move, every bid, pass and sale pops up, and your turn shakes the screen.' },
   { v: 392, t: 'Tournaments can be best of 5 or 7, and Head to Head auctions get the sounds and a pool with every position.' },
