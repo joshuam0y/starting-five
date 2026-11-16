@@ -289,7 +289,7 @@
     VS.cpu = true; VS.cfg = null; VS.auc = null; VS.page = 'setup'; VS.year = 0; VS.names = ['', '']; VS.tnames = ['', ''];
     VS.skip = b && b.key !== 'all' ? ALL_YEARS.filter(y => y < b.from || y > b.to) : [];
     if (b && UI.toast) UI.toast('Practice era: ' + b.label);
-    VS.autoStart = true;
+    VS.autoStart = true; VS.practice = true;
     Object.assign(VS.opts, { auction: 1, board: 0, ranked: 0, pub: 0, aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'ranked', aTheme: '', aShow: 0, bench: 0, bestOf: 7, blind: true, cap: 0, timer: 24, dupes: 0, bans: 0 });
     location.hash = '#/challenge/vs';
   };
@@ -697,6 +697,7 @@
       app.querySelectorAll('[data-net]').forEach(b => b.addEventListener('click', () => {
         const v = b.dataset.net;
         if (v !== 'local' && v !== 'cpu' && !UI.profile.canPlay()) { UI.toast('Pick a guest name or sign in first.', 'error'); const bar = UI.$('.pf-bar', app); if (bar) bar.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+        VS.practice = false;
         if (v !== 'cpu') VS.cpu = false;
         if (v === 'cpu') { hangUp(); VS.cpu = true; VS.opts.auction = 1; VS.opts.bench = 0; { const L = (window.TOURNAMENT && window.TOURNAMENT.api && window.TOURNAMENT.api.CPU_NAMES) || ['CPU Shaq', 'CPU Curry', 'CPU Duncan', 'CPU Giannis']; VS.names[1] = L[Math.floor(Math.random() * L.length)]; } }   // a legend's name, like the tournament bots   // the computer: an auction, five each
         else if (v === 'local') hangUp();
@@ -766,7 +767,7 @@
         if (!ch.length && !THEMED) { UI.toast('Switch on at least one season', 'error'); return; }
         if (VS.opts.ranked && VS.opts.auction && online()) Object.assign(VS.opts, { aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'ranked', aTheme: '', aShow: 0, bench: 0, bestOf: 7, blind: true, cap: 0, timer: 24, dupes: 0 });
         VS.year = !THEMED && ch.length === 1 ? ch[0] : 0;
-        VS.cfg = { mode: 'versus', cpu: VS.cpu && !online() ? 1 : 0, cpuName: VS.cpu && !online() ? VS.names[1] : '', year: VS.year, seasons: !THEMED && ch.length > 1 && ch.length < ALL_YEARS.length ? ch : null, themeYears: THEMED ? THEMED.years : [], theme: THEMED ? THEMED.info.title : '', bestOf: VS.opts.bestOf, blind: !VS.opts.cap && !!VS.opts.blind, cap: VS.opts.auction ? 0 : C.capFor(+VS.opts.cap || 0, VS.opts.bench), bench: +VS.opts.bench || 0, first: Math.random() < 0.5 ? 1 : 0, board: VS.opts.board && !VS.opts.auction ? 1 : 0, ranked: !!(VS.opts.ranked && VS.opts.auction && online() && UI.profile.signedIn()), bansN: VS.opts.auction ? 0 : +VS.opts.bans || 0, bans: [], dupes: ch.length > 1 && VS.opts.dupes ? 1 : 0, timer: VS.opts.auction && VS.opts.ranked && online() ? 24 : +VS.opts.timer || 0, era: +VS.opts.era || 2013, injuries: false, seed: rseed, bucket: RB ? RB.key : '',
+        VS.cfg = { mode: 'versus', practice: VS.practice && VS.cpu && !online() ? 1 : 0, cpu: VS.cpu && !online() ? 1 : 0, cpuName: VS.cpu && !online() ? VS.names[1] : '', year: VS.year, seasons: !THEMED && ch.length > 1 && ch.length < ALL_YEARS.length ? ch : null, themeYears: THEMED ? THEMED.years : [], theme: THEMED ? THEMED.info.title : '', bestOf: VS.opts.bestOf, blind: !VS.opts.cap && !!VS.opts.blind, cap: VS.opts.auction ? 0 : C.capFor(+VS.opts.cap || 0, VS.opts.bench), bench: +VS.opts.bench || 0, first: Math.random() < 0.5 ? 1 : 0, board: VS.opts.board && !VS.opts.auction ? 1 : 0, ranked: !!(VS.opts.ranked && VS.opts.auction && online() && UI.profile.signedIn()), bansN: VS.opts.auction ? 0 : +VS.opts.bans || 0, bans: [], dupes: ch.length > 1 && VS.opts.dupes ? 1 : 0, timer: VS.opts.auction && VS.opts.ranked && online() ? 24 : +VS.opts.timer || 0, era: +VS.opts.era || 2013, injuries: false, seed: rseed, bucket: RB ? RB.key : '',
           sides: [0, 1].map(i => ({ team: VS.teams[i], name: (VS.tnames[i] || '').trim() || (VS.names[i] ? (VS.names[i] === 'You' ? 'Your ' : VS.names[i] + "'s ") + tOf(teams, VS.teams[i]).name : ''), picks: [] })) };
         VS.skip = skipBefore;   // the era the match spun does not stay switched on in the setup
         VS.spin = null; VS.spun = []; VS.respins = [1, 1]; VS.shown = 0; VS.pos = ''; VS.q = ''; VS.season = ''; VS.sort = ''; VS.sw = null; VS.auc = null; VS.ready = [false, false];
@@ -1050,6 +1051,7 @@
       UI.spinWheel(app, { title: 'THE ERA FOR THIS MATCH', names: bs.map(b => b.label), winner: bs.indexOf(bk), colors: bs.map(b => b.color), onDone: () => { if (/^#\/(challenge\/vs|ranked)/.test(location.hash)) auctionPage(app, cfg, B); } });
       return;
     }
+    if (cfg.practice) VS.wheelKey = wk;   // ranked practice: no opener wheel, straight into the bidding (the coin flip is in the header)
     if (UI.spinWheel && VS.wheelKey !== wk && !st.log.length && st.i <= 0 && !st.done) {
       VS.wheelKey = wk;
       UI.spinWheel(app, { title: 'WHO OPENS THE BIDDING?', names: [who(0), who(1)], winner: cfg.first ? 1 : 0, colors: ['#d4af37', '#3d78d6'], onDone: () => { if (cfg.timer && VS.auc) VS.auc.until = Date.now() + cfg.timer * 1000; if (/^#\/(challenge\/vs|ranked)/.test(location.hash)) auctionPage(app, cfg, B); } });
@@ -1089,7 +1091,7 @@
       const p = byId[id], sale = st.log.filter(x => x.id === id)[0], col = (B.teamFor(p.team, p.season).colors || ['#555'])[0], y = p.season || cfg.year;
       return `<div class="apc${k < st.i ? ' sold' : k === st.i ? ' now' : ''}" style="--c1:${esc(col)}"><div class="apc-f">${UI.faceImg(p, col)}</div><b>${esc(p.name)}</b><small>${y ? esc(short(y)) : ''}${blind ? '' : ' | ' + esc(p.ovr)}</small>${sale ? `<em>${esc(who(sale.side))} ${sale.price ? money(sale.price) : 'FREE'}</em>` : k === st.i ? '<em>UP NOW</em>' : ''}</div>`;
     }).join('')}</div>` : `<p class="auc-more">${left} MORE IN THE HIDDEN POOL</p>`;
-    app.innerHTML = `<div class="ch-top auc-top"><div><div class="ch-top-k">${esc(bk ? bk.label + ' ' + bk.sub : lblC(cfg))} | AUCTION${cfg.theme ? ' | ' + esc(cfg.theme) : ''} | ${money(A.budget)} EACH${cfg.ranked ? ' | RANKED' : ''} | COIN FLIP: ${esc(who(cfg.first ? 1 : 0).toUpperCase())} OPENS FIRST</div><div class="ch-top-t">PLAYER ${st.i + 1} OF ${st.ids.length}</div></div><span class="ch-top-acts">${RULES_BTN}<button type="button" class="btn btn-small" id="vsSetup">SETUP</button></span></div>
+    app.innerHTML = `<div class="ch-top auc-top"><div><div class="ch-top-k">${esc(bk ? bk.label + ' ' + bk.sub : lblC(cfg))} | AUCTION${cfg.theme ? ' | ' + esc(cfg.theme) : ''} | ${money(A.budget)} EACH${cfg.ranked ? ' | RANKED' : ''} | COIN FLIP: ${esc(who(cfg.first ? 1 : 0).toUpperCase())} ${who(cfg.first ? 1 : 0) === 'You' ? 'OPEN' : 'OPENS'} FIRST</div><div class="ch-top-t">PLAYER ${st.i + 1} OF ${st.ids.length}</div></div><span class="ch-top-acts">${RULES_BTN}<button type="button" class="btn btn-small" id="vsSetup">SETUP</button></span></div>
       ${netBar()}${rulesBox(cfg)}
       <div class="auc">
         ${sideBox(0, 'l')}
