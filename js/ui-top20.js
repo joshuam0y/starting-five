@@ -6,12 +6,21 @@
   const lbl = y => (y - 1) + '-' + String(y).slice(2);
   const tier = o => (o >= 95 ? 'g' : o >= 90 ? 'a' : o >= 85 ? 'b' : '');
 
+  // the open league's top 20 right now (Association save): by rating, linked to each player's page
+  function mine() {
+    const g = UI.state && UI.state.game;
+    if (!g || !g.players || !g.teams) return '';
+    const l = Object.values(g.players).filter(p => p && !p.retired && g.teams[p.team]).sort((a, b) => (b.ovr || 0) - (a.ovr || 0)).slice(0, 20);
+    if (!l.length) return '';
+    return `<section class="t20-yr t20-mine"><h3>YOUR LEAGUE | ${esc(lbl(g.year))}</h3><ol>${l.map(p => `<li><a class="n" href="#/player/${esc(p.id)}">${esc(p.name)}</a><span class="t">${esc(p.team)}</span><b class="${tier(p.ovr)}">${p.ovr}</b></li>`).join('')}</ol></section>`;
+  }
+
   function draw(app, pool) {
     const by = {};
     pool.players.forEach(p => { (by[p.season] = by[p.season] || []).push(p); });
     const ys = Object.keys(by).map(Number).sort((a, b) => b - a);
     const decs = [...new Set(ys.map(y => Math.floor((y - 1) / 10) * 10))];
-    app.innerHTML = `${UI.header('TOP 20 BY SEASON', 'The 20 highest rated players of every season, newest first. Seasons before the 1970s have fewer than 20 players in the pool.')}
+    app.innerHTML = `${UI.header('TOP 20', 'The 20 best players of every season, newest first.')}${mine()}
       <div class="t20-nav">${decs.map(d => `<a class="ch-chip sm" href="#/top20/${d + 10}">${d}s</a>`).join('')}</div>
       <div class="t20-grid">${ys.map(y => {
         const l = by[y].slice().sort((a, b) => b.ovr - a.ovr).slice(0, 20);
@@ -26,6 +35,6 @@
     C.load('pool').then(pool => { if (/^#\/top20/.test(location.hash)) { draw(app, pool); go(); } })
       .catch(e => { app.innerHTML = UI.empty('THE POOL DID NOT LOAD', esc(e.message || ''), '<div class="row-btns"><a class="btn" href="#/top20">TRY AGAIN</a></div>'); });
   };
-  P.top20.navLabel = 'Top 20 By Season';
+  P.top20.navLabel = 'Top 20';
   P.top20.navDesc = 'The 20 best rated players of every season, 1946-47 to now';
 })();

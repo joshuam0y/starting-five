@@ -45,7 +45,7 @@
       ['rookies', 'Rookies'], ['progress', 'Progression'], ['gleague', 'G League']]],
     ['SEASON', [['season', 'Schedule'], ['standings', 'Standings'], ['stats', 'Stats'], ['leaders', 'Leaders'], ['playoffs', 'Playoffs'], ['allstar', 'All-Star'], ['live', 'Watch Live'], ['share', 'Share Season']]],
     ['LEAGUE', [['league', 'League Home'], ['news', 'News'], ['news/transactions', 'Transactions'], ['awards', 'Awards'], ['awardshow', 'Awards Show'],
-      ['history', 'History'], ['records', 'Records'], ['retirements', 'Retirements'], ['classes', 'Draft Classes'], ['top20', 'Top 20 by Season'], ['teams', 'All Teams']]],
+      ['history', 'History'], ['records', 'Records'], ['retirements', 'Retirements'], ['classes', 'Draft Classes'], ['top20', 'Top 20 Players'], ['teams', 'All Teams']]],
     ['MODES', [['daily', 'Daily'], ['ranked', 'Ranked'], ['challenge/vs', 'Head to Head'], ['challenge', 'Season Mode'], ['new', 'New League'], ['challenge/tournament', 'Tournament'], ['challenge/tournament/online', 'Online Tournament'], ['fantasy', 'Fantasy Draft']]],
     ['GAME', [['me', 'My Profile'], ['saves', 'Saves'], ['settings', 'Settings'], ['commish', 'Commissioner']]],
     ['INFO', [['about', 'About'], ['faq', 'FAQ'], ['contact', 'Contact'], ['privacy', 'Privacy'], ['terms', 'Terms'], ['disclaimer', 'Disclaimer']]]

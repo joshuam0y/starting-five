@@ -966,6 +966,7 @@ body.no-assoc-nav .navmore-list a[data-nav="settings"], body.no-assoc-nav .navmo
   .mm-grid .mt-l { font-size: 17px; }
   .mm-grid .mt-assoc, .mm-grid .mt-continue { min-height: 84px; }
   .mm-grid .mt-tn { min-height: 60px; }
+  .mm-grid .mt-half { grid-column: span 1; min-height: 70px; }
 }
 @media (min-width: 901px) {
   .mm-grid { grid-template-rows: none; grid-auto-rows: minmax(82px, auto); }

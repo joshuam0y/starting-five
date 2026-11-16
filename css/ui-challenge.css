@@ -593,6 +593,8 @@
 .t20-yr li:last-child { border: 0; }
 .t20-yr li::before { content: counter(r); color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .t20-yr .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t20-mine { margin: 0 0 14px; max-width: 520px; border-top-color: #6cb6ff; }
+.t20-mine a.n { color: inherit; }
 .t20-yr .t { color: var(--muted); font-size: 12px; letter-spacing: .04em; }
 .t20-yr b { font-family: var(--display); font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; }
 .t20-yr b.g { color: var(--gold2, var(--gold)); }
