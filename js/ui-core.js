@@ -90,8 +90,10 @@
     const p = w / g;
     return p >= 1 ? '1.000' : '.' + String(Math.round(p * 1000)).padStart(3, '0');
   };
-  // the arrow next to a rating: up or down since last season (development, form, injuries, mood); '' when it has not moved
-  UI.mv = function (x) {
+  // the arrow next to a rating (up or down since last season) lives only on the Player Progression screen, which draws its
+  // own; everywhere else a rating stands alone and only injuries and mood are marked. UI.mv stays so old callers draw nothing.
+  UI.mv = function () { return ''; };
+  UI.mvSeason = function (x) {
     const g = UI.state && UI.state.game;
     if (!g || !x) return '';
     const p = (x.id && g.players && g.players[x.id]) || (typeof x === 'string' ? g.players && g.players[x] : x);
