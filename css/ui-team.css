@@ -481,6 +481,9 @@ i.m-great { background: var(--gold2); } i.m-good { background: #8fcf6a; } i.m-ok
 .fin-table td.l a { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); letter-spacing: .03em; }
 .fin-st { display: inline-block; font-family: var(--display); font-size: 11px; letter-spacing: .1em; padding: 2px 7px; border-radius: 2px; color: #111; }
 .fin-room { background: #5fc46a; } .fin-over { background: #c9c9cf; } .fin-tax { background: #e3b341; } .fin-a1 { background: #ef8a3c; } .fin-a2 { background: #e5534b; color: #fff; }
+.fin-min { background: #6cb6ff; }
+.fin-table th.fin-yh a { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; display: block; padding: 4px 0; }
+.fin-table th.fin-yh.on a { color: var(--gold); text-decoration: none; }
 .fin-pos { color: #7ed58a; } .fin-neg { color: #ff8a80; }
 .fin-grid td { min-width: 92px; }
 .fin-grid td.fin-empty { background: transparent; }

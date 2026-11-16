@@ -43,6 +43,7 @@
     if (st.overApron) return [two ? '1ST APRON' : 'APRON', 'fin-a1'];
     if (st.overTax) return ['TAX', 'fin-tax'];
     if (st.overCap) return ['OVER CAP', 'fin-over'];
+    if (st.belowMinimum) return ['BELOW MIN', 'fin-min'];
     return ['CAP ROOM', 'fin-room'];
   }
 
@@ -51,6 +52,7 @@
     const C = CBA(), y0 = C.salaryYear(g), Y = year || y0, r = C.rules(Y), user = UI.userTeam();
     const rows = UI.teams().map(t => {
       const st = C.capStatus(g, t.abbr, Y);
+      if (Y !== y0) st.belowMinimum = false;   // later seasons hold only signed deals, so nearly every team looks short
       const later = yearsFrom(Y + 1).slice(0, 3).map(y => C.payroll(g, t.abbr, y));
       let tax = 0; try { tax = st.overTax ? C.luxuryTax(g, t.abbr, Y) || 0 : 0; } catch (e) { tax = 0; }
       return { t, st, later, tax, payroll: st.payroll, room: r.cap - st.payroll, toTax: r.tax - st.payroll, toApron: r.apron - st.payroll };
@@ -60,12 +62,12 @@
     const lines = `<div class="fin-lines"><span><small>CAP</small><b>${M(r.cap)}</b></span><span><small>TAX</small><b>${M(r.tax)}</b></span>${r.apron ? `<span><small>${r.apron2 ? '1ST APRON' : 'APRON'}</small><b>${M(r.apron)}</b></span>` : ''}${r.apron2 ? `<span><small>2ND APRON</small><b>${M(r.apron2)}</b></span>` : ''}<span><small>MINIMUM</small><b>${M(r.minPayroll)}</b></span>${r.projected ? '<em>Projected</em>' : ''}</div>`;
     app.innerHTML = UI.header('FINANCES', 'Every payroll against the cap, the tax and the aprons. Tap a team for its contracts.') +
       yearChips(Y, y0, y => '#/finances/league/' + y) + lines +
-      `<div class="tscroll"><table class="stats fin-table"><thead><tr><th class="l">TEAM</th>${th('payroll', 'PAYROLL')}<th>STATUS</th>${th('room', 'VS CAP')}${th('toTax', 'VS TAX')}${r.apron ? th('toApron', 'VS APRON') : ''}${th('tax', 'TAX BILL', 'hide-sm')}${yearsFrom(Y + 1).slice(0, 3).map((y, i) => `<th class="hide-sm">${label(y)}</th>`).join('')}</tr></thead><tbody>` +
+      `<div class="tscroll"><table class="stats fin-table"><thead><tr><th class="l">TEAM</th>${th('payroll', 'PAYROLL')}<th>STATUS</th>${th('room', 'VS CAP')}${th('toTax', 'VS TAX')}${r.apron ? th('toApron', 'VS APRON') : ''}${th('tax', 'TAX BILL', 'hide-sm')}${yearsFrom(Y + 1).slice(0, 3).map(y => `<th class="hide-sm fin-yh"><a href="#/finances/league/${y}">${label(y)}</a></th>`).join('')}</tr></thead><tbody>` +
       rows.map(x => { const [w, c] = statusWord(x.st, !!r.apron2, Y); return `<tr class="${x.t.abbr === user ? 'mine' : ''}"><td class="l"><a href="#/finances/${esc(x.t.abbr)}/${Y}">${UI.logo(x.t.abbr, 22)} ${esc(x.t.name)}</a></td>
-        <td><b>${M(x.payroll)}</b></td><td><span class="fin-st ${c}">${w}</span></td>
+        <td><b>${M(x.payroll)}</b></td><td><span class="fin-st ${c}"${x.st.belowMinimum ? ` title="${M(r.minPayroll - x.payroll)} short of the minimum, paid to its players at season end"` : ''}>${w}</span></td>
         <td class="${x.room >= 0 ? 'fin-pos' : ''}">${signed(x.room)}</td><td class="${x.toTax >= 0 ? 'fin-pos' : 'fin-neg'}">${signed(x.toTax)}</td>${r.apron ? `<td class="${x.toApron >= 0 ? 'fin-pos' : 'fin-neg'}">${signed(x.toApron)}</td>` : ''}
         <td class="hide-sm">${x.tax ? M(x.tax) : '-'}</td>${x.later.map(v => `<td class="hide-sm">${M(v)}</td>`).join('')}</tr>`; }).join('') +
-      '</tbody></table></div><p class="muted fin-note">VS columns: room left (+) or how far over (-). Later seasons count only the contracts already signed.</p>';
+      '</tbody></table></div><p class="muted fin-note">VS columns: room left (+) or how far over (-). Later seasons count only the contracts already signed. BELOW MIN: a team under the payroll minimum pays the difference to its players at season end. Tap a season to switch.</p>';
     app.querySelectorAll('[data-sort]').forEach(h => h.addEventListener('click', () => {
       const k = h.getAttribute('data-sort');
       if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = k === 'payroll' || k === 'tax' ? -1 : 1; }
@@ -95,14 +97,14 @@
     const tot = ys.map(y => C.payroll(g, abbr, y));
     const line = (name, key) => `<tr class="fin-line"><td class="l">${name}</td><td class="hide-sm"></td><td class="hide-sm"></td>${ys.map(y => { const r = C.rules(y), v = r[key]; return `<td>${v ? M(v) : '-'}</td>`; }).join('')}</tr>`;
     const vs = (name, key) => `<tr class="fin-line"><td class="l">${name}</td><td class="hide-sm"></td><td class="hide-sm"></td>${ys.map((y, i) => { const v = C.rules(y)[key]; if (!v) return '<td>-</td>'; const d = v - tot[i]; return `<td class="${d >= 0 ? 'fin-pos' : 'fin-neg'}">${signed(d)}</td>`; }).join('')}</tr>`;
-    const two = !!C.rules(Y).apron2, st = C.capStatus(g, abbr, Y), [w, c] = statusWord(st, two, Y);
+    const two = !!C.rules(Y).apron2, st = C.capStatus(g, abbr, Y); if (Y !== y0) st.belowMinimum = false; const [w, c] = statusWord(st, two, Y);
     const pick = `<select id="finTeam" aria-label="Team">${UI.teams().slice().sort((a, b) => a.city.localeCompare(b.city)).map(x => `<option value="${esc(x.abbr)}"${x.abbr === abbr ? ' selected' : ''}>${esc(x.city + ' ' + x.name)}</option>`).join('')}</select>`;
     app.innerHTML = UI.header(t.city.toUpperCase() + ' FINANCES', 'Contracts by season. PO player option, TO team option, ETO early termination, 2W two-way; the outlined year is the last of the deal.') +
       `<div class="fin-bar">${pick}<a class="btn" href="#/finances/league/${Y}">ALL TEAMS</a></div>` +
       yearChips(Y, y0, y => '#/finances/' + abbr + '/' + y) +
-      `<div class="fin-lines"><span><small>${label(Y)} PAYROLL</small><b>${M(st.payroll)}</b></span><span><small>STATUS</small><b class="fin-st ${c}">${w}</b></span><span><small>${st.space > 0 ? 'CAP ROOM' : 'OVER THE CAP BY'}</small><b>${M(st.space > 0 ? st.space : st.payroll - st.cap)}</b></span></div>` +
-      `<div class="tscroll"><table class="stats fin-table fin-grid"><thead><tr><th class="l">PLAYER</th><th class="hide-sm">AGE</th><th class="hide-sm">OVR</th>${ys.map(y => `<th>${label(y)}</th>`).join('')}</tr></thead><tbody>${rowsP}${rowsD}</tbody>
-      <tfoot><tr><td class="l">TOTAL</td><td class="hide-sm"></td><td class="hide-sm"></td>${tot.map(v => `<td>${M(v)}</td>`).join('')}</tr>${line('Cap', 'cap')}${vs('vs cap', 'cap')}${vs('vs tax', 'tax')}${vs(two ? 'vs 1st apron' : 'vs apron', 'apron')}${C.rules(Y).apron2 ? vs('vs 2nd apron', 'apron2') : ''}</tfoot></table></div>` +
+      `<div class="fin-lines"><span><small>${label(Y)} PAYROLL</small><b>${M(st.payroll)}</b></span><span><small>STATUS</small><b class="fin-st ${c}">${w}</b></span><span><small>${st.space > 0 ? 'CAP ROOM' : 'OVER THE CAP BY'}</small><b>${M(st.space > 0 ? st.space : st.payroll - st.cap)}</b></span>${st.belowMinimum ? `<span><small>BELOW MINIMUM BY</small><b>${M(st.minPayroll - st.payroll)}</b></span><em>Paid to the players at season end</em>` : ''}</div>` +
+      `<div class="tscroll"><table class="stats fin-table fin-grid"><thead><tr><th class="l">PLAYER</th><th class="hide-sm">AGE</th><th class="hide-sm">OVR</th>${ys.map(y => `<th class="fin-yh${y === Y ? ' on' : ''}"><a href="#/finances/${esc(abbr)}/${y}">${label(y)}</a></th>`).join('')}</tr></thead><tbody>${rowsP}${rowsD}</tbody>
+      <tfoot><tr><td class="l">TOTAL</td><td class="hide-sm"></td><td class="hide-sm"></td>${tot.map(v => `<td>${M(v)}</td>`).join('')}</tr>${line('Cap', 'cap')}${line('Minimum', 'minPayroll')}${vs('vs cap', 'cap')}${vs('vs tax', 'tax')}${vs(two ? 'vs 1st apron' : 'vs apron', 'apron')}${C.rules(Y).apron2 ? vs('vs 2nd apron', 'apron2') : ''}</tfoot></table></div>` +
       '<p class="muted fin-note">Two-way deals and stashed draft picks do not count against the cap. Later seasons count only the contracts already signed, so they fill in as you re-sign and add players.</p>';
     const sel = UI.$('#finTeam', app);
     if (sel) sel.addEventListener('change', () => { location.hash = '#/finances/' + sel.value + '/' + Y; });
