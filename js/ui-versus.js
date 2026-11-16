@@ -284,7 +284,7 @@
   UI.vsPractice = function () {
     try { hangUp(); } catch (e) { /* not connected */ }
     VS.cpu = true; VS.cfg = null; VS.auc = null; VS.page = 'setup'; VS.skip = []; VS.year = 0; VS.names = ['', '']; VS.tnames = ['', ''];
-    Object.assign(VS.opts, { auction: 1, board: 0, ranked: 0, pub: 0, aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'elite', aTheme: '', aShow: 0, bench: 0, bestOf: 7, blind: true, cap: 0, timer: 24, dupes: 0, bans: 0 });
+    Object.assign(VS.opts, { auction: 1, board: 0, ranked: 0, pub: 0, aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'ranked', aTheme: '', aShow: 0, bench: 0, bestOf: 7, blind: true, cap: 0, timer: 24, dupes: 0, bans: 0 });
     location.hash = '#/challenge/vs';
   };
   function hangUp() {
@@ -717,7 +717,7 @@
       app.querySelectorAll('[data-board]').forEach(b => b.addEventListener('click', () => { const v = +b.dataset.board; VS.opts.board = v === 1 ? 1 : 0; VS.opts.auction = v === 2 ? 1 : 0; if (v === 2) VS.opts.cap = 0; redraw(); }));
       app.querySelectorAll('[data-rk]').forEach(b => b.addEventListener('click', () => {
         const k = b.dataset.rk; VS.opts[k] = VS.opts[k] ? 0 : 1;
-        if (k === 'ranked' && VS.opts.ranked) Object.assign(VS.opts, { aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'elite', aTheme: '', aShow: 0, bench: 0, bestOf: 7, blind: true, cap: 0, timer: 24, dupes: 0 });
+        if (k === 'ranked' && VS.opts.ranked) Object.assign(VS.opts, { aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'ranked', aTheme: '', aShow: 0, bench: 0, bestOf: 7, blind: true, cap: 0, timer: 24, dupes: 0 });
         redraw(); syncLobby();
       }));
       app.querySelectorAll('[data-bans]').forEach(b => b.addEventListener('click', () => { VS.opts.bans = +b.dataset.bans; redraw(); }));
@@ -752,13 +752,13 @@
         if (VS.cpu) { const L = (window.TOURNAMENT && window.TOURNAMENT.api && window.TOURNAMENT.api.CPU_NAMES) || ['CPU Shaq']; if (!VS.names[1] || /^player/i.test(VS.names[1])) VS.names[1] = L[Math.floor(Math.random() * L.length)]; }
         if (VS.cpu && !VS.names[0]) VS.names[0] = ((UI.profile && UI.profile.name && UI.profile.name()) || 'You').slice(0, 20);   // you, not "Player 1", against the CPU
         uniqNames();
-        // a ranked match spins its era: the seed decides the bucket, so both phones see the same one (the pool is that era's forty best, ten drawn)
+        // a ranked match spins its era: the seed decides the bucket, so both phones see the same one (the pool is that era's eighty best, ten drawn)
         const rseed = Math.floor(Math.random() * 2147483646) + 1, skipBefore = VS.skip;
         let RB = null;
         if (VS.opts.ranked && VS.opts.auction && online() && UI.profile.signedIn() && UI.ranked && UI.ranked.bucketFor) { RB = UI.ranked.bucketFor(rseed); VS.skip = RB.key === 'all' ? [] : ALL_YEARS.filter(y => y < RB.from || y > RB.to); }
         const ch = chosen();
         if (!ch.length && !THEMED) { UI.toast('Switch on at least one season', 'error'); return; }
-        if (VS.opts.ranked && VS.opts.auction && online()) Object.assign(VS.opts, { aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'elite', aTheme: '', aShow: 0, bench: 0, bestOf: 7, blind: true, cap: 0, timer: 24, dupes: 0 });
+        if (VS.opts.ranked && VS.opts.auction && online()) Object.assign(VS.opts, { aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'ranked', aTheme: '', aShow: 0, bench: 0, bestOf: 7, blind: true, cap: 0, timer: 24, dupes: 0 });
         VS.year = !THEMED && ch.length === 1 ? ch[0] : 0;
         VS.cfg = { mode: 'versus', cpu: VS.cpu && !online() ? 1 : 0, cpuName: VS.cpu && !online() ? VS.names[1] : '', year: VS.year, seasons: !THEMED && ch.length > 1 && ch.length < ALL_YEARS.length ? ch : null, themeYears: THEMED ? THEMED.years : [], theme: THEMED ? THEMED.info.title : '', bestOf: VS.opts.bestOf, blind: !VS.opts.cap && !!VS.opts.blind, cap: VS.opts.auction ? 0 : C.capFor(+VS.opts.cap || 0, VS.opts.bench), bench: +VS.opts.bench || 0, first: Math.random() < 0.5 ? 1 : 0, board: VS.opts.board && !VS.opts.auction ? 1 : 0, ranked: !!(VS.opts.ranked && VS.opts.auction && online() && UI.profile.signedIn()), bansN: VS.opts.auction ? 0 : +VS.opts.bans || 0, bans: [], dupes: ch.length > 1 && VS.opts.dupes ? 1 : 0, timer: VS.opts.auction && VS.opts.ranked && online() ? 24 : +VS.opts.timer || 0, era: +VS.opts.era || 2013, injuries: false, seed: rseed, bucket: RB ? RB.key : '',
           sides: [0, 1].map(i => ({ team: VS.teams[i], name: (VS.tnames[i] || '').trim() || (VS.names[i] ? (VS.names[i] === 'You' ? 'Your ' : VS.names[i] + "'s ") + tOf(teams, VS.teams[i]).name : ''), picks: [] })) };
@@ -867,7 +867,7 @@
     QERA = era;
     VS.skip = era === 'ALL' ? [] : ALL_YEARS.filter(y => decKeyY(y) !== era);
     const ch = chosen(); VS.year = ch.length === 1 ? ch[0] : 0;
-    Object.assign(VS.opts, { auction: 1, board: 0, ranked: 1, pub: 1, aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'elite', aTheme: '', aShow: 0, bench: 0, bestOf: 7, blind: true, cap: 0, bans: 0, timer: 24, dupes: 0 });
+    Object.assign(VS.opts, { auction: 1, board: 0, ranked: 1, pub: 1, aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'ranked', aTheme: '', aShow: 0, bench: 0, bestOf: 7, blind: true, cap: 0, bans: 0, timer: 24, dupes: 0 });
     VS.cfg = null; VS.auc = null; VS.page = 'setup'; VS.ready = [false, false]; VS.skip = []; VS.year = 0; VS.names = ['', '']; VS.tnames = ['', '']; VS.spin = null; VS.shown = 0;
   }
   UI.vsQuick = {

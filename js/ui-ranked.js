@@ -469,7 +469,7 @@
         <div class="rk-notify" id="rkNotify"></div>
         <button type="button" class="btn btn-small" id="rkTourBtn">TAKE THE TOUR</button>
         <details class="rk-det"><summary>HOW RANKED WORKS</summary><ol>
-          <li>Every match spins an era (Classic, 80s and 90s, 2000s, 2010s, 2020s or All-Time). The ten players come from that era's forty best, with at least two guards, two forwards and two bigs.</li>
+          <li>Every match spins an era (Classic, 80s and 90s, 2000s, 2010s, 2020s or All-Time). The ten players come from that era's eighty best (mostly stars, some solid starters), balanced across guards, forwards and bigs.</li>
           <li>Bid on those ten hidden players. $20 each, bids start at $1, 24 seconds a bid, five players each. Ratings stay hidden until the series ends.</li>
           <li>Best of 7. All five play every minute.</li>
           <li>Win to climb, lose to drop. Beating higher ratings pays more.</li>

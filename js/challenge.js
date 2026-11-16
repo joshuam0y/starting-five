@@ -281,7 +281,7 @@
   }
 
   // ---------- auction draft (versus): a hidden pool, bid for every player ----------
-  // cfg.auction = { budget: 20, start: 1, raise: 1, pool: 10, quality: 'elite' (top 40) | 'stars' (top 60) | 'mixed' (top 200) | 'any', show: 0 | 1 (the pool is visible) }.
+  // cfg.auction = { budget: 20, start: 1, raise: 1, pool: 10, quality: 'elite' (top 40) | 'ranked' (top 80) | 'stars' (top 60) | 'mixed' (top 200) | 'any', show: 0 | 1 (the pool is visible) }.
   // A player goes up at the start price, held by whoever opens that round (the opener alternates); the other side raises or passes;
   // a pass sells him to the side that holds the bid, at that price. Each side must keep the start price for every slot it still has to
   // fill, a full side stops bidding, and the other side takes what is left at no cost.
@@ -326,7 +326,8 @@
   function auctionStart(cfg, players) {
     var o = aucOpts(cfg.auction), per = vsPer(cfg), n = Math.max(o.pool, 2 * per), rng = mulberry32(((cfg.seed || 1) ^ 0xA0C710) >>> 0);
     var sorted = players.slice().sort(function (a, b) { return b.ovr - a.ovr || (a.id < b.id ? -1 : 1); });
-    var top = o.quality === 'elite' ? Math.max(n, 40) : o.quality === 'stars' ? Math.max(n, 60) : o.quality === 'mixed' ? Math.max(n, 200) : sorted.length;
+    // 'ranked': ranked and its practice draw from the era's top 80 (mostly stars, some solid starters, so knowing values wins)
+    var top = o.quality === 'elite' ? Math.max(n, 40) : o.quality === 'ranked' ? Math.max(n, 80) : o.quality === 'stars' ? Math.max(n, 60) : o.quality === 'mixed' ? Math.max(n, 200) : sorted.length;
     // Head to Head rooms: lots balanced by position like the tournament; the Daily (no mode) keeps its draw exactly as it was
     var shuf = shuffle(sorted.slice(0, top), rng), pool = cfg.mode === 'versus' ? balancedDrawN(shuf, n) : o.quality === 'elite' ? balancedDraw(shuf, n) : shuf.slice(0, n);
     var st = { o: o, per: per, first: cfg.first ? 1 : 0, ids: pool.map(function (p) { return p.id; }), i: -1, price: o.start, holder: 0, turn: 1, spent: [0, 0], won: [[], []], log: [], done: false };
