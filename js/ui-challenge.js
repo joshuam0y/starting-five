@@ -891,7 +891,7 @@
     let k = 0;
     el.innerHTML = `<div class="in-box">${groups.map((g, gi) => `<div class="in-grp"><div class="in-k">${esc(g.label || 'STARTERS')}</div><ol class="in-list">${(g.players || []).map(p => {
         const d = lead + per * k++, name = p.name || '', pos = C.primaryPos ? C.primaryPos(p.pos) : p.pos;
-        return `<li class="in-c" style="animation-delay:${d}ms">${face(p, g.color || '#888', 'in-hs')}<span class="in-n"><b>${esc(name)}</b><small>${esc(pos || '')}${p.season ? ' | ' + esc("'" + String(p.season - 1).slice(2) + "-'" + String(p.season).slice(2)) : ''}</small></span>${opts.ratings === false || p.ovr == null ? '' : `<span class="ch-ovr in-o ${UI.ovrClass(p.ovr)}">${esc(p.ovr)}</span>`}</li>`;
+        return `<li class="in-c" style="animation-delay:${d}ms">${face(p, g.color || '#888', 'in-hs')}<span class="in-n"><b>${esc(name)}</b><small>${esc(pos || '')}${p.season ? ' | ' + esc("'" + String(p.season - 1).slice(2) + "-'" + String(p.season).slice(2)) : ''}${C.teamNick && (p.from || p.team) ? ' | ' + esc(C.teamNick(p.season, p.from || p.team)) : ''}</small></span>${opts.ratings === false || p.ovr == null ? '' : `<span class="ch-ovr in-o ${UI.ovrClass(p.ovr)}">${esc(p.ovr)}</span>`}</li>`;
       }).join('')}</ol></div>`).join('')}<div class="in-skip">TAP TO SKIP</div></div>`;
     document.body.appendChild(el);
     const timers = [];

@@ -53,7 +53,7 @@
     else { VS.names[i] = UI.profile.name(); uniqNames(); push(); if (VS.page === 'setup' && APP) setup(APP); }
   });
   (UI.rooms = UI.rooms || {}).vs = () => (NET.role && NET.code ? NET.code : '');   // for friend invites
-  const who = i => VS.names[i] || ('PLAYER ' + (i + 1));
+  const who = i => VS.names[i] || (i === 1 && VS.cfg && VS.cfg.cpu && VS.cfg.cpuName) || ('PLAYER ' + (i + 1));   // the CPU keeps its name even if the setup redrew
   // ---------- the rivalry: every finished series between the same two names, kept on this phone ----------
   const RKEY = 'a13-vs-rivals';
   // a rivalry with a guest only lasts for this session (a guest has no account to remember it by); between accounts, and on one phone, it is kept
@@ -640,8 +640,8 @@
                 <small class="muted">${VS.opts.bench ? 'Everyone drafts eight. The first five start, the last three come off the bench (with a salary cap the cap grows to cover all eight).' : 'Five players each, all 48 minutes.'}</small></div>
               ${VS.opts.auction ? '' : `<div><span class="ts-start-k">SALARY CAP</span><div class="ch-chips">${UI.challengeCap.CAPS.map(v => `<button type="button" class="ch-chip${(VS.opts.cap || 0) === v ? ' on' : ''}" data-cap="${v}"${dis(boss && !lockR)}>${v ? '$' + v + 'M' : 'OFF'}</button>`).join('')}</div>
                 <small class="muted">${VS.opts.cap ? 'Every player has a price from his rating (a 99 is $45M, the minimum $1M). Both rosters must fit under $' + C.capFor(VS.opts.cap, VS.opts.bench) + 'M.' : 'No cap: take anyone.'}</small></div></div>`}</details>
-          <div class="vs-players">${[0, 1].map(i => `<div class="ch-step vs-pl"><div class="ch-step-k">PLAYER ${i + 1}${me() === i ? ' (YOU)' : ''}</div>
-            <label class="field"><span>NAME</span><input data-name="${i}" name="p${i}-${Date.now()}" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="20" placeholder="Player ${i + 1}" value="${esc(VS.names[i] || '')}"${online() ? ' readonly' : dis(canAct(i))}></label>
+          <div class="vs-players">${[0, 1].map(i => `<div class="ch-step vs-pl"><div class="ch-step-k">${VS.cpu && !online() ? (i ? 'THE CPU' : 'YOU') : 'PLAYER ' + (i + 1) + (me() === i ? ' (YOU)' : '')}</div>
+            <label class="field"><span>NAME</span><input data-name="${i}" name="p${i}-${Date.now()}" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="20" placeholder="${VS.cpu && !i ? 'Your name' : 'Player ' + (i + 1)}" value="${esc(VS.names[i] || (VS.cpu && !i && UI.profile && UI.profile.name ? UI.profile.name() || '' : ''))}"${online() ? ' readonly' : dis(canAct(i))}></label>
             <label class="field"><span>TEAM NAME</span><input data-tname="${i}" name="t${i}-${Date.now()}" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="24" placeholder="${esc(tName(tOf(teams, VS.teams[i])))}" value="${esc(VS.tnames[i] || '')}"${dis(canAct(i))}></label>${wheel(i)}</div>`).join('')}</div>
           <div class="ch-go"><button type="button" class="btn btn-small" id="vsResetNames">RESET NAMES</button></div>
           ${rivalBox(rivalry(), true)}
@@ -741,6 +741,8 @@
       const st = UI.$('#vsStart', app);
       const begin = () => {
         VS.names = [0, 1].map(i => { const el = app.querySelector('[data-name="' + i + '"]'); return el && canAct(i) ? el.value.trim().slice(0, 20) : VS.names[i]; });
+        if (VS.cpu) { const L = (window.TOURNAMENT && window.TOURNAMENT.api && window.TOURNAMENT.api.CPU_NAMES) || ['CPU Shaq']; if (!VS.names[1] || /^player/i.test(VS.names[1])) VS.names[1] = L[Math.floor(Math.random() * L.length)]; }
+        if (VS.cpu && !VS.names[0]) VS.names[0] = ((UI.profile && UI.profile.name && UI.profile.name()) || 'You').slice(0, 20);   // you, not "Player 1", against the CPU
         uniqNames();
         // a ranked match spins its era: the seed decides the bucket, so both phones see the same one (the pool is that era's forty best, ten drawn)
         const rseed = Math.floor(Math.random() * 2147483646) + 1, skipBefore = VS.skip;
@@ -750,7 +752,7 @@
         if (!ch.length && !THEMED) { UI.toast('Switch on at least one season', 'error'); return; }
         if (VS.opts.ranked && VS.opts.auction && online()) Object.assign(VS.opts, { aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'elite', aTheme: '', aShow: 0, bench: 0, bestOf: 7, blind: true, cap: 0, timer: 24, dupes: 0 });
         VS.year = !THEMED && ch.length === 1 ? ch[0] : 0;
-        VS.cfg = { mode: 'versus', cpu: VS.cpu && !online() ? 1 : 0, year: VS.year, seasons: !THEMED && ch.length > 1 && ch.length < ALL_YEARS.length ? ch : null, themeYears: THEMED ? THEMED.years : [], theme: THEMED ? THEMED.info.title : '', bestOf: VS.opts.bestOf, blind: !VS.opts.cap && !!VS.opts.blind, cap: VS.opts.auction ? 0 : C.capFor(+VS.opts.cap || 0, VS.opts.bench), bench: +VS.opts.bench || 0, first: Math.random() < 0.5 ? 1 : 0, board: VS.opts.board && !VS.opts.auction ? 1 : 0, ranked: !!(VS.opts.ranked && VS.opts.auction && online() && UI.profile.signedIn()), bansN: VS.opts.auction ? 0 : +VS.opts.bans || 0, bans: [], dupes: ch.length > 1 && VS.opts.dupes ? 1 : 0, timer: VS.opts.auction && VS.opts.ranked && online() ? 24 : +VS.opts.timer || 0, era: +VS.opts.era || 2013, injuries: false, seed: rseed, bucket: RB ? RB.key : '',
+        VS.cfg = { mode: 'versus', cpu: VS.cpu && !online() ? 1 : 0, cpuName: VS.cpu && !online() ? VS.names[1] : '', year: VS.year, seasons: !THEMED && ch.length > 1 && ch.length < ALL_YEARS.length ? ch : null, themeYears: THEMED ? THEMED.years : [], theme: THEMED ? THEMED.info.title : '', bestOf: VS.opts.bestOf, blind: !VS.opts.cap && !!VS.opts.blind, cap: VS.opts.auction ? 0 : C.capFor(+VS.opts.cap || 0, VS.opts.bench), bench: +VS.opts.bench || 0, first: Math.random() < 0.5 ? 1 : 0, board: VS.opts.board && !VS.opts.auction ? 1 : 0, ranked: !!(VS.opts.ranked && VS.opts.auction && online() && UI.profile.signedIn()), bansN: VS.opts.auction ? 0 : +VS.opts.bans || 0, bans: [], dupes: ch.length > 1 && VS.opts.dupes ? 1 : 0, timer: VS.opts.auction && VS.opts.ranked && online() ? 24 : +VS.opts.timer || 0, era: +VS.opts.era || 2013, injuries: false, seed: rseed, bucket: RB ? RB.key : '',
           sides: [0, 1].map(i => ({ team: VS.teams[i], name: (VS.tnames[i] || '').trim() || (VS.names[i] ? VS.names[i] + "'s " + tOf(teams, VS.teams[i]).name : ''), picks: [] })) };
         VS.skip = skipBefore;   // the era the match spun does not stay switched on in the setup
         VS.spin = null; VS.spun = []; VS.respins = [1, 1]; VS.shown = 0; VS.pos = ''; VS.q = ''; VS.season = ''; VS.sort = ''; VS.sw = null; VS.auc = null; VS.ready = [false, false];
@@ -1047,7 +1049,7 @@
     const sideBox = (i, cls) => {
       const won = st.won[i].map(id => ({ p: byId[id], price: (st.log.filter(x => x.id === id)[0] || {}).price }));
       const slots = Array.from({ length: per }, (_, k) => won[k]
-        ? `<li class="on"><span>${esc(won[k].p ? won[k].p.name : '?')}${yearOf(won[k].p)}</span><b>${money(won[k].price || 0)}</b></li>` : '<li class="empty"><span>OPEN</span></li>').join('');
+        ? `<li class="on"><span>${esc(won[k].p ? won[k].p.name : '?')}${won[k].p ? ' <small class="muted">' + esc(C.posLabel(won[k].p)) + '</small>' : ''}${yearOf(won[k].p)}</span><b>${money(won[k].price || 0)}</b></li>` : '<li class="empty"><span>OPEN</span></li>').join('');
       return `<aside class="auc-side ${cls}${st.turn === i ? ' turn' : ''}${st.holder === i ? ' holds' : ''}"><div class="auc-who"><small>${esc(who(i))}${me() === i ? ' (YOU)' : ''}</small><b class="auc-cash">${money(A.budget - st.spent[i])}</b><small>${st.won[i].length} OF ${per} SPOTS</small></div><ol class="auc-slots">${slots}</ol></aside>`;
     };
     const timed = cfg.timer > 0;
@@ -1064,7 +1066,7 @@
       ? `<div class="auc-bid"><div class="auc-maxline">YOUR MAX BID IS <b>${money(max)}</b></div><div class="auc-step"><button type="button" class="btn" id="aucDown" aria-label="Lower the bid"${AB.amt - A.raise < min ? ' disabled' : ''}>&minus;</button><div class="auc-amt"><small>YOUR BID</small><b id="aucAmt">${money(AB.amt)}</b></div><button type="button" class="btn" id="aucUp" aria-label="Raise the bid"${AB.amt + A.raise > max ? ' disabled' : ''}>+</button></div>
           <div class="auc-chips">${quick.map(x => `<button type="button" class="ch-chip" data-add="${x.to}">${x.label}</button>`).join('')}<button type="button" class="ch-chip" data-to="${max}"${canRaise ? '' : ' disabled'}>ALL IN ${money(max)}</button></div>
           <div class="auc-go"><button type="button" class="btn btn-gold btn-big" id="aucRaise"${canRaise ? '' : ' disabled'}>BID</button><button type="button" class="btn btn-big" id="aucPass">PASS<small>${esc(who(st.holder))} gets him for ${money(st.price)}</small></button></div></div>`
-      : `<div class="auc-wait"><b>${esc(who(st.turn))} ${broke ? "can't top the bid" : 'is deciding'}...</b><span>${broke ? whyBroke(esc(who(st.turn))) + ' They can only pass. ' : ''}${esc(who(st.holder))} holds the bid at ${money(st.price)}.</span></div>`;
+      : `<div class="auc-wait"><b>${esc(who(st.turn))} ${broke ? "can't top the bid" : 'is deciding'}...</b><span>${broke ? whyBroke(esc(who(st.turn))) + ' They can only pass. ' : ''}${esc(who(st.holder))} ${who(st.holder) === 'You' ? 'hold' : 'holds'} the bid at ${money(st.price)}.</span></div>`;
     const sold = st.log.slice().reverse().map(x => `<li><b>${esc(byId[x.id] ? byId[x.id].name : x.id)}${yearOf(byId[x.id])}</b><span>${esc(who(x.side))}</span><i>${money(x.price)}</i></li>`).join('');
     // a visible pool: every player as a small card, the ones to come bright, the sold ones dimmed with who got them and for how much
     const pool = A.show ? `<div class="auc-poolrow" aria-label="The pool">${st.ids.map((id, k) => {
@@ -1149,7 +1151,7 @@
       const fives = cfg.sides.map((sd, i) => {
         const t = tOf(teams, sd.team), mine = sd.picks.map(id => byId[id]).filter(Boolean);
         return `<div class="vs-side${on === i ? ' on' : ''}" style="--c1:${esc(t.colors[0])}"><div class="vs-side-h">${logo(t, 36)}<div><small>${esc(who(i))}${me() === i ? ' (YOU)' : ''}</small><b>${esc(sd.name || tName(t))}</b>${pay(sd)}</div></div>
-          ${UI.swapOl(C.vsPer(cfg), k => (mine[k] ? esc(mine[k].name) + ' <small class="muted">' + esc(C.posLabel(mine[k])) + (B.era && mine[k].season ? ' ' + short(mine[k].season) : '') + '</small>' + paidSm(mine[k].id) + (blind ? '' : ' <b class="' + UI.ovrClass(mine[k].ovr) + '">' + esc(mine[k].ovr) + '</b>') : '<span class="muted">-</span>'), VS.sw && VS.sw.s === i ? VS.sw.k : null, !!cfg.bench && canAct(i) && mine.length > 5)}</div>`;
+          ${UI.swapOl(C.vsPer(cfg), k => (mine[k] ? esc(mine[k].name) + ' <small class="muted">' + esc(C.posLabel(mine[k])) + (B.era && mine[k].season ? ' ' + short(mine[k].season) : '') + (C.teamNick ? ' ' + esc(C.teamNick(mine[k].season || cfg.year, mine[k].from || mine[k].team)) : '') + '</small>' + paidSm(mine[k].id) + (blind ? '' : ' <b class="' + UI.ovrClass(mine[k].ovr) + '">' + esc(mine[k].ovr) + '</b>') : '<span class="muted">-</span>'), VS.sw && VS.sw.s === i ? VS.sw.k : null, !!cfg.bench && canAct(i) && mine.length > 5)}</div>`;
       }).join('');
       const fitCard = (sd, i) => {
         if (!sd.picks.length) return '';
