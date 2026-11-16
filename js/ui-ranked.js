@@ -151,8 +151,7 @@
     return mine > theirs ? 'YOU BEAT ' + c.name.toUpperCase() + "'S " + theirs.toFixed(1) + '%' : mine < theirs ? c.name.toUpperCase() + ' WINS WITH ' + theirs.toFixed(1) + '%' : 'A TIE WITH ' + c.name.toUpperCase();
   };
   async function shareCard(o, text, hash) {
-    const phone = window.matchMedia && matchMedia('(pointer: coarse)').matches;   // phones: a bare link (iMessage links it); computers: https:// so Discord and Slack do
-    const all = text + '\n' + (phone ? '' : location.protocol + '//') + (/^#\/[a-z]/.test(hash || '') ? location.host + '/' + hash.slice(2) : (location.host + location.pathname + (hash || '')).replace(/index\.html$/, ''));   // a plain path (/daily): some apps break the # in a link
+    const all = text + '\n' + (/^#\/[a-z]/.test(hash || '') ? location.host + '/' + hash.slice(2) : (location.host + location.pathname + (hash || '')).replace(/index\.html$/, ''));   // a plain path (/daily): some apps break the # in a link
     try { await navigator.clipboard.writeText(all); UI.toast('Copied. Paste it anywhere.'); }
     catch (e) {
       const t = document.createElement('textarea'); t.value = all; t.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(t); t.select();
