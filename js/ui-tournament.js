@@ -399,7 +399,17 @@
     UI.aucReveal(app, { entries: autos, byId: o.B.byId, blind: false, name: i => (o.t.names && o.t.names[i]) || '', color: p => (((o.B.teamFor ? o.B.teamFor(p.team, p.season) : null) || {}).colors || ['#555'])[0], onDone: () => { TA.rev = false; then(); } });
     return true;
   }
+  // the auction's sounds: a tick on every new bid, a chime when a player is sold (a thump when he is yours)
+  function aucSound(st, w) {
+    const S = window.SFX; if (!S || !st || !st.log) return;
+    const k = TA.snd;
+    if (!k || k.st !== st) { TA.snd = { st, i: st.i, price: st.price, n: st.log.length }; return; }
+    if (st.log.length > k.n) { const last = st.log[st.log.length - 1]; S.play(last && last.side === w && w >= 0 ? 'land' : 'chime'); }
+    else if (st.i === k.i && st.price > k.price) S.play('tick');
+    k.i = st.i; k.price = st.price; k.n = st.log.length;
+  }
   function aucView(app, o) {
+    aucSound(o.st, o.w);
     if (TA.rev) return;   // a reveal is playing: its end redraws
     if (aucReveal(app, o, () => { if (!o.still || o.still()) o.redraw(); })) return;
     stopTick();

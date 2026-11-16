@@ -303,7 +303,7 @@
     else if (t.page === 'entry') entry(APP);
     else A.render();
     LAST = { page: t.page, mine };
-    pill();
+    pill(); syncChat();   // the chat box shows once the room is connected (it was never put up until a message came in)
   }
   function soft() { if (!APP || !onPage()) return; const t = TN(); if (t.page === 'lobby') lobby(APP); else if (t.page === 'draft') updateProg(); }
   let LASTHOST = null;   // the host this phone last saw (a change gets a toast)
@@ -514,6 +514,7 @@
     el.querySelector('#tnPillLeave').addEventListener('click', () => HOOK.quit());
   }
   function refreshNet() {
+    setTimeout(syncChat, 0);
     pill();
     const el = document.getElementById('tnNet');
     if (!el) return;

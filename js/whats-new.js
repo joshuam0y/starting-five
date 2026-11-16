@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 388, t: 'Online tournaments: the chat and reactions now show, and the auction ticks on every bid and chimes on every sale.' },
   { v: 386, t: 'Tournaments: a Tournament MVP and stat lines for the champions, the auction reveal, real pools with every position, the team on each player card, and majority votes.' },
   { v: 384, t: 'Clearer pool choices in tournaments and Head to Head: Stars only, Stars + role players, Everyone.' },
   { v: 382, t: 'The basket is solid: dunks and layups come from in front of the rim, made shots drop through the net, nobody walks through the backboard.' },
