@@ -465,7 +465,7 @@
         <p class="ch-hero-p">Win ranked auctions to climb. Play the daily for a score.</p><p class="muted rk-legal"><a href="#/terms">Fair play and Terms</a> | <a href="#/privacy">Privacy</a></p></section>
       ${signed ? '<section class="rk-mine" id="rkMine"></section>' : signInBox('PLAY RANKED')}
       <section class="rk-how"><div class="rk-how-t"><b>PLAY A RANKED MATCH</b><span class="muted">Paired with the closest rating searching now.</span><span class="rk-cnt" id="rkCnt"></span></div>
-        <div class="rk-find"><button type="button" class="btn btn-gold btn-big" id="rkFind"${signed ? '' : ' disabled'}>FIND A MATCH</button></div>
+        <div class="rk-find"><button type="button" class="btn btn-gold btn-big" id="rkFind"${signed ? '' : ' disabled'}>FIND A MATCH</button><button type="button" class="btn btn-big" id="rkPractice">PRACTICE VS CPU<small>Ranked rules, doesn't count</small></button></div>
         <div class="rk-notify" id="rkNotify"></div>
         <button type="button" class="btn btn-small" id="rkTourBtn">TAKE THE TOUR</button>
         <details class="rk-det"><summary>HOW RANKED WORKS</summary><ol>
@@ -484,6 +484,7 @@
       <div class="ch-go"><a class="btn" href="#/me">MY PROFILE</a><a class="btn" href="#/challenge/vs">HEAD TO HEAD</a></div>`;
     UI.profile.wire(app, () => rankedPage(app));
     const fb = UI.$('#rkFind', app); if (fb) fb.addEventListener('click', () => { location.hash = '#/ranked/find/' + 'ALL'; });
+    const pb = UI.$('#rkPractice', app); if (pb) pb.addEventListener('click', () => { if (UI.vsPractice) UI.vsPractice(); else location.hash = '#/challenge/vs'; });
     const era = UI.$('#rkEra', app); era.addEventListener('change', () => { RK.era = era.value; ls.set('a13-rk-era', RK.era); rankedPage(app); });
     app.querySelectorAll('[data-scope]').forEach(b => b.addEventListener('click', () => { RK.mine = b.dataset.scope === '1'; ls.set('a13-rk-mine', RK.mine); rankedPage(app); }));
     fill(app);

@@ -279,6 +279,14 @@
     VS.epoch = (VS.epoch || 0) + 1; VS.hostSide = 1 - NET.side;
     push(); NET.role = 'guest'; NET.status = 'connecting'; NET.peerSeen = Date.now(); route();
   }
+  // ranked practice: the ranked rules (an auction from the elite pool, ratings hidden, 24-second clock, best of 7) against the
+  // CPU, never counted. Opened from the Ranked page.
+  UI.vsPractice = function () {
+    try { hangUp(); } catch (e) { /* not connected */ }
+    VS.cpu = true; VS.cfg = null; VS.auc = null; VS.page = 'setup'; VS.skip = []; VS.year = 0; VS.names = ['', '']; VS.tnames = ['', ''];
+    Object.assign(VS.opts, { auction: 1, board: 0, ranked: 0, pub: 0, aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'elite', aTheme: '', aShow: 0, bench: 0, bestOf: 7, blind: true, cap: 0, timer: 24, dupes: 0, bans: 0 });
+    location.hash = '#/challenge/vs';
+  };
   function hangUp() {
     QUICK = 0;
     NET.timers.forEach(t => clearInterval(t)); NET.timers = [];

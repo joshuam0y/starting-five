@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 410, t: 'Ranked practice: play the CPU under ranked rules any time, without touching your rating.' },
   { v: 406, t: 'The order wheel clicks as it spins and thumps when it lands.' },
   { v: 404, t: 'Every new game starts with all seasons on instead of keeping your last picks.' },
   { v: 402, t: 'VS CPU says You and the CPU by name, and rosters show each player\'s position and team.' },
