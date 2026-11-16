@@ -9,16 +9,25 @@
   function supported() {
     try { const c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl'))); } catch (e) { return false; }
   }
+  // the motion-captured player (assets/3d/player.glb: the CC0 Quaternius Universal Animation Library mannequin and
+  // its idle, walk, jog, sprint, crouch and jump clips); null when it cannot load, and the players are built from shapes
+  let MC = null;
+  const script = src => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.async = true; s.onload = res; s.onerror = () => rej(new Error(src + ' did not load')); document.head.appendChild(s); });
+  function loadMocap() {
+    return script('js/vendor/GLTFLoader.js').then(() => script('js/vendor/SkeletonUtils.js')).then(() => new Promise(res => {
+      try { new window.THREE.GLTFLoader().load('assets/3d/player.glb', g => { MC = { scene: g.scene, clips: g.animations }; res(); }, null, e => { console.warn('[court3d] players from shapes', e); res(); }); }
+      catch (e) { console.warn('[court3d] players from shapes', e); res(); }
+    })).catch(e => { console.warn('[court3d] players from shapes', e); });
+  }
   function load() {
-    if (window.THREE) return Promise.resolve(window.THREE);
     if (loading) return loading;
-    loading = new Promise((res, rej) => {
+    loading = (window.THREE ? Promise.resolve() : new Promise((res, rej) => {
       const s = document.createElement('script');
       s.src = SRC; s.async = true;
-      s.onload = () => (window.THREE ? res(window.THREE) : rej(new Error('three.js missing')));
+      s.onload = () => (window.THREE ? res() : rej(new Error('three.js missing')));
       s.onerror = () => { loading = null; rej(new Error('three.js did not load')); };
       document.head.appendChild(s);
-    });
+    })).then(() => loadMocap()).then(() => window.THREE);
     return loading;
   }
 
@@ -265,7 +274,74 @@
       figs[key] = f;
       return f;
     }
-    Object.keys(cfg.info).forEach(figure);
+    // ---------- the motion-captured players ----------
+    // One clone of the mannequin per player, in his team's colors (the body the jersey color, the joints the trim), scaled
+    // to his height, facing +x like the shape players. Clips by speed; the arm moves of a shot, block or rebound are layered
+    // onto the arm bones, along axes found once on the rig (which local turn lifts the hand forward and up).
+    let mcAxes = null;
+    function mcCalibrate(bones) {
+      const out = {};
+      // which way the model faces: heel to toe of the left foot, flat
+      const fwd = new T.Vector3(0, 0, 1);
+      if (bones.foot_l && bones.ball_l) { const a = new T.Vector3(), b = new T.Vector3(); bones.foot_l.parent.updateMatrixWorld(true); bones.foot_l.getWorldPosition(a); bones.ball_l.getWorldPosition(b); b.sub(a); b.y = 0; if (b.lengthSq() > 1e-6) fwd.copy(b.normalize()); }
+      out.fwd = fwd;
+      ['l', 'r'].forEach(sd => {
+        const up = bones['upperarm_' + sd], lo = bones['lowerarm_' + sd], hand = bones['hand_' + sd];
+        if (!up || !lo || !hand) return;
+        const test = (bone, want) => {
+          let best = null;
+          ['x', 'y', 'z'].forEach(ax => [1, -1].forEach(sg => {
+            const q0 = bone.quaternion.clone(), a = new T.Vector3(), b = new T.Vector3();
+            bone.parent.updateMatrixWorld(true); hand.getWorldPosition(a);
+            const v = new T.Vector3(); v[ax] = 1; bone.quaternion.multiply(new T.Quaternion().setFromAxisAngle(v, sg * 0.6));
+            bone.parent.updateMatrixWorld(true); hand.getWorldPosition(b);
+            bone.quaternion.copy(q0);
+            const d = b.sub(a), score = d.dot(want);
+            if (!best || score > best.score) best = { score, axis: v.clone().multiplyScalar(sg) };
+          }));
+          return best.axis;
+        };
+        // forward (+z for the model) and up for the shoulder; forward for the elbow
+        out[sd] = { up: test(up, fwd.clone().multiplyScalar(0.7).add(new T.Vector3(0, 1, 0))), lo: test(lo, fwd.clone().add(new T.Vector3(0, 0.5, 0))) };
+      });
+      return out;
+    }
+    function mcFigure(key) {
+      const inf = cfg.info[key], k = cfg.kit[inf.side];
+      const root = new T.Group(), body = new T.Group();
+      root.add(body);
+      const model = window.THREE.SkeletonUtils.clone(MC.scene);
+      const bodyM = keep(new T.MeshLambertMaterial({ color: k.fill })), jointM = keep(new T.MeshLambertMaterial({ color: k.ring }));
+      const bones = {};
+      model.traverse(o => {
+        if (o.isBone) bones[o.name] = o;
+        if (o.isMesh) { o.material = /Joint/i.test((o.material && o.material.name) || '') ? jointM : bodyM; o.frustumCulled = false; }
+      });
+      const mixer = new T.AnimationMixer(model), acts = {};
+      MC.clips.forEach(c => { acts[c.name] = mixer.clipAction(c); });
+      // measured from the idle pose (arms hanging), the pose the act lifts from, while the model still faces its own way
+      if (!mcAxes && acts.Idle_Loop) { acts.Idle_Loop.play(); mixer.update(0.5); mcAxes = mcCalibrate(bones); acts.Idle_Loop.stop(); }
+      if (!mcAxes) mcAxes = mcCalibrate(bones);
+      model.rotation.y = Math.atan2(mcAxes.fwd.z, mcAxes.fwd.x);   // turned to face +x like the court's players
+      body.add(model);
+      // the number on the back and (smaller) the front, at chest height in the model's meters
+      if (inf.num) {
+        const nm = new T.MeshBasicMaterial({ map: numTex(inf.num, k.text), transparent: true, depthWrite: false }); disposables.push(nm);
+        const back = new T.Mesh(geo.num, nm); back.scale.set(0.3, 0.3, 1); back.position.set(0, 1.32, -0.16); back.rotation.y = Math.PI; model.add(back);
+        const front = new T.Mesh(geo.num, nm); front.scale.set(0.18, 0.18, 1); front.position.set(0, 1.34, 0.17); model.add(front);
+      }
+      const ftH = clamp((inf.ht || 79) / 12, 5.2, 7.7), sc = ftH / 1.83;
+      model.scale.set(sc, sc, sc);
+      const hit = new T.Mesh(geo.hit, hitM); hit.position.y = 3.6; hit.userData.key = key; root.add(hit);
+      const ring = new T.Mesh(geo.ring, ringM.ball); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.04; ring.visible = false; root.add(ring);
+      scene.add(root);
+      const s = ftH / 6.6;
+      const f = { root, body, hit, ring, s, hFt: ftH, shadow: blob(2.6 * s), ang: null, ph: Math.random() * 6, last: null, speed: 0,
+        arms: [{ hand: bones.hand_l || model }, { hand: bones.hand_r || model }], mc: { mixer, acts, cur: null, bones } };
+      figs[key] = f;
+      return f;
+    }
+    Object.keys(cfg.info).forEach(k => { if (MC && window.THREE.SkeletonUtils) { try { mcFigure(k); return; } catch (e) { console.warn('[court3d] shape player for', k, e); } } figure(k); });
 
     // ---------- the ball ----------
     const bc = document.createElement('canvas'); bc.width = 128; bc.height = 64;
@@ -362,6 +438,7 @@
       const d = Math.atan2(Math.sin(want - f.ang), Math.cos(want - f.ang));
       f.ang += d * smooth(dt, 160);
       R.rotation.y = -f.ang;
+      if (f.mc) { poseMC(f, p, S, dt, run0); return; }
       // the run: a forward lean, knees up, arms swinging bent at the elbow; a defender sliding sideways keeps a wide stance
       const mvAng = p.vx != null && run0 > 1 ? Math.atan2(p.vy, p.vx) : null;
       const side = mvAng != null ? Math.abs(Math.sin(mvAng - f.ang)) : 0;
@@ -430,6 +507,76 @@
       f.arms[0].top.rotation.set(aL[1], 0, aL[0]); f.arms[0].joint.rotation.z = -aL[2];
       f.arms[1].top.rotation.set(aR[1], 0, aR[0]); f.arms[1].joint.rotation.z = -aR[2];
       if (f.arms[1].wrist) f.arms[1].wrist.rotation.z = flick;
+      f.ring.visible = p.hold || p.sel;
+      f.ring.material = p.sel ? ringM.sel : ringM.ball;
+      f.jump = jump;
+    }
+
+    // a motion-captured player: the clip for his speed (crouched on defense), in the air for a shot, block or rebound,
+    // and the arms of the act layered on top
+    const AIR = { shoot: 1.5, layup: 2.4, dunk: 3.2, block: 2.6, jump: 2.2, contest: 1.2, cheer: 0.8 };
+    // turn a bone so the segment to its child points along dir (world), by weight w
+    const vA = new T.Vector3(), vB = new T.Vector3(), qW = new T.Quaternion(), qP = new T.Quaternion(), qD = new T.Quaternion(), qI = new T.Quaternion();
+    function aimBone(bone, child, dir, w) {
+      if (!bone || !child) return;
+      bone.updateMatrixWorld(true);
+      bone.getWorldPosition(vA); child.getWorldPosition(vB);
+      const cur = vB.sub(vA); if (cur.lengthSq() < 1e-8) return;
+      qD.setFromUnitVectors(cur.normalize(), dir);
+      if (w < 1) qD.copy(qI.identity().slerp(qD, w));
+      bone.getWorldQuaternion(qW); qW.premultiply(qD);
+      bone.parent.getWorldQuaternion(qP);
+      bone.quaternion.copy(qP.invert().multiply(qW));
+      bone.updateMatrixWorld(true);
+    }
+    const qTmp = new T.Quaternion();
+    function poseMC(f, p, S, dt, sp) {
+      const M = f.mc, A = p.act, t = A ? clamp(A.f, 0, 1) : 0, arc = Math.sin(Math.PI * t), up = clamp(t / 0.35, 0, 1);
+      const jump = A && AIR[A.k] ? AIR[A.k] * arc : 0;
+      let clip, rate = 1;
+      if (jump > 0.25) clip = 'Jump_Loop';
+      else if (sp < 1) clip = 'Idle_Loop';
+      else if (sp < 6) { clip = 'Walk_Loop'; rate = clamp(sp / 4.6, 0.5, 1.6); }
+      else if (sp < 15) { clip = 'Jog_Fwd_Loop'; rate = clamp(sp / 10, 0.6, 1.5); }
+      else { clip = 'Sprint_Loop'; rate = clamp(sp / 20, 0.7, 1.4); }
+      if (!M.acts[clip]) clip = 'Idle_Loop';
+      if (M.cur !== clip && M.acts[clip]) {
+        M.acts[clip].reset().setEffectiveWeight(1).fadeIn(0.18).play();
+        if (M.cur && M.acts[M.cur]) M.acts[M.cur].fadeOut(0.18);
+        M.cur = clip;
+      }
+      if (M.acts[clip]) M.acts[clip].setEffectiveTimeScale(rate);
+      // a defender stays low: a third of the crouch blended over whatever he is doing (the clip alone is a deep sneak)
+      const cr = M.acts.Crouch_Idle_Loop, low = p.def && jump < 0.25 && sp < 15 ? 0.32 : 0;
+      if (cr) { if (low && !cr.isRunning()) cr.play(); cr.setEffectiveWeight(lerp(cr.getEffectiveWeight(), low, 0.15)); }
+      M.mixer.update(Math.min(0.1, (dt || 16) / 1000));
+      // the arms of the act: each upper arm and forearm aimed at a direction (forward, up, out to his side, mixed),
+      // blended over whatever the clip is doing by how far into the move he is
+      f.body.position.y = jump;
+      let tg = null;   // [[upper dir, fore dir, weight] for left, for right], dirs as [forward, up, out]
+      if (A) {
+        const k = A.k, l = clamp((t - 0.1) / 0.3, 0, 1);
+        if (k === 'shoot' || k === 'ft') tg = [[[0.5, 1, 0.25], [0.2, 1, -0.1], l], [[0.35, 1, 0], [0.15, 1, 0], l]];
+        else if (k === 'layup') tg = [[[0.7, -0.2, 0.6], [1, 0.4, 0], 0.8], [[0.4, 1, 0], [0.3, 1, 0], up]];
+        else if (k === 'dunk') tg = [[[0.3, 1, 0.3], [0.3, 1, 0], up], [[0.3, 1, -0.1], [0.4, 1, 0], up]];
+        else if (k === 'block') tg = [[[0.2, 1, 0.4], [0, 1, 0], 1], t < 0.5 ? [[0.3, 1, 0], [0.3, 1, 0], 1] : [[1, 0.3, 0], [1, -0.4, 0], 1]];
+        else if (k === 'jump') tg = t < 0.55 ? [[[0.3, 1, 0.3], [0.2, 1, 0], 1], [[0.3, 1, -0.3], [0.2, 1, 0], 1]] : [[[0.6, -0.6, 0.3], [0.3, 0.6, -0.8], 1], [[0.6, -0.6, -0.3], [0.3, 0.6, 0.8], 1]];
+        else if (k === 'contest') tg = [[[0.3, 0.3, 0.8], [0.3, 0.6, 0.6], 0.7], [[0.5, 1, 0], [0.4, 1, 0], 1]];
+        else if (k === 'cheer') tg = [[[0, 1, 0.5], [0, 1, 0.3], 1], [[0, 1, -0.5], [0, 1, -0.3], 1]];
+      } else if (p.hold && !S.ball.flight) tg = [null, [[0.45, -1, -0.25], [0.6, -0.8, 0], 0.7]];   // the dribble hand out in front, low
+      if (tg) {
+        f.root.updateMatrixWorld(true);
+        const fw = new T.Vector3(Math.cos(f.ang), 0, Math.sin(f.ang)), upv = new T.Vector3(0, 1, 0), out = new T.Vector3().crossVectors(fw, upv);   // out: his right
+        ['l', 'r'].forEach((sd, i) => {
+          const g = tg[i], B = M.bones;
+          if (!g || !g[2]) return;
+          const dir = d => new T.Vector3().addScaledVector(fw, d[0]).addScaledVector(upv, d[1]).addScaledVector(out, (sd === 'r' ? 1 : -1) * d[2]).normalize();
+          aimBone(B['upperarm_' + sd], B['lowerarm_' + sd], dir(g[0]), g[2]);
+          aimBone(B['lowerarm_' + sd], B['hand_' + sd], dir(g[1]), g[2]);
+        });
+      }
+      f.shadow.material.opacity = clamp(0.62 - jump * 0.12, 0.2, 0.62);
+      f.shadow.scale.set(2.6 * f.s * (1 - jump * 0.06), 2.6 * f.s * (1 - jump * 0.06), 1);
       f.ring.visible = p.hold || p.sel;
       f.ring.material = p.sel ? ringM.sel : ringM.ball;
       f.jump = jump;

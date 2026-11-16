@@ -1,0 +1,3 @@
+Quaternius Universal Animation Library (mannequin and clips), CC0 1.0 Universal Public Domain Dedication.
+https://quaternius.com | https://creativecommons.org/publicdomain/zero/1.0/
+Trimmed to 9 clips and simplified for the web (assets/3d/player.glb).
