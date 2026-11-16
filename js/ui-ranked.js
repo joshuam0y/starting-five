@@ -420,7 +420,18 @@
     let done = false, timers = [];
     const finish = () => { if (done) return; done = true; timers.forEach(clearTimeout); o.onDone && o.onDone(); };
     const wEl = UI.$('#whW', app);
-    requestAnimationFrame(() => requestAnimationFrame(() => { wEl.style.transition = 'transform 4.4s cubic-bezier(.12,.62,.12,1)'; wEl.style.transform = 'rotate(' + rot + 'deg)'; }));
+    requestAnimationFrame(() => requestAnimationFrame(() => { wEl.style.transition = 'transform 4.4s cubic-bezier(.12,.62,.12,1)'; wEl.style.transform = 'rotate(' + rot + 'deg)'; tickLoop(); }));
+    // the sound of it (as the team wheel): a click for every slice that passes the pin, slowing with the wheel, and a thump when it stops
+    let lastA = 0, turned = 0, lastSeg = 0, t0 = 0;
+    const angle = () => { const m = getComputedStyle(wEl).transform; if (!m || m === 'none') return 0; const v = m.match(/matrix\(([^)]+)\)/); if (!v) return 0; const a = v[1].split(',').map(Number); return Math.atan2(a[1], a[0]) * 180 / Math.PI; };
+    function tickLoop() {
+      if (done || !wEl.isConnected) return;
+      if (!t0) t0 = performance.now();
+      const a = angle(); let d = a - lastA; if (d < -180) d += 360; if (d > 180) d -= 360; lastA = a; turned += Math.max(0, d);
+      const sg = Math.floor(turned / seg);
+      if (sg !== lastSeg) { lastSeg = sg; if (window.SFX && window.SFX.on) window.SFX.play('tick'); }
+      if (performance.now() - t0 < 4400) requestAnimationFrame(tickLoop); else if (window.SFX) window.SFX.play('land');   // the spin is 4.4 s
+    }
     timers.push(setTimeout(() => { const r = UI.$('#whR', app); if (r) { r.textContent = String(names[o.winner]).toUpperCase() + ' OPENS FIRST'; r.classList.add('on'); } const q = UI.$('#whO', app); if (q && o.after) q.textContent = o.after; if (window.SFX) window.SFX.play('chime'); }, 4500));
     timers.push(setTimeout(finish, 6000));
     UI.$('#whSkip', app).addEventListener('click', finish);
