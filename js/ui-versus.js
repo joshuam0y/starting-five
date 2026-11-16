@@ -682,7 +682,7 @@
       if (KEEP != null) { const y = KEEP; KEEP = null; window.scrollTo(0, y); requestAnimationFrame(() => window.scrollTo(0, y)); }   // a setup choice keeps your place, even when it had to load a season first
       app.querySelectorAll('[data-net]').forEach(b => b.addEventListener('click', () => {
         const v = b.dataset.net;
-        if (v !== 'local' && !UI.profile.canPlay()) { UI.toast('Pick a guest name or sign in first.', 'error'); const bar = UI.$('.pf-bar', app); if (bar) bar.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+        if (v !== 'local' && v !== 'cpu' && !UI.profile.canPlay()) { UI.toast('Pick a guest name or sign in first.', 'error'); const bar = UI.$('.pf-bar', app); if (bar) bar.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
         if (v !== 'cpu') VS.cpu = false;
         if (v === 'cpu') { hangUp(); VS.cpu = true; VS.opts.auction = 1; VS.opts.bench = 0; VS.names[1] = 'CPU'; }   // the computer: an auction, five each
         else if (v === 'local') hangUp();
@@ -1197,7 +1197,7 @@
       }
       const turn = on >= 0 && VS.turn && VS.turn.pick === taken.length ? VS.turn : null;
       const clock = turn ? UI.timerBar(turn.until, cfg.timer || 24) : '';
-      app.innerHTML = `<div class="ch-top"><div><div class="ch-top-k">${esc(lblC(cfg))} | TWO PLAYERS | BEST OF ${cfg.bestOf || 5}${blind ? ' | BLIND' : ''} | COIN FLIP: ${esc(who(cfg.first ? 1 : 0).toUpperCase())} FIRST${cfg.timer ? ' | ' + cfg.timer + ' SEC CLOCK' : ''}${cfg.cap ? ' | $' + cfg.cap + 'M CAP' : ''}</div><div class="ch-top-t">THE DRAFT</div></div>
+      app.innerHTML = `<div class="ch-top"><div><div class="ch-top-k">${esc(lblC(cfg))} | ${cfg.cpu ? 'VS CPU' : 'TWO PLAYERS'} | BEST OF ${cfg.bestOf || 5}${blind ? ' | BLIND' : ''} | COIN FLIP: ${esc(who(cfg.first ? 1 : 0).toUpperCase())} FIRST${cfg.timer ? ' | ' + cfg.timer + ' SEC CLOCK' : ''}${cfg.cap ? ' | $' + cfg.cap + 'M CAP' : ''}</div><div class="ch-top-t">THE DRAFT</div></div>
           <span class="ch-top-acts">${RULES_BTN}<button type="button" class="btn btn-small" id="vsSetup">SETUP</button></span></div>
         ${netBar()}${rulesBox(cfg)}
         <div class="vs-sides vs-compact">${fives}</div>
