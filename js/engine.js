@@ -700,7 +700,7 @@
     var ys = Object.keys(ERA).map(Number).sort(function (a, b) { return a - b; }), best = ys[0];
     ys.forEach(function (y) { if (y <= year) best = y; });
     var e = ERA[best];
-    return { pace: e[0], three: e[1], make2: e[2], ast: e[3], tov: e[4] != null ? e[4] : 1, make3: e[5] || 0, four: 0 };
+    return { pace: e[0], three: e[1], make2: e[2], ast: e[3], tov: e[4] != null ? e[4] : 1, make3: e[5] || 0, four: 0, yr: year };
   }
 
   function shotPlan(offStrat, defStrat, era) {
@@ -1195,6 +1195,7 @@
         dur = 4 + (rng() + rng()) * (T.playMean * pace * paceF / era.pace - 4);
         if (trans > 0) dur *= 1 - 0.15 * trans;
       }
+      if (EXTRAS && !opts.era && PACE_FIX[era.yr]) dur /= PACE_FIX[era.yr];
       dur = Math.min(dur, 24);
       if (dur >= clock) dur = clock;
       runClock(dur);
@@ -1257,6 +1258,8 @@
     PF: 11, FOULOUT: 12, INJ: 13, SUB: 14, EXTRA: 15 };
   // EXTRA lines, by x: a timeout (side = the team calling it), a technical (a = who got it), an ejection (a = who)
   var XT = { TIMEOUT: 1, TECH: 2, EJECT: 3 };
+  // league games: real points per game over simmed (Basketball-Reference league averages, 2026-11-15); possessions scale by it
+  var PACE_FIX = { 1948: 1.031, 1949: 1.037, 1950: 1.054, 1951: 1.077, 1952: 1.098, 1953: 1.123, 1954: 1.072, 1955: 1.104, 1956: 1.071, 1957: 1.084, 1958: 1.07, 1959: 1.078, 1960: 1.044, 1961: 1.066, 1962: 1.054, 1963: 1.053, 1964: 1.058, 1965: 1.063, 1966: 1.053, 1967: 1.062, 1968: 1.056, 1969: 1.073, 1970: 1.046, 1971: 1.075, 1972: 1.057, 1973: 1.035, 1974: 1.046, 1975: 1.047, 1976: 1.05, 1977: 1.059, 1978: 1.061, 1979: 1.058, 1980: 1.073, 1981: 1.074, 1982: 1.071, 1983: 1.062, 1984: 1.076, 1985: 1.067, 1986: 1.078, 1987: 1.078, 1988: 1.075, 1989: 1.069, 1990: 1.082, 1991: 1.076, 1992: 1.078, 1993: 1.066, 1994: 1.062, 1995: 1.066, 1996: 1.068, 1997: 1.061, 1998: 1.067, 1999: 1.054, 2000: 1.046, 2001: 1.048, 2002: 1.049, 2003: 1.054, 2005: 1.033, 2006: 1.021, 2007: 1.057, 2008: 1.069, 2012: 0.969, 2016: 0.981, 2019: 0.975, 2023: 0.985 };
   var T_TECH = 0.0075, T_FLAG = 0.004;   // a technical per dead ball, a flagrant per non-shooting foul
   function packPbx(result, H, A, raw, lineups) {
     [H, A].forEach(function (t) { t.roster.filter(function (s) { return s.sec > 0; }).forEach(function (s, i) { s.bx = i + 1; }); });

@@ -1023,28 +1023,56 @@
         if (ev.ex === 'eject') { B.push({ dur: 1200, fire: true, at0: () => { if (ev.a) tag(ev.a, 'EJECTED', 'big', 1700); } }); return B; }
       }
       if (k === 'tov') {
-        const tp = ev.a;
+        const tp = ev.a, D = other(O), h = hoop(O, per);
         setUp(O, per, B);
         if (st.ph !== tp && tp) pass(B, tp, { move: drift(st.form, st.on.home.concat(st.on.away), 1.4) });
-        const D = other(O);
+        // where people will be once the set is run (the plan is made before the beats play)
+        const spot = k2 => (st.form && st.form[k2]) || st.pos[k2] || at(O, per, 24, 25);
+        const P = spot(tp);
+        const mates = st.on[O].filter(x => x !== tp).sort((x, y) => dist(spot(x), P) - dist(spot(y), P));
+        const mate = mates[Math.min(mates.length - 1, Math.floor(rnd(0, 2)))] || null, M = mate ? spot(mate) : at(O, per, 20, P[1] < 25 ? 40 : 10);
+        const away = attacksRight(D, per) ? 1 : -1;   // the way the other team will run
+        const side = y => (y < 25 ? -1.5 : CH + 1.5);  // just over the near sideline
         if (ev.tov === 'steal' && ev.b) {
-          const sp = st.pos[tp] ? [st.pos[tp][0] + rnd(-1.2, 1.2), st.pos[tp][1] + rnd(-1.2, 1.2)] : [47, 25];
-          B.push({ dur: 380, move: { [ev.b]: sp }, ball: { to: ev.b, arc: 0.3 }, hold: ev.b, fire: true, at: () => tag(ev.b, 'STEAL', 'big') });
-          st.ph = ev.b; st.off = D; st.set = false; st.form = null;
+          const sr = ev.b;
+          if (mate && Math.random() < 0.55) {
+            // a pass picked off: he jumps the passing lane and the ball arrives in his hands, not his man's
+            const pick = [P[0] + (M[0] - P[0]) * 0.55 + rnd(-0.6, 0.6), P[1] + (M[1] - P[1]) * 0.55 + rnd(-0.6, 0.6)];
+            B.push({ dur: clamp(220 + dist(P, pick) * 16, 380, 700), pace: 22, move: { [sr]: pick }, ball: { to: sr, arc: 0.7 }, hold: sr, fire: true, at0: () => act(sr, 'jump', 520), at: () => tag(sr, 'STEAL', 'big') });
+            B.push({ dur: 750, pace: 22, move: { [sr]: [clamp(pick[0] + away * 12, 3, CW - 3), clamp(pick[1], 6, 44)] }, hold: sr });
+          } else {
+            // a strip on the drive: his man pokes it loose, the ball skips away and he scoops it up
+            const drive = [P[0] + (h[0] - P[0]) * 0.25, P[1] + (h[1] - P[1]) * 0.25];
+            B.push({ dur: 650, move: { [tp]: drive, [sr]: [drive[0] + (h[0] - drive[0]) * 0.12, drive[1] + 0.9] }, hold: tp, arrive: [sr], near: 2.2, wait: 700 });
+            const loose = [clamp(drive[0] + away * 3 + rnd(-1, 1), 2, CW - 2), clamp(drive[1] + rnd(-2.5, 2.5), 2, 48)];
+            B.push({ dur: 300, ball: { to: loose, arc: 0.8, h1: 0.5 }, hold: null, at0: () => act(sr, 'contest', 420) });
+            B.push({ dur: 340, pace: 20, move: { [sr]: loose }, ball: { to: sr, arc: 0.4 }, hold: sr, fire: true, at: () => tag(sr, 'STEAL', 'big') });
+            B.push({ dur: 750, pace: 22, move: { [sr]: [clamp(loose[0] + away * 12, 3, CW - 3), clamp(loose[1], 6, 44)] }, hold: sr });
+          }
+          st.ph = sr; st.off = D; st.set = false; st.form = null;
         } else if (ev.tov === 'foul') {
+          // a charge: his man beats him to the spot and plants, then he runs into him
           const dfd = matchup(tp);
-          const h = hoop(O, per);
-          const p = st.form && st.form[tp] ? st.form[tp] : [47, 25];
-          const hit = [p[0] + (h[0] - p[0]) * 0.3, p[1] + (h[1] - p[1]) * 0.3];
-          const mv = { [tp]: hit };
-          if (dfd) mv[dfd] = [hit[0] + (h[0] - hit[0]) * 0.08, hit[1] + 0.4];
-          B.push({ dur: 520, move: mv, fire: true, at: () => tag(tp, 'OFFENSIVE FOUL', 'foul', 1400) });
-          st.ph = tp; st.off = D; st.set = false; st.form = null;
-          B.push({ dur: 300, ball: { to: [hit[0], hit[1] + 2], arc: 1 }, hold: null });
-          st.ph = null;
+          const hit = [P[0] + (h[0] - P[0]) * 0.3, P[1] + (h[1] - P[1]) * 0.3];
+          if (dfd) B.push({ dur: 380, move: { [dfd]: [hit[0] + (h[0] - hit[0]) * 0.1, hit[1] + 0.4] }, arrive: [dfd], near: 1, wait: 700 });
+          B.push({ dur: 560, move: { [tp]: hit }, hold: tp, fire: true, at: () => tag(tp, 'OFFENSIVE FOUL', 'foul', 1400) });
+          B.push({ dur: 320, ball: { to: [hit[0], hit[1] + 2], arc: 1 }, hold: null });
+          st.ph = null; st.off = D; st.set = false; st.form = null;
         } else {
-          const out = [clamp(st.ball.x + rnd(-10, 10), 2, 92), Math.random() < 0.5 ? -1.5 : CH + 1.5];
-          B.push({ dur: 560, ball: { to: out, arc: 0.6 }, hold: null, fire: true, at: () => tag(tp, 'TURNOVER', 'miss', 1200) });
+          const r = Math.random();
+          if (mate && r < 0.45) {
+            // a bad pass: it sails past his teammate and out
+            const out = [clamp(M[0] + (M[0] - P[0]) * 0.6, 1, CW - 1), side(M[1])];
+            B.push({ dur: 620, ball: { to: out, arc: 1.4 }, hold: null, fire: true, at0: () => act(mate, 'jump', 520), at: () => tag(tp, 'BAD PASS', 'miss', 1300) });
+          } else if (r < 0.75) {
+            // traveling: the whistle, and he flips the ball to the official on the sideline
+            B.push({ dur: 480, move: { [tp]: [P[0] + (h[0] - P[0]) * 0.15, P[1]] }, hold: tp, fire: true, at: () => tag(tp, 'TRAVELING', 'miss', 1300) });
+            B.push({ dur: 480, ball: { to: [P[0], side(P[1])], arc: 1.2, h1: 3 }, hold: null });
+          } else {
+            // the dribble gets away from him and rolls out
+            B.push({ dur: 420, move: { [tp]: [P[0] + (h[0] - P[0]) * 0.15, clamp(P[1] + (P[1] < 25 ? -2.5 : 2.5), 2, 48)] }, hold: tp });
+            B.push({ dur: 560, ball: { to: [P[0] + rnd(-3, 3), side(P[1])], arc: 0.4, h1: 0.5 }, hold: null, fire: true, at: () => tag(tp, 'OUT OF BOUNDS', 'miss', 1300) });
+          }
           st.ph = null; st.off = D; st.set = false; st.form = null;
         }
         return B;

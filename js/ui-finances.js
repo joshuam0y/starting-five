@@ -36,7 +36,9 @@
   function yearChips(sel, y0, href) {
     return `<div class="ch-chips ch-swipe fin-years" role="group" aria-label="Season">${yearsFrom(y0).map(y => `<a class="ch-chip${y === sel ? ' on' : ''}" href="${href(y)}">${label(y)}</a>`).join('')}</div>`;
   }
-  function statusWord(st, two) {
+  function statusWord(st, two, y) {
+    if (y && y < 1985) return ['NO CAP YET', 'fin-over'];   // the real league had no cap before 1984-85 (the game uses a scaled limit)
+    if (y && y < 2002 && st.overTax) st = Object.assign({}, st, { overTax: false, overApron: false, overApron2: false });   // no tax before 2001-02
     if (st.overApron2) return ['2ND APRON', 'fin-a2'];
     if (st.overApron) return [two ? '1ST APRON' : 'APRON', 'fin-a1'];
     if (st.overTax) return ['TAX', 'fin-tax'];
@@ -59,7 +61,7 @@
     app.innerHTML = UI.header('FINANCES', 'Every payroll against the cap, the tax and the aprons. Tap a team for its contracts.') +
       yearChips(Y, y0, y => '#/finances/league/' + y) + lines +
       `<div class="tscroll"><table class="stats fin-table"><thead><tr><th class="l">TEAM</th>${th('payroll', 'PAYROLL')}<th>STATUS</th>${th('room', 'VS CAP')}${th('toTax', 'VS TAX')}${r.apron ? th('toApron', 'VS APRON') : ''}${th('tax', 'TAX BILL', 'hide-sm')}${yearsFrom(Y + 1).slice(0, 3).map((y, i) => `<th class="hide-sm">${label(y)}</th>`).join('')}</tr></thead><tbody>` +
-      rows.map(x => { const [w, c] = statusWord(x.st, !!r.apron2); return `<tr class="${x.t.abbr === user ? 'mine' : ''}"><td class="l"><a href="#/finances/${esc(x.t.abbr)}/${Y}">${UI.logo(x.t.abbr, 22)} ${esc(x.t.name)}</a></td>
+      rows.map(x => { const [w, c] = statusWord(x.st, !!r.apron2, Y); return `<tr class="${x.t.abbr === user ? 'mine' : ''}"><td class="l"><a href="#/finances/${esc(x.t.abbr)}/${Y}">${UI.logo(x.t.abbr, 22)} ${esc(x.t.name)}</a></td>
         <td><b>${M(x.payroll)}</b></td><td><span class="fin-st ${c}">${w}</span></td>
         <td class="${x.room >= 0 ? 'fin-pos' : ''}">${signed(x.room)}</td><td class="${x.toTax >= 0 ? 'fin-pos' : 'fin-neg'}">${signed(x.toTax)}</td>${r.apron ? `<td class="${x.toApron >= 0 ? 'fin-pos' : 'fin-neg'}">${signed(x.toApron)}</td>` : ''}
         <td class="hide-sm">${x.tax ? M(x.tax) : '-'}</td>${x.later.map(v => `<td class="hide-sm">${M(v)}</td>`).join('')}</tr>`; }).join('') +
@@ -93,7 +95,7 @@
     const tot = ys.map(y => C.payroll(g, abbr, y));
     const line = (name, key) => `<tr class="fin-line"><td class="l">${name}</td><td class="hide-sm"></td><td class="hide-sm"></td>${ys.map(y => { const r = C.rules(y), v = r[key]; return `<td>${v ? M(v) : '-'}</td>`; }).join('')}</tr>`;
     const vs = (name, key) => `<tr class="fin-line"><td class="l">${name}</td><td class="hide-sm"></td><td class="hide-sm"></td>${ys.map((y, i) => { const v = C.rules(y)[key]; if (!v) return '<td>-</td>'; const d = v - tot[i]; return `<td class="${d >= 0 ? 'fin-pos' : 'fin-neg'}">${signed(d)}</td>`; }).join('')}</tr>`;
-    const two = !!C.rules(Y).apron2, st = C.capStatus(g, abbr, Y), [w, c] = statusWord(st, two);
+    const two = !!C.rules(Y).apron2, st = C.capStatus(g, abbr, Y), [w, c] = statusWord(st, two, Y);
     const pick = `<select id="finTeam" aria-label="Team">${UI.teams().slice().sort((a, b) => a.city.localeCompare(b.city)).map(x => `<option value="${esc(x.abbr)}"${x.abbr === abbr ? ' selected' : ''}>${esc(x.city + ' ' + x.name)}</option>`).join('')}</select>`;
     app.innerHTML = UI.header(t.city.toUpperCase() + ' FINANCES', 'Contracts by season. PO player option, TO team option, ETO early termination, 2W two-way; the outlined year is the last of the deal.') +
       `<div class="fin-bar">${pick}<a class="btn" href="#/finances/league/${Y}">ALL TEAMS</a></div>` +
