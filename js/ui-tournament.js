@@ -245,7 +245,7 @@
           <small class="muted">${!ch.length ? 'Pick at least one season.' : ch.length === 1 ? 'One season: the whole ' + esc(lbl(ch[0])) + ' league.' : 'Every spin lands on a team and a season from the ones on. Nobody can be drafted twice, even from different seasons.'}</small></div>
         <div class="ch-step"><div class="ch-step-k">3 | THE RULES</div>
           <div class="tn-rules">
-            <div><span class="ts-start-k">EACH ROUND</span><div class="ch-chips">${chips([[1, 'BEST OF 1'], [3, 'BEST OF 3']], o.bestOf, 'bo')}</div></div>
+            <div><span class="ts-start-k">EACH ROUND</span><div class="ch-chips">${chips([[1, 'BEST OF 1'], [3, 'BEST OF 3'], [5, 'BEST OF 5'], [7, 'BEST OF 7']], o.bestOf, 'bo')}</div></div>
             ${hum() > 1 ? `<div><span class="ts-start-k">DRAFT ORDER</span><div class="ch-chips">${chips([['turns', 'TAKE TURNS'], ['all', 'ALL FIVE AT ONCE']], o.order || 'turns', 'order')}</div></div>` : ''}
             ${chosen().length === 1 ? '' : `<div><span class="ts-start-k">GAME RULES</span><div class="ch-chips">${ERAS.map(([v, l]) => `<button type="button" class="ch-chip${(o.era || 2013) === v ? ' on' : ''}" data-era="${v}">${l}</button>`).join('')}</div></div>`}
             <div><span class="ts-start-k">SEEDING</span><div class="ch-chips">${chips([['random', 'RANDOM'], ['rating', 'BY TEAM RATING']], o.seeding, 'seed')}</div></div>

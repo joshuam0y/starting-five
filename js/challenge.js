@@ -327,7 +327,8 @@
     var o = aucOpts(cfg.auction), per = vsPer(cfg), n = Math.max(o.pool, 2 * per), rng = mulberry32(((cfg.seed || 1) ^ 0xA0C710) >>> 0);
     var sorted = players.slice().sort(function (a, b) { return b.ovr - a.ovr || (a.id < b.id ? -1 : 1); });
     var top = o.quality === 'elite' ? Math.max(n, 40) : o.quality === 'stars' ? Math.max(n, 60) : o.quality === 'mixed' ? Math.max(n, 200) : sorted.length;
-    var shuf = shuffle(sorted.slice(0, top), rng), pool = o.quality === 'elite' ? balancedDraw(shuf, n) : shuf.slice(0, n);
+    // Head to Head rooms: lots balanced by position like the tournament; the Daily (no mode) keeps its draw exactly as it was
+    var shuf = shuffle(sorted.slice(0, top), rng), pool = cfg.mode === 'versus' ? balancedDrawN(shuf, n) : o.quality === 'elite' ? balancedDraw(shuf, n) : shuf.slice(0, n);
     var st = { o: o, per: per, first: cfg.first ? 1 : 0, ids: pool.map(function (p) { return p.id; }), i: -1, price: o.start, holder: 0, turn: 1, spent: [0, 0], won: [[], []], log: [], done: false };
     return aucNext(st);
   }

@@ -1007,9 +1007,19 @@
   // the auction: the player who is up, the standing bid and your money. Bid any amount from one raise up to what you can spend.
   const AB = { i: -1, price: -1, amt: 0, key: null, seen: 0 };
   let REV = false;   // the auto-draft reveal is on screen   // the amount picked on this phone for the player who is up
+  // the auction's sounds (as in tournaments): a tick per bid, a chime per sale, a thump when he is yours
+  let ASND = null;
+  function aucSound(st) {
+    const S = window.SFX; if (!S || !st || !st.log) return;
+    if (!ASND || ASND.st !== st) { ASND = { st, i: st.i, price: st.price, n: st.log.length }; return; }
+    if (st.log.length > ASND.n) { const last = st.log[st.log.length - 1], mine = me(); S.play(last && mine != null && last.side === mine ? 'land' : 'chime'); }
+    else if (st.i === ASND.i && st.price > ASND.price) S.play('tick');
+    ASND.i = st.i; ASND.price = st.price; ASND.n = st.log.length;
+  }
   function auctionPage(app, cfg, B) {
     rkStart(cfg);
     stopTick();
+    aucSound(VS.auc);
     const st = VS.auc, A = st.o, per = st.per, byId = B.byId, blind = !!cfg.blind;
     const wk = st.ids.slice(0, 3).join(',') + '|' + (cfg.first ? 1 : 0);   // the wheel spins once per auction, before the first player goes up
     const bk = cfg.bucket && UI.ranked && UI.ranked.bucketByKey ? UI.ranked.bucketByKey(cfg.bucket) : null;

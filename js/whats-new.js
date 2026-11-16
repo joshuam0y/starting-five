@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 392, t: 'Tournaments can be best of 5 or 7, and Head to Head auctions get the sounds and a pool with every position.' },
   { v: 390, t: 'Auction pools across many seasons draw from every era (no more 2012-13 bench players), and AI teams take their turns one at a time.' },
   { v: 388, t: 'Online tournaments: the chat and reactions now show, and the auction ticks on every bid and chimes on every sale.' },
   { v: 386, t: 'Tournaments: a Tournament MVP and stat lines for the champions, the auction reveal, real pools with every position, the team on each player card, and majority votes.' },

@@ -619,7 +619,7 @@
           <small class="muted">${!ch.length ? 'Pick at least one season.' : ch.length === 1 ? 'One season: the whole ' + esc(A.lbl(ch[0])) + ' league.' : ch.length + ' seasons on. Every spin lands on a team and a season from them. Nobody can be drafted twice.'}</small></div>
         <div class="ch-step"><div class="ch-step-k">3 | THE RULES</div>
           <div class="tn-rules">
-            <div><span class="ts-start-k">EACH ROUND</span><div class="ch-chips">${chips([[1, 'BEST OF 1'], [3, 'BEST OF 3']], o.bestOf, 'bo')}</div></div>
+            <div><span class="ts-start-k">EACH ROUND</span><div class="ch-chips">${chips([[1, 'BEST OF 1'], [3, 'BEST OF 3'], [5, 'BEST OF 5'], [7, 'BEST OF 7']], o.bestOf, 'bo')}</div></div>
             ${ch.length === 1 ? '' : `<div><span class="ts-start-k">GAME RULES</span><div class="ch-chips">${chips(ERAS, o.era || 2013, 'era')}</div></div>`}
             <div><span class="ts-start-k">DRAFT ORDER</span><div class="ch-chips">${chips([['all', 'ALL AT ONCE'], ['turns', 'TAKE TURNS']], o.order || 'turns', 'order')}</div>
               <small class="muted">${(o.order || 'turns') === 'turns' ? 'One pick each, snake order, everyone watches every spin.' : 'Everyone drafts their five at the same time.'}</small></div>
