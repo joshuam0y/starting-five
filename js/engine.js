@@ -862,7 +862,7 @@
         t.roster.forEach(function (s) {
           if (s.onCourt) {
             s.sec += sec;
-            var drain = (0.0125 - s.z.stamina * 0.0016) * (1 + T.starDrain * Math.max(0, s.usage - 1)) / 60 * (t.iron ? 0.45 : 1);
+            var drain = (0.0125 - s.z.stamina * 0.0016) * (1 + T.starDrain * Math.max(0, s.usage - 1)) / 60 * (t.iron ? 0.45 : 1) * (EXTRAS ? 1.7 : 1);   // league games wear players down faster (Head to Head unchanged)
             s.energy = Math.max(0.4, s.energy - drain * sec);
           } else {
             s.energy = Math.min(1, s.energy + 0.034 / 60 * sec);
