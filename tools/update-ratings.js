@@ -20,7 +20,7 @@ function load(f, marker, tail) {
   const d = await get(ESPN);
   const rows = (d.athletes || []).map(x => {
     const g = {}; (x.categories || []).forEach((c, ci) => ((((d.categories || [])[ci]) || {}).names || []).forEach((n, i) => { g[n] = c.values[i]; }));
-    return { name: x.athlete.displayName, gp: g.gamesPlayed, mpg: g.avgMinutes, pts: g.avgPoints, reb: g.avgRebounds, ast: g.avgAssists, stl: g.avgSteals, blk: g.avgBlocks, tov: g.avgTurnovers, fgm: g.avgFieldGoalsMade, fga: g.avgFieldGoalsAttempted, ftm: g.avgFreeThrowsMade, fta: g.avgFreeThrowsAttempted };
+    return { name: x.athlete.displayName, team: x.athlete.teamShortName || null, gp: g.gamesPlayed, mpg: g.avgMinutes, pts: g.avgPoints, reb: g.avgRebounds, ast: g.avgAssists, stl: g.avgSteals, blk: g.avgBlocks, tov: g.avgTurnovers, fgm: g.avgFieldGoalsMade, fga: g.avgFieldGoalsAttempted, ftm: g.avgFreeThrowsMade, fta: g.avgFreeThrowsAttempted };
   }).filter(r => r.name && r.gp != null);
   if (rows.length < 150 || Math.max.apply(null, rows.map(r => r.gp)) < 3) { console.log('ESPN looks wrong (' + rows.length + ' players), nothing written.'); process.exit(1); }
   const espn = {}; rows.forEach(r => { espn[key(r.name)] = r; });
@@ -34,6 +34,21 @@ function load(f, marker, tail) {
   else { players.forEach(p => { base[p.id] = p.ovr; }); cards.forEach(p => { if (base[p.id] == null) base[p.id] = p.ovr; }); }
   const b0 = p => (base[p.id] != null ? base[p.id] : p.ovr);
 
+  // current teams: a player ESPN has on another team was traded or signed there, so the league (and every current-team
+  // daily) moves him (ESPN's short codes mapped to ours; anyone ESPN has on a team we do not know stays put)
+  const ours = new Set(st.obj.teams.map(t => t.abbr));
+  const MAPT = { GS: 'GSW', NY: 'NYK', SA: 'SAS', NO: 'NOP', NOR: 'NOP', UTAH: 'UTA', WSH: 'WAS', PHO: 'PHX', BRK: 'BKN', CHO: 'CHA' };
+  const teamOf = r => { const t = r && r.team ? (MAPT[r.team] || r.team) : null; return t && ours.has(t) ? t : t && ours.has('NOH') && t === 'NOP' ? 'NOH' : null; };
+  const trades = [];
+  players.forEach(p => { const t = teamOf(espn[key(p.name)]); if (t && p.team !== t) trades.push({ p, from: p.team, to: t }); });
+  console.log('team moves:', trades.length, trades.slice(0, 25).map(x => x.p.name + ' ' + x.from + '>' + x.to).join(', '));
+  if (process.argv.includes('--teams-only')) {
+    if (!WRITE) { console.log('dry run: nothing written (use --write).'); return; }
+    trades.forEach(x => { x.p.team = x.to; cards.forEach(c => { if (c.id === x.p.id) c.team = x.to; }); });
+    fs.writeFileSync('data/start-2027.js', st.s.slice(0, st.a) + JSON.stringify(st.obj) + st.s.slice(st.b + 1));
+    fs.writeFileSync('data/challenge-pool.js', pl.s.slice(0, pl.a) + JSON.stringify(pl.obj) + pl.s.slice(pl.b + 1));
+    console.log('written:', trades.length, 'team moves'); return;
+  }
   const eff = r => r.pts + r.reb + r.ast + r.stl + r.blk - r.tov - (r.fga - r.fgm) - (r.fta - r.ftm);
   const q = [];   // qualified: matched, enough games and minutes
   players.forEach(p => { const r = espn[key(p.name)]; if (r && r.gp >= MIN_GP && r.mpg >= MIN_MPG) q.push({ p, r, perf: eff(r) / Math.max(r.mpg, 1) * 36 }); });
@@ -56,6 +71,7 @@ function load(f, marker, tail) {
   if (!WRITE) { console.log('dry run: nothing written (use --write).'); return; }
   const set = (p, t) => { if (p.ovr === t) return; if (p.attrs) P.setOvr(p, t, { keepPot: true }); else p.ovr = t; p.ovr = t; };
   let n = 0;
+  trades.forEach(x => { x.p.team = x.to; cards.forEach(c => { if (c.id === x.p.id) c.team = x.to; }); });
   players.forEach(p => { const t = b0(p) + (move[p.id] || 0); if (p.ovr !== t) { set(p, t); n++; } });
   cards.forEach(p => { const t = b0(p) + (move[p.id] || 0); if (p.ovr !== t) { set(p, t); n++; } });
   if (!fs.existsSync(BF)) fs.writeFileSync(BF, JSON.stringify(base));

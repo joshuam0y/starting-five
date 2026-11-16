@@ -79,12 +79,16 @@
     const c = ac(); if (!c) return;
     try {
       if (!amb) {
-        const s = noise(c), f = c.createBiquadFilter(), g = c.createGain();
-        s.loop = true; f.type = 'bandpass'; f.frequency.value = 700; f.Q.value = 0.45; g.gain.value = 0;
-        s.connect(f); f.connect(g); g.connect(c.destination); s.start();
+        // a crowd, not static: the noise low-passed twice (a muffled rumble) and swelling slowly, like voices rising and falling
+        const s = noise(c), f = c.createBiquadFilter(), f2 = c.createBiquadFilter(), sw = c.createGain(), g = c.createGain();
+        s.loop = true; f.type = 'lowpass'; f.frequency.value = 520; f.Q.value = 0.6; f2.type = 'lowpass'; f2.frequency.value = 900; f2.Q.value = 0.4;
+        const lfo = c.createOscillator(), depth = c.createGain(); lfo.frequency.value = 0.23; depth.gain.value = 0.3; sw.gain.value = 0.7;
+        lfo.connect(depth); depth.connect(sw.gain); lfo.start();
+        g.gain.value = 0;
+        s.connect(f); f.connect(f2); f2.connect(sw); sw.connect(g); g.connect(c.destination); s.start();
         amb = { s, g };
       }
-      amb.g.gain.setTargetAtTime(lv * 0.06, c.currentTime, 0.35);
+      amb.g.gain.setTargetAtTime(lv * 0.045, c.currentTime, 0.35);
     } catch (e) { /* no sound is fine */ }
   }
   window.SFX = {

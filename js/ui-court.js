@@ -982,11 +982,11 @@
       if (k === 'ft') {
         const shooter = ev.a;
         const D = other(O);
-        const line = at(O, per, 19, 25);
+        const line = at(O, per, 19.9, 25);   // just behind the line, not on it
         const mv = {}; mv[shooter] = line;
         // the lane: the two defensive bigs on the spaces nearest the rim, two offensive players in the next ones, just
         // outside the lane lines of the season; everyone else behind the line, a defender behind the shooter
-        const lo = 25 - LANE_W / 2 - 0.9, hi = 25 + LANE_W / 2 + 0.9;
+        const lo = 25 - LANE_W / 2 - 1.7, hi = 25 + LANE_W / 2 + 1.7;   // a body's width outside the lane line, feet off it
         // three defenders (both spaces nearest the rim and the third space on one side), two offensive players
         const laneD = [[8.5, lo], [8.5, hi], [16, lo]], laneO = [[12.4, hi], [12.4, lo]];
         const restD = [[28, 25 + rnd(-1, 1)], [26, 41]], restO = [[33, 15], [33, 35]];
@@ -1080,7 +1080,12 @@
             // a bad pass: it sails past his teammate and out
             const out = [clamp(M[0] + (M[0] - P[0]) * 0.6, 1, CW - 1), side(M[1])];
             B.push({ dur: 620, ball: { to: out, arc: 1.4 }, hold: null, fire: true, at0: () => act(mate, 'jump', 520), at: () => tag(tp, 'BAD PASS', 'miss', 1300) });
-          } else if (r < 0.75) {
+          } else if (r < 0.55) {
+            // a backcourt violation: bringing it up, he drifts back over half court with the ball
+            const back = at(O, per, 49.5, clamp(P[1], 8, 42)), over = at(O, per, 45.5, clamp(P[1], 8, 42));
+            B.push({ dur: 700, move: { [tp]: back }, hold: tp, arrive: [tp], near: 1.5, wait: 900 });
+            B.push({ dur: 520, move: { [tp]: over }, hold: tp, fire: true, at: () => tag(tp, 'BACKCOURT', 'miss', 1300) });
+          } else if (r < 0.8) {
             // traveling: the whistle, and he flips the ball to the official on the sideline
             B.push({ dur: 480, move: { [tp]: [P[0] + (h[0] - P[0]) * 0.15, P[1]] }, hold: tp, fire: true, at: () => tag(tp, 'TRAVELING', 'miss', 1300) });
             B.push({ dur: 480, ball: { to: [P[0], side(P[1])], arc: 1.2, h1: 3 }, hold: null });

@@ -535,6 +535,7 @@
     }
     const qTmp = new T.Quaternion();
     function poseMC(f, p, S, dt, sp) {
+      f.ph += (dt || 16) / 1000 * (3 + f.speed * 0.55);   // the dribble's rhythm (the held ball bounces on it)
       const M = f.mc, A = p.act, t = A ? clamp(A.f, 0, 1) : 0, arc = Math.sin(Math.PI * t), up = clamp(t / 0.35, 0, 1);
       const jump = A && AIR[A.k] ? AIR[A.k] * arc : 0;
       let clip, rate = 1;
