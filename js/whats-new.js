@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 382, t: 'The basket is solid: dunks and layups come from in front of the rim, made shots drop through the net, nobody walks through the backboard.' },
   { v: 376, t: 'The ball bounces on every dribble again, nobody stands on the free throw lines, backcourt violations, a softer crowd, and current rosters (Nique Clifford is a Thunder).' },
   { v: 374, t: 'Players tire for real: starters wear down over a long stint, turn yellow or orange, and get their legs back on the bench.' },
   { v: 370, t: 'Hook shots in the post, box-outs on misses, a free throw routine, and handlers who switch dribble hands.' },

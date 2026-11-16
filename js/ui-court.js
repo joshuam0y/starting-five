@@ -659,13 +659,13 @@
       const h = hoop(O, per);
       const sgn = attacksRight(O, per) ? -1 : 1;
       const polar = (r, deg) => { const a = deg * Math.PI / 180; return [h[0] + sgn * r * Math.cos(a), h[1] + r * Math.sin(a)]; };
-      if (type === 'close') return at(O, per, rnd(3.2, 6), rnd(22, 28));
+      if (type === 'close') return at(O, per, rnd(6.2, 9), rnd(21, 29));   // in front of the rim (it is 5.25 ft out), never under or behind it
       if (type === 'post') return at(O, per, rnd(6, 10), pick([rnd(17.5, 20.5), rnd(29.5, 32.5)]));
       if (type === 'mid') return polar(rnd(11, 18), rnd(-75, 75));
       if (Math.random() < 0.3) return at(O, per, rnd(2.5, 7), pick([2.4, 47.6]));
       return polar(rnd(24.6, 26.5), rnd(-62, 62));
     }
-    function landing(O, per) { return at(O, per, rnd(3.5, 13), rnd(15, 35)); }
+    function landing(O, per) { const y = rnd(15, 35); return at(O, per, Math.abs(y - 25) < 3.4 ? rnd(5, 13) : rnd(3.5, 13), y); }   // never down behind the backboard
     // the offense shifts a little around its spots (the defense is left to guardSpot, which follows the ball)
     function drift(form, keys, r) { const out = {}; form = form || {}; keys.forEach(k => { if (st.off && sideOf(k) !== st.off) return; if (form[k]) out[k] = [form[k][0] + rnd(-r, r), clamp(form[k][1] + rnd(-r, r), 1, 49)]; }); return out; }
     function huddles() {
@@ -904,7 +904,7 @@
         const shooter = ev.a;
         const putback = prev && prev.k === 'oreb' && prev.a === shooter && ev.shot === 'close' && st.ph === shooter;
         const dunk = k === 'make' && ev.shot === 'close' && /dunk/i.test(ev.body || ev.text || '');
-        const spot = dunk ? at(O, per, rnd(2.8, 3.8), 25 + rnd(-1.8, 1.8)) : shotSpot(ev.shot, O, per);
+        const spot = dunk ? at(O, per, rnd(6.8, 8.6), 25 + rnd(-2.4, 2.4)) : shotSpot(ev.shot, O, per);   // a dunk takes off in front of the rim
         if (putback) {
           B.push({ dur: 320, move: { [shooter]: spot } });
         } else if (!fastBreak(ev, prev, O, per, B, shooter, spot)) {
@@ -927,7 +927,7 @@
         const prep = B[B.length - 1], need = blk ? [shooter, blk] : [shooter];
         if (prep && !prep.ball && prep.move && prep.move[shooter]) { prep.arrive = need; prep.near = 1.5; if (blk) prep.move[blk] = meet; }
         else B.push({ dur: 200, move: Object.assign({ [shooter]: spot }, blk ? { [blk]: meet } : {}), arrive: need, near: 1.5, wait: 1400 });
-        const riseMove = Object.assign({}, closeout); if (dunk) riseMove[shooter] = [spot[0] + (h[0] - spot[0]) * 0.35, spot[1] + (h[1] - spot[1]) * 0.35];
+        const riseMove = Object.assign({}, closeout); if (dunk) riseMove[shooter] = [spot[0] + (h[0] - spot[0]) * 0.6, spot[1] + (h[1] - spot[1]) * 0.6];   // he finishes a step short of the rim, facing it
         if (blk) riseMove[blk] = meet;
         B.push({ dur: rise, move: riseMove, at0: () => { tag(shooter, label, 'kind', rise + dur + 200); act(shooter, dunk ? 'dunk' : near ? 'layup' : ev.shot === 'post' ? 'hook' : 'shoot', dunk ? rise + dur * 1.6 : near ? rise + dur : rise * 2.6); if (dfd) act(dfd, 'contest', rise + dur); } });
         st.ph = null;
@@ -945,7 +945,7 @@
           } });
           // a big one: he lets the building know (and a teammate comes over)
           const mate = big ? ordered(st.on[O]).filter(x => x !== shooter).sort((x, y) => dist(st.pos[x] || [0, 0], spot) - dist(st.pos[y] || [0, 0], spot))[0] : null;
-          B.push({ dur: dunk ? 420 : 260, ball: { to: at(O, per, HOOP - 1.4, 25 + rnd(-1, 1)), arc: 0, h1: 0.5 }, hold: null,
+          B.push({ dur: dunk ? 420 : 260, ball: { to: at(O, per, HOOP + 0.4, 25 + rnd(-0.4, 0.4)), arc: 0, h1: 0.5 }, hold: null,   // through the net and straight down, not through the backboard
             at: big ? () => { act(shooter, 'cheer', 1300); if (mate) { act(mate, 'cheer', 1100); st.tgt[mate] = [spot[0] + rnd(-2, 2), spot[1] + rnd(-2, 2)]; st.top[mate] = 16; } } : null });
           st.off = fouler ? O : null; st.set = !!fouler;
         } else if (k === 'sfoul') {
@@ -1022,7 +1022,7 @@
             else tag(shooter, 'MISS', 'miss', 800);
           } });
           if (!last) B.push({ dur: 420, ball: { to: shooter, arc: 2 }, hold: shooter });
-          else if (made) B.push({ dur: 260, ball: { to: at(O, per, HOOP - 1.4, 25), arc: 0, h1: 0.5 }, hold: null });
+          else if (made) B.push({ dur: 260, ball: { to: at(O, per, HOOP + 0.4, 25), arc: 0, h1: 0.5 }, hold: null });
           else B.push({ dur: 380, move: crash, ball: { to: landing(O, per), arc: 2.5 }, hold: null });
         });
         st.ph = null; st.off = lastMade || empty ? null : O; st.set = false; st.form = null;
@@ -1256,6 +1256,9 @@
         p[0] += v[0] * dt; p[1] += v[1] * dt;
         if (d < 0.08 && Math.hypot(v[0], v[1]) < 0.6) { v[0] = 0; v[1] = 0; }
       });
+      // the basket is solid: nobody stands in the backboard and pole between the baseline and the rim
+      keys.forEach(k => { const q = st.pos[k]; if (!q || Math.abs(q[1] - 25) > 3.4) return;
+        if (q[0] > 0 && q[0] < 4.6) q[0] = 4.6; else if (q[0] < CW && q[0] > CW - 4.6) q[0] = CW - 4.6; });
       // personal space: two bodies never share a spot
       for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) {
         const a = st.pos[keys[i]], b = st.pos[keys[j]];
