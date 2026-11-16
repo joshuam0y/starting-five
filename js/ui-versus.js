@@ -1059,7 +1059,7 @@
           ${timed ? UI.timerBar(st.until, cfg.timer || 24) : ''}
           <section class="auc-card" style="--c1:${esc((tm.colors || ['#444'])[0])}">
             <div class="auc-face">${UI.faceImg(cur, (tm.colors || ['#444'])[0])}</div>
-            <div class="auc-info"><small>UP FOR BID</small><h2>${esc(cur.name)}</h2><p>${esc(C.posLabel(cur))}${cur.season || cfg.year ? ' | ' + esc(short(cur.season || cfg.year)) : ''}${blind ? '' : ' | <b class="ch-ovr ' + UI.ovrClass(cur.ovr) + '">' + esc(cur.ovr) + '</b>'}</p></div>
+            <div class="auc-info"><small>UP FOR BID</small><h2>${esc(cur.name)}</h2><p>${esc(C.posLabel(cur))}${cur.season || cfg.year ? ' | ' + esc(short(cur.season || cfg.year)) : ''}${(() => { const tn = (p => C.teamNick(p.season || cfg.year || 2013, p.from || p.team))(cur); return tn ? ' | ' + esc(tn) : ''; })()}${blind ? '' : ' | <b class="ch-ovr ' + UI.ovrClass(cur.ovr) + '">' + esc(cur.ovr) + '</b>'}</p></div>
             <div class="auc-price"><small>${esc(who(st.holder).toUpperCase())} HOLDS</small><b>${money(st.price)}</b></div>
           </section>
           ${bid}

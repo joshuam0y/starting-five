@@ -32,8 +32,9 @@
   const advBar = () => {
     if (!HOOK.on || !TN.adv || TN.adv.go) return '';
     const by = TN.adv.by || [];
-    if (HOOK.host) return `<p class="muted tn-adv">WAITING FOR EVERYONE TO AGREE: ${esc(TN.adv.label)} (${by.length} OF ${HOOK.humansLive()})</p>`;
-    return by.indexOf(HOOK.mySeat()) >= 0 ? '<p class="muted tn-adv">YOU AGREED. WAITING FOR THE OTHERS...</p>' : `<button type="button" class="btn btn-gold btn-big" id="tnAgree">AGREE: ${esc(TN.adv.label)}</button>`;
+    const need = Math.floor(HOOK.humansLive() / 2) + 1;   // a majority moves it on
+    if (HOOK.host) return `<p class="muted tn-adv">WAITING FOR A MAJORITY: ${esc(TN.adv.label)} (${by.length} OF ${need} NEEDED)</p>`;
+    return by.indexOf(HOOK.mySeat()) >= 0 ? '<p class="muted tn-adv">YOU AGREED. WAITING FOR A MAJORITY...</p>' : `<button type="button" class="btn btn-gold btn-big" id="tnAgree">AGREE: ${esc(TN.adv.label)}</button>`;
   };
   const advBind = app => {
     const ag = UI.$('#tnAgree', app); if (ag) ag.addEventListener('click', () => { ag.disabled = true; HOOK.agree(TN.adv.key); });
@@ -388,7 +389,19 @@
   // ---------- the auction screen: every team bids, round the table (hot-seat and online) ----------
   // o: { t (names, ai, n, opts, watching), cfg, B, st, w (the seat that is acting on this device, -1 for a spectator), act(a, to), now(), redraw(), still() }
   const TA = { i: -1, price: -1, amt: 0 };   // the amount picked on this device for the player who is up
+  // the reveal (as in Head to Head): players the rules settled (the last team with spots gets the rest free, nobody could
+  // top the price) are shown one by one before the auction moves on. TA.seen: the sales this device has shown.
+  function aucPending(st) { if (!st || !st.log) return []; if (TA.st !== st) { TA.st = st; TA.seen = st.i <= 0 ? 0 : st.log.length; /* joined late or reloaded: no replay of old sales */ } return st.log.slice(TA.seen).filter(x => x.auto); }
+  function aucReveal(app, o, then) {
+    const autos = aucPending(o.st); TA.seen = o.st.log.length;
+    if (!autos.length || !UI.aucReveal || TA.rev) return false;
+    TA.rev = true; window.scrollTo(0, 0);
+    UI.aucReveal(app, { entries: autos, byId: o.B.byId, blind: false, name: i => (o.t.names && o.t.names[i]) || '', color: p => (((o.B.teamFor ? o.B.teamFor(p.team, p.season) : null) || {}).colors || ['#555'])[0], onDone: () => { TA.rev = false; then(); } });
+    return true;
+  }
   function aucView(app, o) {
+    if (TA.rev) return;   // a reveal is playing: its end redraws
+    if (aucReveal(app, o, () => { if (!o.still || o.still()) o.redraw(); })) return;
     stopTick();
     const t = o.t, cfg = o.cfg, B = o.B, st = o.st, ao = st.o, per_ = st.per, byId = B.byId, w = o.w, money = n => '$' + n, showR = t.opts.ratings !== false;
     const cur = byId[st.ids[st.i]], tm = B.teamFor(cur.team, cur.season), left = st.ids.length - st.i - 1;
@@ -421,7 +434,7 @@
         ${timed ? UI.timerBar(st.until, cfg.timer || 24, o.now()) : ''}
         <section class="auc-card" style="--c1:${esc((tm.colors || ['#444'])[0])}">
           <div class="auc-face">${UI.faceImg(cur, (tm.colors || ['#444'])[0])}</div>
-          <div class="auc-info"><small>UP FOR BID</small><h2>${esc(cur.name)}</h2><p>${esc(C.posLabel(cur))}${cur.season || cfg.year ? ' | ' + esc(short(cur.season || cfg.year)) : ''}${showR ? ' | <b class="ch-ovr ' + UI.ovrClass(cur.ovr) + '">' + esc(cur.ovr) + '</b>' : ''}</p></div>
+          <div class="auc-info"><small>UP FOR BID</small><h2>${esc(cur.name)}</h2><p>${esc(C.posLabel(cur))}${cur.season || cfg.year ? ' | ' + esc(short(cur.season || cfg.year)) : ''}${(() => { const tn = (p => C.teamNick(p.season || cfg.year || 2013, p.from || p.team))(cur); return tn ? ' | ' + esc(tn) : ''; })()}${showR ? ' | <b class="ch-ovr ' + UI.ovrClass(cur.ovr) + '">' + esc(cur.ovr) + '</b>' : ''}</p></div>
           <div class="auc-price"><small>${who2(st.holder).toUpperCase()} HOLDS</small><b>${money(st.price)}</b></div>
         </section>
         ${bid}
@@ -464,7 +477,7 @@
     }
     const step = () => {
       C.auctionNRunAI(st, B.byId, Math.random, i => i < humDone());
-      if (st.done) { finishAuc(app, cfg, B); return; }
+      if (st.done) { if (!aucReveal(app, { st, B, t: TN }, () => finishAuc(app, cfg, B))) finishAuc(app, cfg, B); return; }
       st.until = cfg.timer ? Date.now() + cfg.timer * 1000 : null; save(); draft(app);
     };
     aucView(app, { t: TN, cfg, B, st, w: st.turn, hot: true, now: () => Date.now(), still: () => TN.auc === st && TN.page === 'draft', quit, redraw: () => draft(app),
@@ -847,11 +860,21 @@
       const B = board(TN.cfg), c = TN.champ, t = teamOf(c), five = TN.picks[c].map(id => B.byId[id]).filter(Boolean);
       const path = TN.rounds.map((round, r) => { const m = round.find(x => x.done && (x.a === c || x.b === c)); if (!m) return ''; const o = m.a === c ? m.b : m.a, k = m.a === c ? 0 : 1; return `<li><span>${roundName(r)}</span><b>beat ${esc(nm(o))}</b><strong>${m.wins[k]}-${m.wins[1 - k]}</strong></li>`; }).join('');
       const final = TN.rounds[TN.rounds.length - 1][0], runnerUp = final.a === c ? final.b : final.a;
+      // the champion's run in numbers: every series he played, averages weighted by games, the MVP of the run and of the final
+      const runs = []; TN.rounds.forEach(round => round.forEach(m => { if (m.done && (m.a === c || m.b === c)) { try { runs.push(run(m)); } catch (e) { /* no stats */ } } }));
+      const agg = {}; runs.forEach(r => Object.keys(r.lines || {}).forEach(id => { const l = r.lines[id], a = agg[id] || (agg[id] = { g: 0, pts: 0, reb: 0, ast: 0 }); a.g += l.g || 0; ['pts', 'reb', 'ast'].forEach(k => { a[k] += (l[k] || 0) * (l.g || 0); }); }));
+      const avg = id => { const a = agg[id]; return a && a.g ? { g: a.g, pts: a.pts / a.g, reb: a.reb / a.g, ast: a.ast / a.g } : null; };
+      const f1s = x => (Math.round(x * 10) / 10).toFixed(1), statLine = a => a ? `${f1s(a.pts)} PTS | ${f1s(a.reb)} REB | ${f1s(a.ast)} AST` : '';
+      const mvpQ = five.slice().sort((x, y) => { const a = avg(x.id) || {}, b = avg(y.id) || {}; return ((b.pts || 0) + (b.reb || 0) + (b.ast || 0)) - ((a.pts || 0) + (a.reb || 0) + (a.ast || 0)); })[0];
+      let finR = null; try { finR = run(final); } catch (e) { finR = null; }
+      const fmvp = finR && finR.mvp ? finR.mvp : null;
+      const mvpCard = mvpQ && avg(mvpQ.id) ? `<div class="tn-mvp"><small>TOURNAMENT MVP</small><b>${esc(mvpQ.name)}</b><span>${statLine(avg(mvpQ.id))} | ${avg(mvpQ.id).g} GAMES</span>${fmvp ? `<em>FINALS MVP: ${esc(fmvp.name)}${fmvp.line ? ' (' + f1s(fmvp.line.pts) + ' PTS)' : ''}</em>` : ''}</div>` : '';
       app.innerHTML = `<section class="tn-champ" style="--c1:${esc((t.colors || ['#d4af37'])[0])}">
           <div class="ch-hero-k">${esc(lblC(TN.cfg))} | ${TN.n} PLAYER TOURNAMENT</div>${logo(t, 110)}
           <div class="tn-champ-k">CHAMPION</div><h1 class="tn-champ-n">${esc(nm(c)).toUpperCase()}${aiTag(c)}</h1>
           <p class="muted">${esc(tName(t))}. Runner-up: ${esc(nm(runnerUp))}.</p>
-          <ol class="tn-champ-five">${five.map(q => `<li><b>${esc(q.name)}</b><small>${esc(C.posLabel(q))}${B.era && q.season ? ' | ' + short(q.season) : ''}</small>${ovrTag(q)}</li>`).join('')}</ol>
+          ${mvpCard}
+          <ol class="tn-champ-five">${five.map(q => `<li><b>${esc(q.name)}${mvpQ && q.id === mvpQ.id ? ' <i class="tn-mvp-tag">MVP</i>' : ''}</b><small>${esc(C.posLabel(q))}${B.era && q.season ? ' | ' + short(q.season) : ''}${avg(q.id) ? ' | ' + statLine(avg(q.id)) : ''}</small>${ovrTag(q)}</li>`).join('')}</ol>
           <ul class="tn-path">${path}</ul>
           <div class="row-btns center ch-acts">${ctl() ? '<button type="button" class="btn btn-gold btn-big" id="tnNew">NEW TOURNAMENT</button>' : '<button type="button" class="btn btn-gold btn-big" id="tnLeave">LEAVE ROOM</button>'}<button type="button" class="btn" id="tnBracket">SEE THE BRACKET</button><button type="button" class="btn" id="tnFinalBox">FINAL BOX SCORES</button></div></section>`;
       if (window.SFX) { try { window.SFX.play('crowd'); } catch (e) { /* no sound */ } }
@@ -863,7 +886,7 @@
   }
 
   // what the online tournament drives: the same bracket, match and champion screens on every phone
-  window.TOURNAMENT.api = { hook: HOOK, get: () => TN, render, save, ensure, board, banUI, aucView, rulesBox, RULES_BTN, bindRules, boardHtml, boardBind, TV, BGT, rosterOf, spinFor, aiChoose, ovrTag, startBracket, teamOf, tName, logo, lblC, short, lbl,
+  window.TOURNAMENT.api = { hook: HOOK, get: () => TN, render, save, ensure, board, banUI, aucView, aucPending, rulesBox, RULES_BTN, bindRules, boardHtml, boardBind, TV, BGT, rosterOf, spinFor, aiChoose, ovrTag, startBracket, teamOf, tName, logo, lblC, short, lbl,
     ALL_YEARS, decOf, shuffle, CPU_NAMES, clearRuns: RUNS_CLEAR, nm, f1,
     nm2: nm, mount(app) { APP = app; render(); },
     swap(obj) { TN = Object.assign(FRESH(), obj || ls.get() || {}); TN.opts = Object.assign({ timer: 24, cap: 0, bestOf: 1, seeding: 'random', ratings: true }, TN.opts || {}); RUNS_CLEAR(); WATCH = 0; AUTO = false; dropCourt(); },

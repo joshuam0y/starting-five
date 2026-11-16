@@ -265,7 +265,8 @@
     const t = TN(), c = t.seats[i];
     if (NET.role !== 'host' || !c || c === CID) return;
     if (!window.confirm('Make ' + t.names[i] + ' the host? They run the bracket from here, and you become a regular player.')) return;
-    t.epoch = (t.epoch || 0) + 1; t.hostCid = c;
+    t.epoch = (t.epoch || 0) + 1; t.hostCid = c; LASTHOST = c;
+    if (UI.toast) UI.toast(t.names[i] + ' is now the host.');
     push(); lsHost.del(); become('guest'); refreshNet(); changed();
   }
   function onHello(m) {
@@ -305,11 +306,18 @@
     pill();
   }
   function soft() { if (!APP || !onPage()) return; const t = TN(); if (t.page === 'lobby') lobby(APP); else if (t.page === 'draft') updateProg(); }
+  let LASTHOST = null;   // the host this phone last saw (a change gets a toast)
   function onState(s) {
     const t = TN();
     if (s.hnow) OFF = s.hnow - Date.now();
     const sig = JSON.stringify(s, (k, v) => (k === 'hnow' || k === 'live' ? undefined : v));
     SHARED.forEach(k => { if (k in s) t[k] = s[k]; });
+    // a new host: everyone is told who it is now
+    if (t.hostCid && LASTHOST && t.hostCid !== LASTHOST && UI.toast) {
+      const hi = (t.seats || []).indexOf(t.hostCid), hn = hi >= 0 && t.names ? t.names[hi] : '';
+      UI.toast(t.hostCid === CID ? "You're the host now." : (hn || 'Someone') + ' is now the host.');
+    }
+    if (t.hostCid) LASTHOST = t.hostCid;
     if (t.hostCid === CID && NET.role === 'guest') { SIG = sig; takeOver(true); return; }
     if (sig === SIG) { soft(); return; }
     SIG = sig;
@@ -377,11 +385,11 @@
   const banning = t => !!(t.cfg && (t.cfg.bansN || 0) > 0 && (t.cfg.bans || []).length < t.seats.length * t.cfg.bansN);
   function hostAct(seat, a) {
     const t = TN(), cfg = t.cfg;
-    if (a && a.k === 'adv') {   // a player agrees to move the bracket on; when every connected human has, the host's page runs it
+    if (a && a.k === 'adv') {   // a player agrees to move the bracket on; when a majority of the connected humans has, the host's page runs it
       if (!t.adv || t.adv.key !== a.key || seat < 0 || seat >= t.seats.length) return;
       if (t.adv.by.indexOf(seat) < 0) t.adv.by.push(seat);
-      const need = t.seats.map((c, i) => i).filter(i => t.seats[i] === CID || Date.now() - (SEEN[t.seats[i]] || 0) < 15000);
-      if (need.every(i => t.adv.by.indexOf(i) >= 0)) t.adv.go = true;
+      const live = t.seats.map((c, i) => i).filter(i => t.seats[i] === CID || Date.now() - (SEEN[t.seats[i]] || 0) < 15000);
+      if (live.filter(i => t.adv.by.indexOf(i) >= 0).length >= Math.floor(live.length / 2) + 1) t.adv.go = true;
       afterChange(); push(); return;
     }
     if (a && a.k === 'ban') {   // the ban round: humans take turns
@@ -729,7 +737,7 @@
       const B = A.board(cfg), teams = B.teams, byId = B.byId;
       if (NET.role === 'watch') {   // a spectator sees the ban round and the auction as they happen, and everyone's progress otherwise
         if (banning(t)) { const kk = (cfg.bans || []).length, bs = kk % t.seats.length; A.banUI(app, { cfg, B, name: t.names[bs], k: kk, total: t.seats.length * cfg.bansN, mine: false, blind: t.opts.ratings === false, redraw: () => draft(app), onBan: () => {} }); return; }
-        if (cfg.auction && t.auc && !t.auc.done) { aucPage(app, t, cfg, B); return; }
+        if (cfg.auction && t.auc && (!t.auc.done || (A.aucPending && A.aucPending(t.auc).length))) { aucPage(app, t, cfg, B); return; }   // the last sales' reveal plays before the bracket
         app.innerHTML = `<div class="ch-top"><div><div class="ch-top-k">${esc(A.lblC(cfg))} | ${t.n} TEAMS | WATCHING</div><div class="ch-top-t">THE DRAFT</div></div></div><div id="tnNet">${netBar()}</div><div id="tnProg">${progHtml()}</div><p class="muted">You are watching. Everyone's picks show up here as they are made, and the bracket follows.</p>`;
         refreshNet(); bindProg(UI.$('#tnProg', app));
         return;

@@ -173,6 +173,12 @@
     else SEASONS.forEach(function (s) { if (loaded(s.year)) seen[s.year] = true; });
     return Object.keys(seen).map(Number).sort(function (a, b) { return a - b; });
   }
+  // a team's nickname for a season ("Kings"): that season's team when its data is loaded, else the franchise's, else the code
+  function teamNick(year, abbr) {
+    if (!abbr) return '';
+    var t = (year && eraTeam(year, abbr)) || eraTeam(2013, abbr);
+    return t && t.name ? t.name : abbr;
+  }
   function eraTeam(year, abbr) {
     var d = seasonData(year), P = W.CHALLENGE_POOL;
     var list = d ? d.teams : P && P.teams && P.teams[year] ? P.teams[year] : null;
@@ -305,8 +311,12 @@
   }
   // a ranked draw is balanced: at least two guards, two forwards and two bigs among the ten, so neither side can be left with an unplayable lineup. The order stays the shuffled one.
   function posGroup(p) { var s = String(p.pos || '').toUpperCase(); if (/C/.test(s)) return 'B'; return /^(PG|SG|G)/.test(s) ? 'G' : 'F'; }
-  function balancedDraw(shuf, n) {
-    var need = { G: 2, F: 2, B: 2 }, take = {}, out = [], i, g;
+  // the Daily and Head to Head draw (two of each position first): never change it, the Daily's ten and every answer key depend on it
+  function balancedDraw(shuf, n) { return drawBy(shuf, n, { G: 2, F: 2, B: 2 }); }
+  // the tournament's lots, by position: about 40% guards, 40% forwards and 20% bigs, so every team can build a lineup
+  function balancedDrawN(shuf, n) { var nb = Math.max(2, Math.round(n * 0.2)), ng = Math.max(2, Math.round(n * 0.4)); return drawBy(shuf, n, { G: ng, F: Math.max(2, n - ng - nb), B: nb }); }
+  function drawBy(shuf, n, need) {
+    var take = {}, out = [], i, g;
     for (i = 0; i < shuf.length; i++) { g = posGroup(shuf[i]); if (need[g] > 0) { need[g]--; take[i] = 1; } }
     var left = n - Object.keys(take).length;
     for (i = 0; i < shuf.length && left > 0; i++) if (!take[i]) { take[i] = 1; left--; }
@@ -368,8 +378,9 @@
   function auctionNStart(cfg, n, players) {
     var o = aucOpts(cfg.auction), per = vsPer(cfg), size = Math.max(o.pool || 0, n * per), rng = mulberry32(((cfg.seed || 1) ^ 0xA0C7A1) >>> 0);
     var sorted = players.slice().sort(function (a, b) { return b.ovr - a.ovr || (a.id < b.id ? -1 : 1); });
-    var top = o.quality === 'elite' ? Math.max(size, 40 * Math.ceil(n / 2)) : o.quality === 'stars' ? Math.max(size, 60 * Math.ceil(n / 2)) : o.quality === 'mixed' ? Math.max(size, 200 * Math.ceil(n / 2)) : sorted.length;
-    var pool = shuffle(sorted.slice(0, top), rng).slice(0, size);
+    // the cut grows only as far as the lots need (it grew 200 for every two teams, so four teams reached role players)
+    var top = o.quality === 'elite' ? Math.max(40, size * 2) : o.quality === 'stars' ? Math.max(60, size * 3) : o.quality === 'mixed' ? Math.max(200, size * 6) : sorted.length;
+    var pool = balancedDrawN(shuffle(sorted.slice(0, top), rng), size);
     var st = { o: o, per: per, n: n, first: cfg.first ? cfg.first % n : 0, ids: pool.map(function (p) { return p.id; }), i: -1, price: o.start, holder: 0, turn: 0, active: [], spent: [], won: [], log: [], done: false };
     for (var k = 0; k < n; k++) { st.spent.push(0); st.won.push([]); }
     return aucNNext(st);
@@ -978,7 +989,7 @@
   var API = {
     setCapSlots: setCapSlots, capFor: capFor, price: price, capState: capState, capFits: capFits, CAP_MIN: CAP_MIN,
     SEASONS: SEASONS, ROUNDS: ROUNDS, seasonInfo: seasonInfo, seasonData: seasonData, loaded: loaded, load: load, loadAll: loadAll,
-    allTimePool: allTimePool, poolSeasons: poolSeasons, eraTeam: eraTeam, buildYear: buildYear, buildAllTime: buildAllTime, newDraft: newDraft, onClock: onClock,
+    allTimePool: allTimePool, poolSeasons: poolSeasons, eraTeam: eraTeam, teamNick: teamNick, buildYear: buildYear, buildAllTime: buildAllTime, newDraft: newDraft, onClock: onClock,
     draftSlot: draftSlot, draftPick: draftPick, aiPick: aiPick, simToUser: simToUser, autoDraft: autoDraft, available: available,
     teamPicks: teamPicks, lineupFit: lineupFit, posLabel: posLabel, secondPos: secondPos, SLOTS: SLOTS, vsOnClock: vsOnClock, vsPer: vsPer, auctionStart: auctionStart, auctionAct: auctionAct, auctionNStart: auctionNStart, auctionNAct: auctionNAct, auctionNRunAI: auctionNRunAI, aucNMax: aucNMax, aucNCanRaise: aucNCanRaise, aucNAI: aucNAI, aucOpts: aucOpts, aucMax: aucMax, aucCanRaise: aucCanRaise, playVersus: playVersus, VS_ORDER: VS_ORDER, spin: spin, takenKey: takenKey, extendPool: extendPool, franchise: franchise, spinRoster: spinRoster, matchups: matchups, start: start, step: step, runAll: runAll,
     progress: progress, summary: summary, play: play, perGame: perGame, groupOf: groupOf, primaryPos: primaryPos, rng: mulberry32
