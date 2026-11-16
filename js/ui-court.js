@@ -528,10 +528,10 @@
         const rows = keys.map(k => {
           const l = L[k] || {}, on = st.on[side].indexOf(k) >= 0, g = n => l[n] || 0;
           Object.keys(T).forEach(n => { T[n] += g(n); });
-          return `<tr class="${on ? 'on' : ''}"><td class="l">${on ? '<i></i>' : ''}${esc(info[k].name)}${info[k].yr ? ' <small>' + esc(info[k].yr) + '</small>' : ''}</td><td>${f1(g('min'))}</td><td>${g('pts')}</td><td>${g('reb')}</td><td>${g('ast')}</td><td>${g('stl')}</td><td>${g('blk')}</td><td>${g('tov')}</td><td>${g('pf')}</td><td>${g('fgm')}-${g('fga')}</td><td>${g('tpm')}-${g('tpa')}</td><td>${g('ftm')}-${g('fta')}</td><td>${g('pm') > 0 ? '+' : ''}${g('pm')}</td></tr>`;
+          return `<tr class="${on ? 'on' : ''}"><td class="l">${on ? '<i></i>' : ''}${esc(info[k].name)}${info[k].yr ? ' <small>' + esc(info[k].yr) + '</small>' : ''}</td><td>${f1(g('min'))}</td>${game.pbe ? '<td>' + enBar(k) + '</td>' : ''}<td>${g('pts')}</td><td>${g('reb')}</td><td>${g('ast')}</td><td>${g('stl')}</td><td>${g('blk')}</td><td>${g('tov')}</td><td>${g('pf')}</td><td>${g('fgm')}-${g('fga')}</td><td>${g('tpm')}-${g('tpa')}</td><td>${g('ftm')}-${g('fta')}</td><td>${g('pm') > 0 ? '+' : ''}${g('pm')}</td></tr>`;
         }).join('');
-        const tot = `<tr class="tot"><td class="l">TEAM</td><td></td><td>${T.pts}</td><td>${T.reb}</td><td>${T.ast}</td><td>${T.stl}</td><td>${T.blk}</td><td>${T.tov}</td><td>${T.pf}</td><td>${T.fgm}-${T.fga}</td><td>${T.tpm}-${T.tpa}</td><td>${T.ftm}-${T.fta}</td><td></td></tr>`;
-        return `<div class="ct-bxw"><table class="ct-bx"><thead><tr><th class="l">${esc(abbr[side])} ${side === 'home' ? st.hs : st.as}</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>TO</th><th>PF</th><th>FG</th><th>3P</th><th>FT</th><th>+/-</th></tr></thead><tbody>${rows}${tot}</tbody></table></div>`;
+        const tot = `<tr class="tot"><td class="l">TEAM</td><td></td>${game.pbe ? '<td></td>' : ''}<td>${T.pts}</td><td>${T.reb}</td><td>${T.ast}</td><td>${T.stl}</td><td>${T.blk}</td><td>${T.tov}</td><td>${T.pf}</td><td>${T.fgm}-${T.fga}</td><td>${T.tpm}-${T.tpa}</td><td>${T.ftm}-${T.fta}</td><td></td></tr>`;
+        return `<div class="ct-bxw"><table class="ct-bx"><thead><tr><th class="l">${esc(abbr[side])} ${side === 'home' ? st.hs : st.as}</th><th>MIN</th>${game.pbe ? '<th>ENERGY</th>' : ''}<th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>TO</th><th>PF</th><th>FG</th><th>3P</th><th>FT</th><th>+/-</th></tr></thead><tbody>${rows}${tot}</tbody></table></div>`;
       }).join('');
     }
     // a full box line for everyone as of the first n plays: minutes and plus-minus from who was on the floor, the rest from who did what
@@ -582,6 +582,13 @@
       const row = game.pbe && game.pbe[Math.max(0, Math.min(i, game.pbe.length - 1))];
       return row ? row[sideOf(key) === 'home' ? 0 : 1][idxOf(key)] : null;
     }
+    // a bar for the box score and the player card: fill and color from his energy (40 is spent, 100 fresh)
+    function enBar(key) {
+      const e = energyAt(key, Math.max(0, st.done - 1));
+      if (e == null) return '';
+      const f = Math.max(0, Math.min(1, (e - 40) / 60));
+      return `<span class="ct-enb" title="Energy ${e}%"><em style="width:${(f * 100).toFixed(0)}%;background:hsl(${Math.round(f * 120)} 75% 45%)"></em></span>`;
+    }
     function drawEnergy() {
       if (!game.pbe) return;
       const i = Math.max(0, st.done - 1);
@@ -608,7 +615,7 @@
       const line = linesAt(tl, st.done)[st.sel] || { pts: 0, reb: 0, ast: 0 };
       const onFloor = st.on[p.side].indexOf(st.sel) >= 0;
       c.innerHTML = `<div class="ct-cn">${logoOf(abbr[p.side], 22)}<b>${esc(p.name)}</b><small>${esc(p.pos)}${onFloor ? '' : ' | BENCH'}</small></div>
-        <div class="ct-cl"><span><b>${line.pts}</b>PTS</span><span><b>${line.reb}</b>REB</span><span><b>${line.ast}</b>AST</span></div><button type="button" class="ct-x" aria-label="Stop following">X</button>`;
+        <div class="ct-cl"><span><b>${line.pts}</b>PTS</span><span><b>${line.reb}</b>REB</span><span><b>${line.ast}</b>AST</span>${game.pbe ? `<span class="ct-cen">${enBar(st.sel)}ENERGY</span>` : ''}</div><button type="button" class="ct-x" aria-label="Stop following">X</button>`;
       c.querySelector('.ct-x').addEventListener('click', () => select(st.sel));
     }
 
@@ -1469,7 +1476,7 @@
       hold(i) { st.holdAt = i == null ? null : i; wake(); },                                              // never run ahead of event i
       state: () => ({ cur: st.cur, done: st.done, playing: st.playing, speed: st.speed, ended: st.ended }),
       done: () => st.done,
-      probe: () => ({ t: st.simT, pos: Object.keys(st.pos).filter(k => (st.alpha[k] || 0) > 0.5).map(k => [k, st.pos[k][0], st.pos[k][1]]) }),   // for tools: where everyone is
+      probe: () => ({ t: st.simT, acts: Object.keys(st.act).map(k => [k, st.act[k].k, (st.simT - st.act[k].t0) / st.act[k].d]).filter(a => a[2] >= 0 && a[2] < 1), pos: Object.keys(st.pos).filter(k => (st.alpha[k] || 0) > 0.5).map(k => [k, st.pos[k][0], st.pos[k][1]]) }),   // for tools: where everyone is
       timeline: tl
     };
   };

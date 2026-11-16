@@ -814,6 +814,11 @@
         if (q <= 2 && s.fouls >= q + 2) need -= 9;
         else if (q === 3 && s.fouls >= 5) need -= 9;
         else if (q === 4 && s.fouls >= 5 && clock > 360) need -= 4;
+        // league coaches guard foul trouble harder (4 in the 3rd, 5 until the last 3 minutes); never in Head to Head
+        if (EXTRAS && !t.iron) {
+          if (q === 3 && s.fouls === 4) need -= 6;
+          if (q === 4 && s.fouls >= 5 && clock > 180) need -= 7;
+        }
         if (s.target <= 0) need -= 6;
         if (forceStarters && s.starter) need += 1000;
         if (crunch) need = 100 + s.target * 0.6 - Math.max(0, 0.85 - s.energy) * 60 - (s.fouls >= 5 ? 3 : 0) + (s.onCourt ? 1 : 0);
@@ -891,6 +896,8 @@
       return def.lineup[clamp(i, 0, def.lineup.length - 1)];
     }
 
+    // a player in foul trouble plays it safe (league games only: Head to Head draws must not change)
+    function careful(s) { return !EXTRAS ? 1 : s.fouls >= 5 ? 0.3 : s.fouls >= 4 ? 0.65 : 1; }
     function foulOutCheck(team, s) {
       // off the floor right away (as an injury is), not at the next dead ball: a missed last free throw keeps the
       // ball live, and he could foul a seventh time before then
@@ -1021,7 +1028,7 @@
         }
         // ---- non-shooting foul ----
         if (rng() < T.nonShootFoul) {
-          var fd = pickBy(def.lineup, function (s) { return Math.exp(-0.25 * s.z.diq) * (s.group === 'B' ? 1.2 : 1); });
+          var fd = pickBy(def.lineup, function (s) { return Math.exp(-0.25 * s.z.diq) * (s.group === 'B' ? 1.2 : 1) * careful(s); });
           fd.box.pf++; fd.fouls++;
           var bonus = inBonus(def);
           addTeamFoul(def);
@@ -1068,14 +1075,17 @@
       var pExp = clamp(pMake + T.makeDef[type] * defZ + T.makeOvr * (dfd.ovrSoft - fz(dfd)), 0.12, 0.85);   // against an average defender
       var is3 = type === 'three';
       var pFoul = T.foulShot[type] * ((1 - T.tendBlend) * Math.exp(0.15 * shooter.z.strength + 0.6 * (shooter.usage - 1)) +
-        T.tendBlend * shooter.foulTend) * Math.exp(-0.1 * dfd.z.diq) * (shooter.gen ? T.genFoul : 1);
+        T.tendBlend * shooter.foulTend) * Math.exp(-0.1 * dfd.z.diq) * (shooter.gen ? T.genFoul : 1) *
+        (EXTRAS ? 0.96 : 1);   // league games: fewer foul-outs keep the foul-drawing stars on the floor, so a touch fewer shooting fouls
       var desc = shotDesc(type, shooter, rng);
       // the 4-point line (a league change after 2026): some threes come from 30 feet, worth four
       var deep = is3 && era.four > 0 && rng() < era.four;
       if (deep) { pMake = Math.max(0.12, pMake - 0.08); desc = 'a 4-point shot from 30 feet'; }
       if (rng() < pFoul) {
         var fouler = (type === 'close' || type === 'post') && rng() < 0.45 ?
-          pickBy(def.lineup, function (s) { return s.group === 'B' ? 2 : 1; }) : dfd;
+          pickBy(def.lineup, function (s) { return (s.group === 'B' ? 2 : 1) * careful(s); }) : dfd;
+        // his own man in foul trouble backs off and a teammate makes the foul (league games only)
+        if (EXTRAS && fouler === dfd && careful(dfd) < 1 && rng() > careful(dfd)) fouler = pickBy(def.lineup, function (s) { return careful(s) * (s === dfd ? 0.2 : 1); });
         fouler.box.pf++; fouler.fouls++;
         addTeamFoul(def);
         if (rng() < pMake * T.andOneFactor) {

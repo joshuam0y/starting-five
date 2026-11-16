@@ -269,3 +269,9 @@ body.ct-full-on { overflow: hidden; }
 @media (max-width: 560px) { .ct-stage.ct-3d { aspect-ratio: auto; height: clamp(220px, 44vh, 420px); } }
 .ct-full .ct-stage.ct-3d { height: auto; }
 .ct-full .ct-stage:not(.ct-3d) .ct-svg { max-height: 100%; }
+
+/* energy bars in the box score and on the player card */
+.ct-enb { display: inline-block; width: 46px; height: 6px; background: rgba(255,255,255,.12); border-radius: 3px; overflow: hidden; vertical-align: middle; }
+.ct-enb em { display: block; height: 100%; }
+.ct-cen { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; }
+.ct-cen .ct-enb { width: 52px; height: 8px; margin-top: 6px; }
