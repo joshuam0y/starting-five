@@ -563,7 +563,7 @@
       ${row('b', 'MONEY EACH', 'aBudget', [[10, '$10'], [15, '$15'], [20, '$20'], [30, '$30'], [50, '$50']])}
       ${row('s', 'OPENING PRICE', 'aStart', [[1, '$1'], [2, '$2'], [3, '$3']], 'Each side must keep this much for every empty roster spot.')}
       ${row('r', 'EACH RAISE', 'aRaise', [[1, '+$1'], [2, '+$2'], [5, '+$5']])}
-      ${row('q', 'WHO IS IN THE POOL', 'aQ', [['stars', 'TOP 60'], ['mixed', 'TOP 200'], ['any', 'EVERYONE']], o.aQ === 'stars' ? 'Drawn from the 60 best players in the seasons you picked.' : o.aQ === 'mixed' ? 'Drawn from the 200 best.' : 'Anyone who played, stars and role players.')}
+      ${row('q', 'WHO IS IN THE POOL', 'aQ', [['stars', 'STARS ONLY'], ['mixed', 'STARS + ROLE PLAYERS'], ['any', 'EVERYONE']], o.aQ === 'stars' ? 'Drawn from the 60 best players in the seasons you picked.' : o.aQ === 'mixed' ? 'Drawn from the 200 best: stars, starters and role players.' : 'Anyone who played, stars and role players.')}
       ${themeRow(o, dis)}
       ${row('v', 'THE POOL', 'aShow', [[0, 'HIDDEN'], [1, 'VISIBLE']], o.aShow ? 'Everyone sees who is still to come.' : 'You only see the player who is up.')}
     </div>`;

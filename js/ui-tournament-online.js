@@ -613,7 +613,7 @@
               <small class="muted">${o.auction ? 'A hidden pool of players goes up one at a time and every team bids, round the table. Raise or drop out; the last team in gets him. Everyone has the same money.' : o.board ? 'No wheel: pick anyone left on the board. Every season you picked loads in on each phone.' : 'Every pick comes from the team the wheel lands on.'}</small></div>
             ${o.auction ? `<div><span class="ts-start-k">MONEY EACH</span><div class="ch-chips">${chips([[10, '$10'], [15, '$15'], [20, '$20'], [30, '$30']], o.aBudget || 20, 'abud')}</div>
               <small class="muted">Bidding opens at $1 and goes up by at least $1. Everyone keeps $1 for each spot they still have to fill.</small></div>
-            <div><span class="ts-start-k">WHO IS IN THE POOL</span><div class="ch-chips">${chips([['stars', 'TOP 60'], ['mixed', 'TOP 200'], ['any', 'EVERYONE']], o.aQ || 'mixed', 'aq')}</div></div>
+            <div><span class="ts-start-k">WHO IS IN THE POOL</span><div class="ch-chips">${chips([['stars', 'STARS ONLY'], ['mixed', 'STARS + ROLE PLAYERS'], ['any', 'EVERYONE']], o.aQ || 'mixed', 'aq')}</div></div>
             <div><span class="ts-start-k">THE POOL</span><div class="ch-chips">${chips([[0, 'HIDDEN'], [1, 'VISIBLE']], o.aShow ? 1 : 0, 'ashow')}</div></div>` : ''}
             ${o.auction ? '' : `<div><span class="ts-start-k">BANS</span><div class="ch-chips">${chips([[0, 'NONE'], [1, '1 EACH'], [2, '2 EACH']], o.bans || 0, 'tbans')}</div>
               <small class="muted">${o.bans ? 'Before the draft, each player bans ' + o.bans + ' in turn. Banned players are off the wheel and the board.' : 'Nobody is banned.'}</small></div>`}
