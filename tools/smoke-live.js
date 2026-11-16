@@ -45,7 +45,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const made = await p.evaluate(() => { try { UI.state.game = window.LEAGUE.newLeague('OKC', { seed: 1 }); UI.state.slot = UI.state.slot || 1; return true; } catch (e) { return String(e); } });
     if (made === true) { await visit('with league'); await p.evaluate(() => { location.hash = '#/home'; }); }
     else { console.log('FAIL could not start a league:', made); bad++; }
-    // the daily tutorial: the first tap on Play shows four slides once, finishing starts the auction, later taps go straight in, the button replays it
+    // the daily tutorial: the first tap on Play shows five slides once, finishing starts the auction, later taps go straight in, the button replays it
     const tour = await p.evaluate(async () => {
       const w = ms => new Promise(r => setTimeout(r, ms)), out = [];
       const until = async (f, ms = 8000) => { const t = Date.now(); while (Date.now() - t < ms) { if (f()) return true; await w(100); } return false; };
@@ -54,14 +54,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       location.hash = '#/home'; await w(300); location.hash = '#/daily';
       out.push(['hub shows Play and How to play', await until(() => document.querySelector('#dyHow') && document.querySelector('a[href="#/daily/play"]'))]);
       document.querySelector('a[href="#/daily/play"]').click();
-      out.push(['first tap opens the tour on slide 1 of 4', await until(() => /HOW TO PLAY \| 1 OF 4/.test(slide()))]);
+      out.push(['first tap opens the tour on slide 1 of 5', await until(() => /HOW TO PLAY \| 1 OF 5/.test(slide()))]);
       out.push(['the tap did not start the auction yet', location.hash === '#/daily']);
-      for (let i = 2; i <= 4; i++) { document.querySelector('#tNext').click(); out.push(['slide ' + i + ' of 4', await until(() => new RegExp('HOW TO PLAY \\| ' + i + ' OF 4').test(slide()))]); }
+      for (let i = 2; i <= 5; i++) { document.querySelector('#tNext').click(); out.push(['slide ' + i + ' of 5', await until(() => new RegExp('HOW TO PLAY \\| ' + i + ' OF 5').test(slide()))]); }
       out.push(['last slide says GOT IT', document.querySelector('#tNext').textContent.trim() === 'GOT IT']);
       document.querySelector('#tNext').click();
       out.push(['finishing starts the auction and sets the flag', await until(() => location.hash === '#/daily/play') && localStorage.getItem('a13-dy-tour') === '1']);
       await w(1500);   // let the auction page finish loading before leaving it
-      out.push(['the auction screen has a ? that opens the tour', !!document.querySelector('#aucHelp') && (document.querySelector('#aucHelp').click(), await until(() => /HOW TO PLAY \| 1 OF 4/.test(slide())))]);
+      out.push(['the auction screen has a ? that opens the tour', !!document.querySelector('#aucHelp') && (document.querySelector('#aucHelp').click(), await until(() => /HOW TO PLAY \| 1 OF 5/.test(slide())))]);
       if (document.querySelector('#tSkip')) document.querySelector('#tSkip').click();
       const amt0 = () => document.querySelector('.auc-amt b').textContent.replace('$', '') * 1, a0 = amt0();
       document.querySelector('.auc-chips [data-add="1"]').click(); await w(150);
@@ -74,7 +74,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       out.push(['next time Play goes straight in, no tour', !document.querySelector('#rkTour') && location.hash === '#/daily/play']);
       location.hash = '#/daily'; await until(() => document.querySelector('#dyHow'));
       document.querySelector('#dyHow').click();
-      out.push(['the button replays it', await until(() => /HOW TO PLAY \| 1 OF 4/.test(slide()))]);
+      out.push(['the button replays it', await until(() => /HOW TO PLAY \| 1 OF 5/.test(slide()))]);
       document.querySelector('#tSkip').click(); out.push(['skip closes it', !document.querySelector('#rkTour')]);
       return out;
     });
