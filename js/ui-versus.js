@@ -762,7 +762,7 @@
             const tp = THEMED.pool.map(p => B0.byId[THEMED.years.length ? p.id + '@' + THEMED.years[0] : p.id]).filter(Boolean);
             if (tp.length < 10) { UI.toast('That theme did not load. Try another.', 'error'); VS.cfg = null; return; }
             VS.auc = C.auctionStart(VS.cfg, tp);
-          } else VS.auc = C.auctionStart(VS.cfg, Object.keys(best).map(k => best[k]));
+          } else VS.auc = C.auctionStart(VS.cfg, B0.auctionPool());
         }
         VS.turn = VS.opts.auction ? null : turnFor(VS.cfg, 0, 'spin');
         if (VS.auc && VS.cfg.timer) VS.auc.until = Date.now() + VS.cfg.timer * 1000;
@@ -906,12 +906,20 @@
     if (era) ALL_YEARS.forEach(y => {
       if (!inPlay(cfg, y) || y !== 2013 && !C.loaded(y)) return;
       const sd = C.seasonData(y);
-      if (sd) sd.players.forEach(q => { const k = q.id + '@' + y; if (byId[k]) return; const e = Object.assign({}, q, { id: k, key: k, base: q.id, from: q.team, season: y }); byId[k] = e; players.push(e); });
+      if (sd) sd.players.forEach(q => { const k = q.id + '@' + y; if (byId[k]) return; const e = Object.assign({}, q, { id: k, key: k, base: q.id, from: q.team, season: y, full: 1 }); byId[k] = e; players.push(e); });
     });
     if (!era) d.free.forEach(p => { byId[p.id] = p; });
     const base = p => (era ? (cfg.dupes ? p.id : p.base) : p.id);   // duplicates on: the same player from another season is a different pick
     const extra = !era ? d.free.slice() : [];   // free agents can be drafted from the open board, but the wheel never lands on them
-    return { era, teams, byId, players, extra, base, cap: +cfg.cap || 0,
+    // the auction pool: one entry per player, his best season. Over more than three seasons only the hand-picked players
+    // count: the full rosters of whatever seasons this phone happens to have loaded (2012-13 always) would flood it with one
+    // season's bench, and two phones could build different pools
+    const auctionPool = () => {
+      const many = era && new Set(players.filter(p => !p.full).map(p => p.season)).size > 3, best = {};
+      players.concat(extra).forEach(p => { if (many && p.full) return; const k = base(p); if (!best[k] || p.ovr > best[k].ovr) best[k] = p; });
+      return Object.keys(best).map(k => best[k]);
+    };
+    return { era, teams, byId, players, extra, base, auctionPool, cap: +cfg.cap || 0,
       takenSet: ids => new Set(ids.map(id => (byId[id] ? base(byId[id]) : id))),
       teamFor: (abbr, year) => (era && C.eraTeam(year, abbr)) || tOf(teams, abbr),
       groupKey: p => (era ? p.season : cfg.year) + ':' + p.team };

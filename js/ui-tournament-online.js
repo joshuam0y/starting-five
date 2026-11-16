@@ -375,12 +375,19 @@
     A.save(); changed();
   }
   // after a bid or a pass: the AI teams take their turns, then it is a human's move again (or the auction is over and the rosters are set)
+  // the AI teams move one at a time, each after a beat to think (everyone sees "(AI) is deciding..."), the host sending each move
+  let AIT = null;
   function stepAuc() {
-    const t = TN(), B = A.board(t.cfg);
-    C.auctionNRunAI(t.auc, B.byId, Math.random, i => i < t.seats.length);
-    if (t.auc.done) { t.picks = t.auc.won.map(w => w.slice()); t.auc.until = null; afterChange(); push(); return; }
-    t.auc.until = t.cfg.timer ? Date.now() + t.cfg.timer * 1000 : null;
+    const t = TN(), B = A.board(t.cfg), st = t.auc;
+    clearTimeout(AIT);
+    if (st.done) { t.picks = st.won.map(w => w.slice()); st.until = null; afterChange(); push(); return; }
+    const human = st.turn < t.seats.length;
+    st.until = human && t.cfg.timer ? Date.now() + t.cfg.timer * 1000 : null;
     A.save(); push(); changed();
+    if (!human) AIT = setTimeout(() => {
+      if (NET.role !== 'host' || TN().auc !== st || st.done || st.turn < TN().seats.length) return;
+      const m = C.aucNAI(st, st.turn, B.byId, Math.random); C.auctionNAct(st, st.turn, m.a, m.to); stepAuc();
+    }, 650 + Math.random() * 700);
   }
   const banning = t => !!(t.cfg && (t.cfg.bansN || 0) > 0 && (t.cfg.bans || []).length < t.seats.length * t.cfg.bansN);
   function hostAct(seat, a) {
@@ -685,11 +692,11 @@
         if (cfg.auction) {   // one entry for each player, his best season (every season of him with duplicates on)
           const B0 = A.board(cfg), best = {};
           B0.players.concat(B0.extra || []).forEach(p => { const k = B0.base(p); if (!best[k] || p.ovr > best[k].ovr) best[k] = p; });
-          t.auc = C.auctionNStart(cfg, t.n, Object.keys(best).map(k => best[k]));
-          C.auctionNRunAI(t.auc, B0.byId, Math.random, i => i < t.seats.length);
+          t.auc = C.auctionNStart(cfg, t.n, B0.auctionPool ? B0.auctionPool() : Object.keys(best).map(k => best[k]));
           t.auc.until = cfg.timer && !t.auc.done ? Date.now() + cfg.timer * 1000 : null;
         }
         A.clearRuns(); A.save(); LAST = { page: '', mine: '' }; A.render(); LAST = { page: 'draft', mine: mySig() };
+        if (t.auc && !t.auc.done && t.auc.turn >= t.seats.length) setTimeout(stepAuc, 1500);   // a bot opens the bidding: after the order wheel
       });
     });
   }

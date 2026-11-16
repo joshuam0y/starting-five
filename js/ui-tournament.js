@@ -123,12 +123,18 @@
     if (era) ALL_YEARS.forEach(y => {
       if (!inPlay(cfg, y) || y !== 2013 && !C.loaded(y)) return;
       const sd = C.seasonData(y);
-      if (sd) sd.players.forEach(q => { const k = q.id + '@' + y; if (byId[k]) return; const e = Object.assign({}, q, { id: k, key: k, base: q.id, from: q.team, season: y }); byId[k] = e; players.push(e); });
+      if (sd) sd.players.forEach(q => { const k = q.id + '@' + y; if (byId[k]) return; const e = Object.assign({}, q, { id: k, key: k, base: q.id, from: q.team, season: y, full: 1 }); byId[k] = e; players.push(e); });
     });
     if (!era) d.free.forEach(p => { byId[p.id] = p; });
     const base = p => (era ? (cfg.dupes ? p.id : p.base) : p.id);   // duplicates on: another season of the same player is a different pick
     const extra = !era ? d.free.slice() : [];
-    return { era, teams, byId, players, extra, base, cap: +cfg.cap || 0,
+    // the auction pool (as in Head to Head): over more than three seasons only the hand-picked players, one best season each
+    const auctionPool = () => {
+      const many = era && new Set(players.filter(p => !p.full).map(p => p.season)).size > 3, best = {};
+      players.concat(extra).forEach(p => { if (many && p.full) return; const k = base(p); if (!best[k] || p.ovr > best[k].ovr) best[k] = p; });
+      return Object.keys(best).map(k => best[k]);
+    };
+    return { era, teams, byId, players, extra, base, auctionPool, cap: +cfg.cap || 0,
       takenSet: ids => new Set(ids.concat(cfg.bans || []).map(id => (byId[id] ? base(byId[id]) : id))),   // banned players are gone for everyone
       teamFor: (abbr, year) => (era && C.eraTeam(year, abbr)) || tOf(teams, abbr),
       groupKey: p => (era ? p.season : cfg.year) + ':' + p.team };
@@ -312,8 +318,7 @@
           const B0 = board(cfg), best = {};
           B0.players.concat(B0.extra || []).forEach(p => { const k = B0.base(p); if (!best[k] || p.ovr > best[k].ovr) best[k] = p; });
           cfg.first = Math.floor(Math.random() * TN.n);   // who opens the bidding, then round the table: the wheel shows it
-          TN.auc = C.auctionNStart(cfg, TN.n, Object.keys(best).map(k => best[k]));
-          C.auctionNRunAI(TN.auc, B0.byId, Math.random, i => i < hum());
+          TN.auc = C.auctionNStart(cfg, TN.n, B0.auctionPool ? B0.auctionPool() : Object.keys(best).map(k => best[k]));
           TN.auc.until = cfg.timer && !TN.auc.done ? Date.now() + cfg.timer * 1000 : null;
           TN.hand = false; TN.opts.order = 'all';
         }
@@ -486,11 +491,13 @@
       return;
     }
     const step = () => {
-      C.auctionNRunAI(st, B.byId, Math.random, i => i < humDone());
       if (st.done) { if (!aucReveal(app, { st, B, t: TN }, () => finishAuc(app, cfg, B))) finishAuc(app, cfg, B); return; }
-      st.until = cfg.timer ? Date.now() + cfg.timer * 1000 : null; save(); draft(app);
+      st.until = cfg.timer && st.turn < humDone() ? Date.now() + cfg.timer * 1000 : null; save(); draft(app);
     };
-    aucView(app, { t: TN, cfg, B, st, w: st.turn, hot: true, now: () => Date.now(), still: () => TN.auc === st && TN.page === 'draft', quit, redraw: () => draft(app),
+    // a bot's turn: "(AI) is deciding..." for a beat, then one move, then the next turn (not all at once, so you see who did what)
+    const botTurn = !st.done && st.turn >= humDone();
+    if (botTurn) { clearTimeout(TA.aiT); TA.aiT = setTimeout(() => { if (TN.auc !== st || st.done || st.turn < humDone() || TN.page !== 'draft') return; const m = C.aucNAI(st, st.turn, B.byId, Math.random); C.auctionNAct(st, st.turn, m.a, m.to); step(); }, 650 + Math.random() * 700); }
+    aucView(app, { t: TN, cfg, B, st, w: botTurn ? 0 : st.turn, hot: true, now: () => Date.now(), still: () => TN.auc === st && TN.page === 'draft', quit, redraw: () => draft(app),
       act: (a, to) => { if (C.auctionNAct(st, st.turn, a, to)) step(); }, expire: () => { if (C.auctionNAct(st, st.turn, 'pass')) step(); } });
   }
   function finishAuc(app, cfg, B) {
