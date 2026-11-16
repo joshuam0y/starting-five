@@ -438,6 +438,9 @@
       const d = Math.atan2(Math.sin(want - f.ang), Math.cos(want - f.ang));
       f.ang += d * smooth(dt, 160);
       R.rotation.y = -f.ang;
+      // the dribble hand: the outside hand when he moves sideways (left hand going left), else the one he had
+      if (p.hold && p.vx != null && run0 > 3) { const lat = Math.sin(Math.atan2(p.vy, p.vx) - f.ang); if (lat > 0.45) f.dh = 1; else if (lat < -0.45) f.dh = 0; }
+      if (f.dh == null) f.dh = 1;
       if (f.mc) { poseMC(f, p, S, dt, run0); return; }
       // the run: a forward lean, knees up, arms swinging bent at the elbow; a defender sliding sideways keeps a wide stance
       const mvAng = p.vx != null && run0 > 1 ? Math.atan2(p.vy, p.vx) : null;
@@ -457,7 +460,8 @@
       let aL = [-swing * 0.85, -0.12, elb], aR = [swing * 0.85, 0.12, elb];   // [forward, out, elbow]
       if (p.def && run < 0.5) { aL = [0.5, -0.8, -0.45]; aR = [0.5, 0.8, -0.45]; }   // the defensive stance: hands out
       let jump = 0, flick = 0;
-      const A = p.act;
+      let A = p.act;
+      if (A && A.k === 'hook') A = { k: 'shoot', f: A.f };
       if (A) {
         const t = A.f, up = clamp(t / 0.35, 0, 1), arc = Math.sin(Math.PI * clamp(t, 0, 1));
         B.rotation.z = 0;
@@ -514,7 +518,7 @@
 
     // a motion-captured player: the clip for his speed (crouched on defense), in the air for a shot, block or rebound,
     // and the arms of the act layered on top
-    const AIR = { shoot: 1.5, layup: 2.4, dunk: 3.2, block: 2.6, jump: 2.2, contest: 1.2, cheer: 0.8 };
+    const AIR = { shoot: 1.5, hook: 1.1, layup: 2.4, dunk: 3.2, block: 2.6, jump: 2.2, contest: 1.2, cheer: 0.8 };
     // turn a bone so the segment to its child points along dir (world), by weight w
     const vA = new T.Vector3(), vB = new T.Vector3(), qW = new T.Quaternion(), qP = new T.Quaternion(), qD = new T.Quaternion(), qI = new T.Quaternion();
     function aimBone(bone, child, dir, w) {
@@ -563,9 +567,11 @@
         else if (k === 'jump') tg = t < 0.55 ? [[[0.3, 1, 0.3], [0.2, 1, 0], 1], [[0.3, 1, -0.3], [0.2, 1, 0], 1]] : [[[0.6, -0.6, 0.3], [0.3, 0.6, -0.8], 1], [[0.6, -0.6, -0.3], [0.3, 0.6, 0.8], 1]];
         else if (k === 'contest') tg = [[[0.3, 0.3, 0.8], [0.3, 0.6, 0.6], 0.7], [[0.5, 1, 0], [0.4, 1, 0], 1]];
         else if (k === 'cheer') tg = [[[0, 1, 0.5], [0, 1, 0.3], 1], [[0, 1, -0.5], [0, 1, -0.3], 1]];
+        else if (k === 'hook') { const sw = clamp((t - 0.1) / 0.45, 0, 1); tg = [[[0.6, 0.1, 0.6], [0.8, 0.3, 0.2], 0.8], [[0.1, lerp(0.1, 1, sw), lerp(1, -0.1, sw)], [0.1, 1, lerp(0.6, -0.2, sw)], 1]]; }   // the hook: the shooting arm sweeps up and over from his side, the other arm holds off his man
+        else if (k === 'box') tg = [[[0.1, -0.2, 1], [0.5, 0.3, 0.6], 0.9], [[0.1, -0.2, 1], [0.5, 0.3, 0.6], 0.9]];   // boxing out: arms wide, feeling for his man
         else if (k === 'pass') { const pw = Math.sin(Math.PI * t); tg = [[[1, 0.1, 0.15], [1, 0.15, -0.3], pw], [[1, 0.1, -0.15], [1, 0.15, 0.3], pw]]; }   // a chest pass: both arms push out
         else if (k === 'catch') { const cw = clamp(t / 0.3, 0, 1) * (t > 0.85 ? (1 - t) / 0.15 : 1); tg = [[[1, 0.25, 0.25], [1, 0.3, -0.1], cw], [[1, 0.25, -0.25], [1, 0.3, 0.1], cw]]; }   // hands out for it
-      } else if (p.hold && !S.ball.flight) tg = [null, [[0.45, -1, -0.25], [0.6, -0.8, 0], 0.7]];   // the dribble hand out in front, low
+      } else if (p.hold && !S.ball.flight) { const dr = [[0.45, -1, -0.25], [0.6, -0.8, 0], 0.7]; tg = f.dh === 0 ? [dr, null] : [null, dr]; }   // the dribble hand out in front, low
       if (tg) {
         f.root.updateMatrixWorld(true);
         const fw = new T.Vector3(Math.cos(f.ang), 0, Math.sin(f.ang)), upv = new T.Vector3(0, 1, 0), out = new T.Vector3().crossVectors(fw, upv);   // out: his right
@@ -629,7 +635,7 @@
       if (b.held && figs[b.held] && !b.flight) {
         const f = figs[b.held];
         f.root.updateMatrixWorld(true);
-        f.arms[1].hand.getWorldPosition(handW);
+        f.arms[f.mc && f.dh != null ? f.dh : 1].hand.getWorldPosition(handW);
         if (f.jump > 0.2) { ball.position.set(handW.x, handW.y + 0.3, handW.z); bouncing = false; }
         else {
           const db = Math.abs(Math.cos(f.ph * 0.75 + 0.6));

@@ -826,11 +826,13 @@
 
     // the shot is up: the two biggest on each side go to the glass (the defenders inside, boxing out), the rest
     // of the offense gets back, the rest of the defense turns to find a body
+    let boxers = [];   // the defensive bigs of the last crashBoards, who box out while the shot is up
     function crashBoards(O, per, shooter) {
       const D = other(O), mv = {}, h = hoop(O, per);
       const bigs = side => ordered(st.on[side]).slice(-2);
       bigs(O).filter(k => k !== shooter).forEach((k, i) => { mv[k] = at(O, per, rnd(7, 10), i ? rnd(30, 34) : rnd(16, 20)); });
       bigs(D).forEach((k, i) => { mv[k] = at(O, per, rnd(5, 7), i ? rnd(28, 31) : rnd(19, 22)); });
+      boxers = bigs(D);
       ordered(st.on[O]).slice(0, 2).filter(k => k !== shooter && !mv[k]).forEach((k, i) => { mv[k] = at(O, per, rnd(30, 36), i ? 34 : 16); });
       ordered(st.on[D]).slice(0, 3).filter(k => !mv[k]).forEach(k => { const q = st.pos[k] || h; mv[k] = [q[0] + (h[0] - q[0]) * 0.25, q[1] + (h[1] - q[1]) * 0.25]; });
       return mv;
@@ -926,7 +928,7 @@
         else B.push({ dur: 200, move: Object.assign({ [shooter]: spot }, blk ? { [blk]: meet } : {}), arrive: need, near: 1.5, wait: 1400 });
         const riseMove = Object.assign({}, closeout); if (dunk) riseMove[shooter] = [spot[0] + (h[0] - spot[0]) * 0.35, spot[1] + (h[1] - spot[1]) * 0.35];
         if (blk) riseMove[blk] = meet;
-        B.push({ dur: rise, move: riseMove, at0: () => { tag(shooter, label, 'kind', rise + dur + 200); act(shooter, dunk ? 'dunk' : near ? 'layup' : 'shoot', dunk ? rise + dur * 1.6 : near ? rise + dur : rise * 2.6); if (dfd) act(dfd, 'contest', rise + dur); } });
+        B.push({ dur: rise, move: riseMove, at0: () => { tag(shooter, label, 'kind', rise + dur + 200); act(shooter, dunk ? 'dunk' : near ? 'layup' : ev.shot === 'post' ? 'hook' : 'shoot', dunk ? rise + dur * 1.6 : near ? rise + dur : rise * 2.6); if (dfd) act(dfd, 'contest', rise + dur); } });
         st.ph = null;
         if (k === 'make') {
           const fouler = ev.c;
@@ -959,7 +961,8 @@
           B.push({ dur: 460, ball: { to: landing(O, per), arc: 2 }, hold: null });
           st.off = null; st.set = false;
         } else {
-          B.push({ dur, ball: { to: rim, arc }, shot: true, hold: null, fire: true, move: crashBoards(O, per, shooter), at: () => tag(shooter, 'MISS', 'miss', 900) });
+          const crash = crashBoards(O, per, shooter), bx = boxers.slice();
+          B.push({ dur, ball: { to: rim, arc }, shot: true, hold: null, fire: true, move: crash, at0: () => bx.forEach(k => act(k, 'box', dur + 500)), at: () => tag(shooter, 'MISS', 'miss', 900) });
           B.push({ dur: 420, ball: { to: landing(O, per), arc: 3 }, hold: null });
           st.off = null; st.set = false;
         }
@@ -1007,8 +1010,12 @@
         for (let j = 0; j < ev.att; j++) seq.push(lastMade ? j >= ev.att - ev.made : j < ev.made);
         const h = hoop(O, per);
         let base = O === 'home' ? ev.hs - ev.made : ev.as - ev.made;
+        const floor = [line[0] + (h[0] - line[0]) * 0.07, line[1] + 0.5];
         seq.forEach((made, j) => {
           const last = j === seq.length - 1;
+          // his routine: two dribbles and a breath
+          for (let d = 0; d < 2; d++) { B.push({ dur: 260, ball: { to: floor, arc: 0, h1: 0.4 }, hold: null }); B.push({ dur: 260, ball: { to: shooter, arc: 0 }, hold: shooter }); }
+          B.push({ dur: 380, hold: shooter });
           B.push({ dur: 640, ball: { to: [h[0] + rnd(-0.15, 0.15), h[1]], arc: 4.5 }, shot: true, hold: null, fire: last, at0: () => act(shooter, 'ft', 700), at: () => {
             if (made) { base++; if (O === 'home') st.hs = base; else st.as = base; drawScore(); ring(h); tag(shooter, '+1', 'pts', 900); }
             else tag(shooter, 'MISS', 'miss', 800);
