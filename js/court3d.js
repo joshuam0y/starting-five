@@ -563,6 +563,8 @@
         else if (k === 'jump') tg = t < 0.55 ? [[[0.3, 1, 0.3], [0.2, 1, 0], 1], [[0.3, 1, -0.3], [0.2, 1, 0], 1]] : [[[0.6, -0.6, 0.3], [0.3, 0.6, -0.8], 1], [[0.6, -0.6, -0.3], [0.3, 0.6, 0.8], 1]];
         else if (k === 'contest') tg = [[[0.3, 0.3, 0.8], [0.3, 0.6, 0.6], 0.7], [[0.5, 1, 0], [0.4, 1, 0], 1]];
         else if (k === 'cheer') tg = [[[0, 1, 0.5], [0, 1, 0.3], 1], [[0, 1, -0.5], [0, 1, -0.3], 1]];
+        else if (k === 'pass') { const pw = Math.sin(Math.PI * t); tg = [[[1, 0.1, 0.15], [1, 0.15, -0.3], pw], [[1, 0.1, -0.15], [1, 0.15, 0.3], pw]]; }   // a chest pass: both arms push out
+        else if (k === 'catch') { const cw = clamp(t / 0.3, 0, 1) * (t > 0.85 ? (1 - t) / 0.15 : 1); tg = [[[1, 0.25, 0.25], [1, 0.3, -0.1], cw], [[1, 0.25, -0.25], [1, 0.3, 0.1], cw]]; }   // hands out for it
       } else if (p.hold && !S.ball.flight) tg = [null, [[0.45, -1, -0.25], [0.6, -0.8, 0], 0.7]];   // the dribble hand out in front, low
       if (tg) {
         f.root.updateMatrixWorld(true);
@@ -636,13 +638,13 @@
           if (db < 0.2 && !bouncing) { bouncing = true; if (cfg.onBounce) cfg.onBounce(); }
           if (db > 0.5) bouncing = false;
         }
-      } else if (b.hand && figs[b.hand] && b.flight) {
-        // into a hand in flight (a block): the last part of the flight bends onto his actual hand
-        const f = figs[b.hand];
-        f.root.updateMatrixWorld(true);
-        f.arms[1].hand.getWorldPosition(handW);
-        const w = Math.pow(clamp(b.p, 0, 1), 2);
-        ball.position.set(lerp(b.x, handW.x, w), lerp(Math.max(0.4, b.h == null ? 4 : b.h), handW.y + 0.25, w), lerp(b.y, handW.z, w));
+      } else if (b.flight && ((b.hand && figs[b.hand]) || (b.from && figs[b.from]))) {
+        // hand to hand (a pass, a block): the flight leaves from the passer's actual hand and bends onto the catcher's
+        const pp = clamp(b.p, 0, 1);
+        let x = b.x, y = Math.max(0.4, b.h == null ? 4 : b.h), z = b.y;
+        if (b.from && figs[b.from]) { const f = figs[b.from]; f.root.updateMatrixWorld(true); f.arms[1].hand.getWorldPosition(handW); const w = Math.pow(1 - pp, 2); x = lerp(x, handW.x, w); y = lerp(y, handW.y, w); z = lerp(z, handW.z, w); }
+        if (b.hand && figs[b.hand]) { const f = figs[b.hand]; f.root.updateMatrixWorld(true); f.arms[1].hand.getWorldPosition(handW); const w = Math.pow(pp, 2); x = lerp(x, handW.x, w); y = lerp(y, handW.y + 0.25, w); z = lerp(z, handW.z, w); }
+        ball.position.set(x, y, z);
       } else {
         ball.position.set(b.x, Math.max(0.4, b.h == null ? 4 : b.h), b.y);
       }

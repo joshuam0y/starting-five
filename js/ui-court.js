@@ -376,7 +376,7 @@
       return {
         t: st.simT, cam: camPref, players, tags, rings, names: true, crowd: st.crowd,
         ball: { x: st.ball.x, y: st.ball.y, h: st.ball.h, held: st.holder, flight: !!st.flight,
-          hand: st.flight && st.beat && st.beat.ball && st.beat.ball.hand ? st.beat.ball.to : null, p: st.beat && st.beat.dur ? Math.min(1, st.bt / st.beat.dur) : 1 },
+          hand: st.flight && st.beat && st.beat.ball && st.beat.ball.hand ? st.beat.ball.to : null, from: st.flight && st.beat && st.beat.ball ? st.beat.ball.from || null : null, p: st.beat && st.beat.dur ? Math.min(1, st.bt / st.beat.dur) : 1 },
         dir: st.off ? (attacksRight(st.off, st.per) ? 1 : -1) : 0,
         zoom: st.zoom && st.simT < st.zoom.until ? st.zoom : null, replay: null
       };
@@ -691,7 +691,14 @@
     function tag(key, text, cls, ttl) { st.tags.push({ key, text, cls, age: 0, ttl: ttl || 1300 }); }
     function tagAt(p, text, cls, ttl) { st.tags.push({ at: p, text, cls, age: 0, ttl: ttl || 1300 }); }
     function ring(p) { st.tags.push({ at: p, ring: true, age: 0, ttl: 600 }); }
-    function pass(B, to, extra) { const from = st.ph; st.ph = to; B.push(Object.assign({ dur: 240 + (from && st.pos[from] && st.pos[to] ? dist(st.pos[from], st.pos[to]) * 11 : 120), ball: { to, arc: 1 } }, extra || {})); }
+    // a pass: a chest-pass push from the passer, the catcher's hands out, the ball from one's hands to the other's
+    function pass(B, to, extra) {
+      const from = st.ph; st.ph = to;
+      const dur = 240 + (from && st.pos[from] && st.pos[to] ? dist(st.pos[from], st.pos[to]) * 11 : 120);
+      const b = Object.assign({ dur, ball: { to, arc: 1, from: from || null, hand: true } }, extra || {}), at0 = b.at0;
+      b.at0 = () => { if (from) act(from, 'pass', 360); act(to, 'catch', b.dur + 160); if (at0) at0(); };
+      B.push(b);
+    }
 
     // Puts the ball in the hands of side O in its frontcourt. Returns the handler.
     function setUp(O, per, B) {
@@ -738,7 +745,7 @@
     // A fast break: right after a defensive rebound or a steal, quick enough (7 seconds) that the defense is not set.
     // The handler pushes it up the middle, the wings fill the lanes, the defense sprints back. Returns false when it is not one.
     function fastBreak(ev, prev, O, per, B, shooter, spot) {
-      if (!prev || ev.shot === 'post' || ev.shot === 'mid' || ev.t - prev.t > 7) return false;
+      if (!prev || ev.shot === 'post' || ev.shot === 'mid' || ev.t - prev.t > 9) return false;
       const turn = (prev.k === 'dreb' && prev.side === O) || (prev.k === 'tov' && prev.tov === 'steal' && prev.side !== O);
       if (!turn || !st.ph || sideOf(st.ph) !== O) return false;
       const hd = st.ph, D = other(O), mv = {};
@@ -751,8 +758,9 @@
       const far = Math.max.apply(null, Object.keys(mv).map(k => dist(st.pos[k] || mv[k], mv[k])));
       B.push({ dur: clamp(far * 34, 900, 2200), pace: 24, move: mv, hold: hd, arrive: [hd], near: 5, wait: 1400, at0: () => { tag(hd, 'FAST BREAK', 'play', 1500); cheer(O, 1); } });
       st.off = O; st.set = false; st.form = Object.assign({}, mv); st.playForm = st.form; st.playFormSide = O;
-      if (shooter !== hd) pass(B, shooter, { dur: 420, move: { [shooter]: spot } });
-      else B.push({ dur: 380, move: { [shooter]: spot } });
+      // the finish: the handler keeps going all the way to the rim, or hits the man filling the lane in stride
+      if (shooter !== hd) pass(B, shooter, { dur: 420, pace: 24, move: { [shooter]: spot } });
+      else B.push({ dur: clamp(dist(mv[hd], spot) * 42, 380, 900), pace: 24, move: { [shooter]: spot }, hold: hd, arrive: [hd], near: 1.5, wait: 600 });
       return true;
     }
     // The half-court set that gets this shot, read from the shot and the pass: a pick and roll for a big's basket off

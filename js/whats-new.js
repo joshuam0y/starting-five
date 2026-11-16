@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 368, t: 'Chest passes caught with both hands, and fast breaks that go all the way to the rim.' },
   { v: 366, t: 'Motion-captured players on the 3D court: real running, jogging and jumping, a low stance on defense.' },
   { v: 364, t: 'Real turnovers (picked-off passes, strips, bad passes, travels), and old seasons now score like the real league.' },
   { v: 362, t: 'Energy in the box score and the player card, far fewer foul-outs, and two-way contracts that stay off the cap.' },
