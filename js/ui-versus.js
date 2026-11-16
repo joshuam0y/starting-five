@@ -289,6 +289,7 @@
     VS.cpu = true; VS.cfg = null; VS.auc = null; VS.page = 'setup'; VS.year = 0; VS.names = ['', '']; VS.tnames = ['', ''];
     VS.skip = b && b.key !== 'all' ? ALL_YEARS.filter(y => y < b.from || y > b.to) : [];
     if (b && UI.toast) UI.toast('Practice era: ' + b.label);
+    VS.autoStart = true;
     Object.assign(VS.opts, { auction: 1, board: 0, ranked: 0, pub: 0, aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'ranked', aTheme: '', aShow: 0, bench: 0, bestOf: 7, blind: true, cap: 0, timer: 24, dupes: 0, bans: 0 });
     location.hash = '#/challenge/vs';
   };
@@ -794,6 +795,8 @@
         st.disabled = true; st.textContent = 'LOADING THEME...';
         UI.ranked.themeBuild(key).then(t => { THEMED = t; st.disabled = false; begin(); }).catch(e => { st.disabled = false; st.textContent = 'START THE DRAFT'; UI.toast('The theme did not load: ' + (e.message || e), 'error'); });
       });
+      // ranked practice: straight from the era pick into the draft, no setup screen
+      if (VS.autoStart && st && !online()) { VS.autoStart = false; setTimeout(() => { if (st.isConnected) st.click(); }, 0); }
     });
   }
   let THEMED = null;
