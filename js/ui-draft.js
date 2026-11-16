@@ -434,6 +434,42 @@
     };
   }
 
+  // ---------- the lottery show (2K style): the picks revealed from the back of the lottery to No. 1 ----------
+  // Each team with its seed and odds, a gold ▲ when it jumps, a red ▼ when it falls, a beat before the top four, your team
+  // lit. It plays once when the lottery is drawn (st.lotSeen), and the WATCH THE LOTTERY button on the Draft page replays it.
+  UI.lotteryShow = function (st, year, done) {
+    const lot = lotteryOf(st, year);
+    if (!lot || !lot.length) { if (done) done(); return; }
+    const user = st.userTeam, S = window.SFX, order = lot.slice().sort((a, b) => b.pick - a.pick);
+    const nm = a => { const t = UI.team(a); return t ? t.city + ' ' + t.name : a; };
+    const el = document.createElement('div'); el.className = 'lot-wrap'; el.setAttribute('role', 'dialog');
+    el.innerHTML = `<div class="lot-box"><div class="lot-k">THE ${year} NBA DRAFT LOTTERY</div><h2 class="lot-t" id="lotT">${order.length} TEAMS. ONE DRAW.</h2>
+      <ol class="lot-list">${order.map(x => `<li class="lot-row${x.abbr === user ? ' mine' : ''}${x.moved > 0 ? ' up' : x.moved < 0 ? ' down' : ''}" data-p="${x.pick}">
+        <b class="lot-p">${x.pick}</b><span class="lot-lg">${UI.logo(x.abbr, 34)}</span><span class="lot-n"><b>${esc(nm(x.abbr))}</b><small>Seed ${x.seed}${x.chance ? ' | ' + x.chance + '% at No. 1' : ''}</small></span>
+        <em class="lot-m">${x.moved > 0 ? '&#9650; ' + x.moved : x.moved < 0 ? '&#9660; ' + (-x.moved) : ''}</em></li>`).join('')}</ol>
+      <div class="lot-go"><button type="button" class="btn" id="lotSkip">SHOW ALL</button><button type="button" class="btn btn-gold" id="lotDone" hidden>TO THE DRAFT</button></div></div>`;
+    document.body.appendChild(el);
+    const rows = [...el.querySelectorAll('.lot-row')], title = el.querySelector('#lotT'), timers = [];
+    let k = 0, over = false;
+    const finish = () => { over = true; timers.forEach(clearTimeout); rows.forEach(r => r.classList.add('on')); title.textContent = 'NO. 1: ' + nm(order[order.length - 1].abbr).toUpperCase(); el.querySelector('#lotSkip').hidden = true; el.querySelector('#lotDone').hidden = false; };
+    const close = () => { finish(); el.remove(); if (done) done(); };
+    const next = () => {
+      if (over) return;
+      if (k >= rows.length) { finish(); return; }
+      const x = order[k], r = rows[k];
+      r.classList.add('on'); r.scrollIntoView({ block: 'nearest' });
+      if (S) S.play(x.pick === 1 || (x.abbr === user && x.moved > 0) ? 'crowd' : x.pick <= 4 ? 'buzzer' : 'tick');
+      if (x.pick <= 4) title.textContent = 'NO. ' + x.pick + ': ' + nm(x.abbr).toUpperCase();
+      k++;
+      const nx = order[k];
+      if (nx && nx.pick === 4) { timers.push(setTimeout(() => { if (!over) { title.textContent = 'THE TOP FOUR...'; if (S) S.play('whistle'); } }, 700)); }
+      timers.push(setTimeout(next, !nx ? 600 : nx.pick > 4 ? 850 : nx.pick === 4 ? 2600 : nx.pick === 1 ? 3200 : 2200));
+    };
+    timers.push(setTimeout(next, 900));
+    el.querySelector('#lotSkip').addEventListener('click', finish);
+    el.querySelector('#lotDone').addEventListener('click', close);
+  };
+
   P.draft = function (app) {
     app.onclick = null; app.onchange = null; app.onsubmit = null;
     const st = F.state();
@@ -446,5 +482,15 @@
       return;
     }
     render(app, st);
+    // the lottery: a WATCH THE LOTTERY button while this year's lottery stands, and the show once, the first time after the draw
+    const lot = lotteryOf(st, st.year);
+    if (lot && lot.length && UI.lotteryShow) {
+      const hdr = app.querySelector('.page-head, h1, .ch-hero, header');
+      const b = document.createElement('div'); b.className = 'lot-replay';
+      b.innerHTML = '<button type="button" class="btn btn-small" id="lotReplay">WATCH THE LOTTERY</button>';
+      if (hdr && hdr.parentNode) hdr.parentNode.insertBefore(b, hdr.nextSibling); else app.prepend(b);
+      b.querySelector('#lotReplay').addEventListener('click', () => UI.lotteryShow(st, st.year));
+      if (st.lotSeen !== st.year) { st.lotSeen = st.year; try { UI.bump && UI.bump(); } catch (e) { /* saved later */ } UI.lotteryShow(st, st.year); }
+    }
   };
 })();
