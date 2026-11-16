@@ -220,6 +220,9 @@
       var first = state.season && state.season.days[state.season.day];
       state.realCursor = mod("REALLIFE") && first ? W.REALLIFE.dayBefore(first.date) : null;
     }
+    // a league opening in season: every team at the league's roster size (the season files miss some end-of-bench players,
+    // and two-way deals do not count), filled from the free agents at the minimum; a summer start fills them in free agency
+    if (state.phase === "regular") { try { enforceRosters(state); } catch (e) { console.warn("[league] rosters", e); } }
     news(state, "Welcome to the " + (state.year - 1) + "-" + String(state.year).slice(2) + " season",
       "You are now running the " + state.teams[userTeam].city + " " + state.teams[userTeam].name + "." +
       (today ? " The season is already under way: every game before " + today.date + " counts with its real score." : ""), []);
