@@ -684,7 +684,7 @@
         const v = b.dataset.net;
         if (v !== 'local' && v !== 'cpu' && !UI.profile.canPlay()) { UI.toast('Pick a guest name or sign in first.', 'error'); const bar = UI.$('.pf-bar', app); if (bar) bar.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
         if (v !== 'cpu') VS.cpu = false;
-        if (v === 'cpu') { hangUp(); VS.cpu = true; VS.opts.auction = 1; VS.opts.bench = 0; VS.names[1] = 'CPU'; }   // the computer: an auction, five each
+        if (v === 'cpu') { hangUp(); VS.cpu = true; VS.opts.auction = 1; VS.opts.bench = 0; { const L = (window.TOURNAMENT && window.TOURNAMENT.api && window.TOURNAMENT.api.CPU_NAMES) || ['CPU Shaq', 'CPU Curry', 'CPU Duncan', 'CPU Giannis']; VS.names[1] = L[Math.floor(Math.random() * L.length)]; } }   // a legend's name, like the tournament bots   // the computer: an auction, five each
         else if (v === 'local') hangUp();
         else if (v === 'host' && NET.role !== 'host') host();
         else if (v === 'join' && NET.role !== 'guest') { hangUp(); Object.assign(NET, { role: 'guest', code: '', status: 'code', err: '' }); }
