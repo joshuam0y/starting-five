@@ -149,7 +149,7 @@
   const REACTS = ['🔥', '😂', '😬', '👀', '🧱', '🐐', 'REACH', 'STEAL', 'COOKED', 'GG'];
   const CHAT = { list: [], open: false, unread: 0, typingUntil: 0, typingName: '', sentAt: 0, lastReact: 0 };
   const chatName = () => UI.profile.name() || (TN() && TN().names[mySeat()]) || 'PLAYER';
-  const chatOn = () => !!(NET.role && NET.role !== 'watch' && NET.client && NET.status === 'connected' && /tournament\/online/.test(location.hash) && TN() && TN().page !== 'entry');
+  const chatOn = () => !!(NET.role && NET.role !== 'watch' && NET.client && (NET.status === 'connected' || (NET.role === 'host' && NET.status === 'ready')) && /tournament\/online/.test(location.hash) && TN() && TN().page !== 'entry');
   function bubble(r, name, mine) {
     let host = document.getElementById('vsBubbles');
     if (!host) { host = document.createElement('div'); host.id = 'vsBubbles'; host.className = 'vs-bubbles'; document.body.appendChild(host); }
