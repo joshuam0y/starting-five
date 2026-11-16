@@ -28,7 +28,8 @@
     var end = Math.max(year, p.contractEnd || year), salaries = [], real = {};
     // real year-by-year salaries from the league file when known; missing years grow 4.5% from the last known one
     (p.salaries || []).forEach(function (s) { if (s && s.year != null && s.amount > 0) real[s.year] = s.amount; });
-    var last = real[year] || p.salary || 0;
+    // no known salary (a late signing the file missed): the minimum for his years in the league, never $0
+    var last = real[year] || p.salary || minSalaryFor({ yearsPro: p.yearsPro != null ? p.yearsPro : Math.max(0, (p.age || 22) - 22) }, year);
     for (var y = year; y <= end; y++) {
       if (real[y]) last = real[y]; else if (y > year) last = Math.round(last * 1.045);
       salaries.push({ year: y, amount: last });

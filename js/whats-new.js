@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 436, t: 'Association: no more $0 contracts in 2026-27, and pre-2006 leagues use the 12-man roster minimum of the time.' },
   { v: 434, t: 'Shared Daily scores now link in every app, Discord and Slack included.' },
   { v: 430, t: 'AI teams trade more like the real league: quiet early, busier in January, a rush at the deadline.' },
   { v: 428, t: 'New 2026-27 leagues open with full rosters: no more teams starting with 10 or 11 players.' },

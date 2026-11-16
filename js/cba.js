@@ -122,7 +122,8 @@
       lotteryDraws: year >= 2019 ? 4 : 3,
       seasonGames: games, seasonNote: (H.seasonNotes && H.seasonNotes[year]) || null,
       shortened: year === 2020 ? "bubble" : year === 2021 ? "72 games" : null,
-      rosterMin: 13, rosterMax: 15, offseasonRosterMax: 20,
+      rosterMin: year >= 2006 ? 13 : 12, rosterMax: 15,   // 12 before the 2005 CBA set a 13-man minimum
+      offseasonRosterMax: 20,
       // the 2005 CBA (through 2010-11): bigger raises and longer deals
       raise: era === "2005" ? 0.08 : era === "2011" ? 0.045 : 0.05, birdRaise: era === "2005" ? 0.105 : era === "2011" ? 0.075 : 0.08,
       maxYears: era === "2005" ? { bird: 6, other: 5, mle: 5, taxMle: 3, room: 2, bae: 2, min: 2 } : { bird: 5, other: 4, mle: 4, taxMle: era === "2023" ? 2 : 3, room: era === "2023" ? 3 : 2, bae: 2, min: 2 },
