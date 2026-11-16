@@ -427,7 +427,7 @@
   };
 
   UI.userLink = (name, tab) => `<a class="u-link" href="#/u/${encodeURIComponent(name)}"${tab ? ' target="_blank" rel="noopener"' : ''}>${esc(name)}</a>`;   // a name you can click to see that player's profile
-  UI.ranked = { BUCKETS, bucketFor, bucketByKey, tierIcon, ratingOf: n => RATINGS[String(n).toLowerCase()], streak: streakNow, tierOf, tierBadge, avatarHtml, eraOf, lineupScore, report, started, forfeit, concede, noteForfeit, playedBefore, lobbyCard, prefetch, lobbyStart, lobbyStop, ERAS, eraName, regionName, REGIONS };
+  UI.ranked = { houseMove: (st, byId, rng) => houseMove(st, byId, rng), BUCKETS, bucketFor, bucketByKey, tierIcon, ratingOf: n => RATINGS[String(n).toLowerCase()], streak: streakNow, tierOf, tierBadge, avatarHtml, eraOf, lineupScore, report, started, forfeit, concede, noteForfeit, playedBefore, lobbyCard, prefetch, lobbyStart, lobbyStop, ERAS, eraName, regionName, REGIONS };
 
   // ---------- helpers for the pages ----------
   const eraOpts = cur => ERAS.map(e => `<option value="${e}"${e === cur ? ' selected' : ''}>${esc(eraName(e))}</option>`).join('');

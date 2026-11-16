@@ -405,16 +405,20 @@
     return true;
   }
   // the auction's sounds: a tick on every new bid, a chime when a player is sold (a thump when he is yours)
-  function aucSound(st, w) {
-    const S = window.SFX; if (!S || !st || !st.log) return;
-    const k = TA.snd;
-    if (!k || k.st !== st) { TA.snd = { st, i: st.i, price: st.price, n: st.log.length }; return; }
-    if (st.log.length > k.n) { const last = st.log[st.log.length - 1]; S.play(last && last.side === w && w >= 0 ? 'land' : 'chime'); }
-    else if (st.i === k.i && st.price > k.price) S.play('tick');
-    k.i = st.i; k.price = st.price; k.n = st.log.length;
+  function aucSound(st, w, o) {
+    const S = window.SFX; if (!st || !st.log) return;
+    const k = TA.snd, nm = i => ((o && o.t && o.t.names && o.t.names[i]) || '').toUpperCase(), pop = text => { TA.pop = { text, until: Date.now() + 1700 }; };
+    if (!k || k.st !== st) { TA.snd = { st, i: st.i, price: st.price, n: st.log.length, turn: st.turn }; return; }
+    if (st.log.length > k.n) {
+      const last = st.log[st.log.length - 1], p = last && o && o.B ? o.B.byId[last.id] : null;
+      if (S) S.play(last && last.side === w && w >= 0 ? 'land' : 'chime');
+      if (last) pop('SOLD: ' + (p ? p.name.toUpperCase() : 'HIM') + ' TO ' + nm(last.side) + ' FOR $' + last.price);
+    } else if (st.i === k.i && st.price > k.price) { if (S) S.play('tick'); pop(nm(st.holder) + ' BIDS $' + st.price); }
+    else if (st.i === k.i && st.turn !== k.turn && k.turn >= 0 && k.turn !== w) pop(nm(k.turn) + ' PASSES');
+    k.i = st.i; k.price = st.price; k.n = st.log.length; k.turn = st.turn;
   }
   function aucView(app, o) {
-    aucSound(o.st, o.w);
+    aucSound(o.st, o.w, o);
     if (TA.rev) return;   // a reveal is playing: its end redraws
     if (aucReveal(app, o, () => { if (!o.still || o.still()) o.redraw(); })) return;
     stopTick();
@@ -439,7 +443,15 @@
         <div class="auc-step"><button type="button" class="btn" id="tAucDn"${TA.amt - ao.raise < min ? ' disabled' : ''}>&minus;</button><div class="auc-amt"><small>${o.hot ? 'THE BID' : 'YOUR BID'}</small><b>${money(TA.amt)}</b></div><button type="button" class="btn" id="tAucUp"${TA.amt + ao.raise > max ? ' disabled' : ''}>+</button></div>
         <div class="auc-chips">${[ao.raise, 2, 5].filter((v, k, a2) => a2.indexOf(v) === k && v >= ao.raise).map(v => ({ to: v, label: '+' + money(v) })).filter(x => st.price + x.to <= max).map(x => `<button type="button" class="ch-chip" data-tadd="${x.to}">${x.label}</button>`).join('')}<button type="button" class="ch-chip" data-tto="${max}">ALL IN ${money(max)}</button></div>
         <div class="auc-go"><button type="button" class="btn btn-gold btn-big" id="tAucBid">BID</button><button type="button" class="btn btn-big" id="tAucPass">PASS<small>drop out on him</small></button></div></div>`;
-    else bid = `<div class="auc-wait"><b>${who2(st.turn)} ${t.ai && t.ai[st.turn] ? '(AI) ' : ''}is deciding...</b><span>${who2(st.holder)} holds the bid at ${money(st.price)}.${w >= 0 && !inIt ? ' You are out on this one.' : ''}</span></div>`;
+    else bid = `<div class="auc-wait"><b>${who2(st.turn)} ${t.ai && t.ai[st.turn] ? '(AI) is thinking<i class="auc-dots3"><i>.</i><i>.</i><i>.</i></i>' : 'is deciding...'}</b><span>${who2(st.holder)} holds the bid at ${money(st.price)}.${w >= 0 && !inIt ? ' You are out on this one.' : ''}</span></div>`;
+    const myKey = st.i + ':' + st.turn + ':' + st.price;
+    if (mineTurn && TA.myKey !== myKey) {
+      bid = bid.replace('class="auc-bid"', 'class="auc-bid auc-yours"');
+      try { navigator.vibrate && navigator.vibrate([70, 40, 70]); } catch (e) { /* no buzz */ }
+      if (window.SFX) window.SFX.play('whistle');
+    }
+    TA.myKey = mineTurn ? myKey : null;
+    const popHtml = TA.pop && Date.now() < TA.pop.until ? `<div class="auc-pop">${esc(TA.pop.text)}</div>` : '';
     const dots = st.ids.map((id, k) => `<i class="${k < st.i ? 'sold' : k === st.i ? 'now' : ''}"></i>`).join('');
     const pool = ao.show ? `<div class="auc-poolrow">${st.ids.map((id, k) => { const p = byId[id], sale = st.log.filter(x => x.id === id)[0], col = (B.teamFor(p.team, p.season).colors || ['#555'])[0], y = p.season || cfg.year; return `<div class="apc${k < st.i ? ' sold' : k === st.i ? ' now' : ''}" style="--c1:${esc(col)}"><div class="apc-f">${UI.faceImg(p, col)}</div><b>${esc(p.name)}</b><small>${y ? esc(short(y)) : ''}${showR ? ' | ' + esc(p.ovr) : ''}</small>${sale ? `<em>${esc(t.names[sale.side])} ${sale.price ? money(sale.price) : 'FREE'}</em>` : k === st.i ? '<em>UP NOW</em>' : ''}</div>`; }).join('')}</div>` : `<p class="auc-more">${left} MORE IN THE HIDDEN POOL</p>`;
     const timed = cfg.timer > 0 && st.until;
@@ -452,7 +464,7 @@
           <div class="auc-info"><small>UP FOR BID</small><h2>${esc(cur.name)}</h2><p>${esc(C.posLabel(cur))}${cur.season || cfg.year ? ' | ' + esc(short(cur.season || cfg.year)) : ''}${(() => { const tn = (p => C.teamNick(p.season || cfg.year || 2013, p.from || p.team))(cur); return tn ? ' | ' + esc(tn) : ''; })()}${showR ? ' | <b class="ch-ovr ' + UI.ovrClass(cur.ovr) + '">' + esc(cur.ovr) + '</b>' : ''}</p></div>
           <div class="auc-price"><small>${who2(st.holder).toUpperCase()} HOLDS</small><b>${money(st.price)}</b></div>
         </section>
-        ${bid}
+        ${popHtml}${bid}
         <div class="auc-dots">${dots}</div>${pool}
       </main>
       <div class="atm-grid">${teamsHtml}</div>`;
@@ -496,7 +508,7 @@
     };
     // a bot's turn: "(AI) is deciding..." for a beat, then one move, then the next turn (not all at once, so you see who did what)
     const botTurn = !st.done && st.turn >= humDone();
-    if (botTurn) { clearTimeout(TA.aiT); TA.aiT = setTimeout(() => { if (TN.auc !== st || st.done || st.turn < humDone() || TN.page !== 'draft') return; const m = C.aucNAI(st, st.turn, B.byId, Math.random); C.auctionNAct(st, st.turn, m.a, m.to); step(); }, 650 + Math.random() * 700); }
+    if (botTurn) { clearTimeout(TA.aiT); TA.aiT = setTimeout(() => { if (TN.auc !== st || st.done || st.turn < humDone() || TN.page !== 'draft') return; const m = C.aucNAI(st, st.turn, B.byId, Math.random); C.auctionNAct(st, st.turn, m.a, m.to); step(); }, 1100 + Math.random() * 800); }
     aucView(app, { t: TN, cfg, B, st, w: botTurn ? 0 : st.turn, hot: true, now: () => Date.now(), still: () => TN.auc === st && TN.page === 'draft', quit, redraw: () => draft(app),
       act: (a, to) => { if (C.auctionNAct(st, st.turn, a, to)) step(); }, expire: () => { if (C.auctionNAct(st, st.turn, 'pass')) step(); } });
   }

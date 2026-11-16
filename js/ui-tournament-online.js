@@ -387,7 +387,7 @@
     if (!human) AIT = setTimeout(() => {
       if (NET.role !== 'host' || TN().auc !== st || st.done || st.turn < TN().seats.length) return;
       const m = C.aucNAI(st, st.turn, B.byId, Math.random); C.auctionNAct(st, st.turn, m.a, m.to); stepAuc();
-    }, 650 + Math.random() * 700);
+    }, 1100 + Math.random() * 800);
   }
   const banning = t => !!(t.cfg && (t.cfg.bansN || 0) > 0 && (t.cfg.bans || []).length < t.seats.length * t.cfg.bansN);
   function hostAct(seat, a) {

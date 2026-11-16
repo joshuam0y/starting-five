@@ -136,7 +136,7 @@
   const watchers = () => Object.keys(SPEC).filter(k => Date.now() - SPEC[k] < 12000).length;
   const NET = { role: null, side: 0, code: '', status: '', err: '', client: null, key: null, me: '', peerSeen: 0, broker: 0, timers: [] };
   const me = () => (NET.role ? NET.side : null);   // null: same phone, both sides
-  const canAct = side => me() === null || me() === side;
+  const canAct = side => !(VS.cpu && side === 1) && (me() === null || me() === side);   // the CPU's seat is never this phone's
   const online = () => !!NET.role;
   const linked = () => NET.status === 'connected';
   function loadMqtt() {
@@ -611,7 +611,8 @@
         <div class="ch-setup vs-setup">
           ${UI.profile.bar()}${PEND ? `<p class="muted">Pick a name below to join room <b>${esc(PEND)}</b>.</p>` : ''}
           <div class="ch-step"><div class="ch-step-k">1 | HOW YOU PLAY</div>
-            <div class="ch-seg vs-seg3"><button type="button" class="ch-seg-b${!online() ? ' on' : ''}" data-net="local"><b>SAME PHONE</b><small>Pass it back and forth</small></button>
+            <div class="ch-seg vs-seg3"><button type="button" class="ch-seg-b${!online() && !VS.cpu ? ' on' : ''}" data-net="local"><b>SAME PHONE</b><small>Pass it back and forth</small></button>
+              <button type="button" class="ch-seg-b${!online() && VS.cpu ? ' on' : ''}" data-net="cpu"><b>VS CPU</b><small>Auction against the computer</small></button>
               <button type="button" class="ch-seg-b${NET.role === 'host' ? ' on' : ''}" data-net="host"><b>HOST ONLINE</b><small>Get a room code for your friend</small></button>
               <button type="button" class="ch-seg-b${NET.role === 'guest' ? ' on' : ''}" data-net="join"><b>JOIN ONLINE</b><small>Enter your friend's code</small></button></div>
             ${!online() && savedRoom() ? `<div class="vs-join"><button type="button" class="btn btn-gold" id="vsRejoin">REJOIN ROOM ${esc(savedRoom().code)}${savedRoom().role === 'watch' ? ' (WATCHING)' : ''}</button><button type="button" class="btn btn-small" id="vsForget">FORGET IT</button></div>` : ''}
@@ -682,7 +683,9 @@
       app.querySelectorAll('[data-net]').forEach(b => b.addEventListener('click', () => {
         const v = b.dataset.net;
         if (v !== 'local' && !UI.profile.canPlay()) { UI.toast('Pick a guest name or sign in first.', 'error'); const bar = UI.$('.pf-bar', app); if (bar) bar.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
-        if (v === 'local') hangUp();
+        if (v !== 'cpu') VS.cpu = false;
+        if (v === 'cpu') { hangUp(); VS.cpu = true; VS.opts.auction = 1; VS.opts.bench = 0; VS.names[1] = 'CPU'; }   // the computer: an auction, five each
+        else if (v === 'local') hangUp();
         else if (v === 'host' && NET.role !== 'host') host();
         else if (v === 'join' && NET.role !== 'guest') { hangUp(); Object.assign(NET, { role: 'guest', code: '', status: 'code', err: '' }); }
         route();
@@ -747,7 +750,7 @@
         if (!ch.length && !THEMED) { UI.toast('Switch on at least one season', 'error'); return; }
         if (VS.opts.ranked && VS.opts.auction && online()) Object.assign(VS.opts, { aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'elite', aTheme: '', aShow: 0, bench: 0, bestOf: 7, blind: true, cap: 0, timer: 24, dupes: 0 });
         VS.year = !THEMED && ch.length === 1 ? ch[0] : 0;
-        VS.cfg = { mode: 'versus', year: VS.year, seasons: !THEMED && ch.length > 1 && ch.length < ALL_YEARS.length ? ch : null, themeYears: THEMED ? THEMED.years : [], theme: THEMED ? THEMED.info.title : '', bestOf: VS.opts.bestOf, blind: !VS.opts.cap && !!VS.opts.blind, cap: VS.opts.auction ? 0 : C.capFor(+VS.opts.cap || 0, VS.opts.bench), bench: +VS.opts.bench || 0, first: Math.random() < 0.5 ? 1 : 0, board: VS.opts.board && !VS.opts.auction ? 1 : 0, ranked: !!(VS.opts.ranked && VS.opts.auction && online() && UI.profile.signedIn()), bansN: VS.opts.auction ? 0 : +VS.opts.bans || 0, bans: [], dupes: ch.length > 1 && VS.opts.dupes ? 1 : 0, timer: VS.opts.auction && VS.opts.ranked && online() ? 24 : +VS.opts.timer || 0, era: +VS.opts.era || 2013, injuries: false, seed: rseed, bucket: RB ? RB.key : '',
+        VS.cfg = { mode: 'versus', cpu: VS.cpu && !online() ? 1 : 0, year: VS.year, seasons: !THEMED && ch.length > 1 && ch.length < ALL_YEARS.length ? ch : null, themeYears: THEMED ? THEMED.years : [], theme: THEMED ? THEMED.info.title : '', bestOf: VS.opts.bestOf, blind: !VS.opts.cap && !!VS.opts.blind, cap: VS.opts.auction ? 0 : C.capFor(+VS.opts.cap || 0, VS.opts.bench), bench: +VS.opts.bench || 0, first: Math.random() < 0.5 ? 1 : 0, board: VS.opts.board && !VS.opts.auction ? 1 : 0, ranked: !!(VS.opts.ranked && VS.opts.auction && online() && UI.profile.signedIn()), bansN: VS.opts.auction ? 0 : +VS.opts.bans || 0, bans: [], dupes: ch.length > 1 && VS.opts.dupes ? 1 : 0, timer: VS.opts.auction && VS.opts.ranked && online() ? 24 : +VS.opts.timer || 0, era: +VS.opts.era || 2013, injuries: false, seed: rseed, bucket: RB ? RB.key : '',
           sides: [0, 1].map(i => ({ team: VS.teams[i], name: (VS.tnames[i] || '').trim() || (VS.names[i] ? VS.names[i] + "'s " + tOf(teams, VS.teams[i]).name : ''), picks: [] })) };
         VS.skip = skipBefore;   // the era the match spun does not stay switched on in the setup
         VS.spin = null; VS.spun = []; VS.respins = [1, 1]; VS.shown = 0; VS.pos = ''; VS.q = ''; VS.season = ''; VS.sort = ''; VS.sw = null; VS.auc = null; VS.ready = [false, false];
@@ -1097,6 +1100,11 @@
     app.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', () => setAmt(AB.amt + +b.dataset.add)));
     const rs = UI.$('#aucRaise', app); if (rs) rs.addEventListener('click', () => { if (C.auctionAct(st, st.turn, 'raise', AB.amt)) done(); });
     const ps = UI.$('#aucPass', app); if (ps) ps.addEventListener('click', () => { if (C.auctionAct(st, st.turn, 'pass')) done(); });
+    // the CPU's turn: it thinks for a beat (the wait line says so), then bids or passes like the Daily's house
+    if (cfg.cpu && !st.done && st.turn === 1 && UI.ranked && UI.ranked.houseMove) {
+      clearTimeout(AB.cpuT);
+      AB.cpuT = setTimeout(() => { if (VS.auc !== st || st.done || st.turn !== 1 || !/^#\/challenge\/vs/.test(location.hash)) return; if (C.auctionAct(st, 1, UI.ranked.houseMove(st, byId, Math.random))) done(); }, 1200 + Math.random() * 900);
+    }
     // the shot clock: when it runs out the player on the clock passes; online, the other phone steps in five seconds later if his is gone
     if (timed) {
       const total = cfg.timer * 1000, actor = canAct(st.turn) ? 0 : online() ? 5000 : null;

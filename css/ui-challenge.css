@@ -1337,3 +1337,11 @@ a.pr-i:hover { border-color: var(--gold); }
 .tour-ex span b { font-family: var(--display); font-size: 20px; letter-spacing: .03em; color: #fff; }
 .tour-ex span small, .tour-ex em small { font-family: var(--display); font-size: 11px; letter-spacing: .14em; color: var(--muted); }
 .tour-ex em { font-style: normal; display: flex; flex-direction: column; align-items: flex-end; font-family: var(--display); font-size: 22px; color: var(--gold2); }
+
+/* auction: what just happened (a bid, a pass, a sale), the bots thinking, and your turn */
+.auc-pop { margin: 8px auto 0; padding: 8px 14px; max-width: 520px; text-align: center; font-family: var(--display); letter-spacing: .08em; font-size: 15px; color: #111; background: var(--gold); border-radius: 3px; animation: aucPop 1.7s ease both; }
+@keyframes aucPop { 0% { opacity: 0; transform: translateY(-6px) scale(.96); } 12% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; } }
+.auc-dots3 { font-style: normal; } .auc-dots3 i { font-style: normal; animation: aucDot 1.2s infinite; opacity: .2; } .auc-dots3 i:nth-child(2) { animation-delay: .2s; } .auc-dots3 i:nth-child(3) { animation-delay: .4s; }
+@keyframes aucDot { 0%, 100% { opacity: .2; } 40% { opacity: 1; } }
+.auc-yours { animation: aucYours .55s ease both; box-shadow: 0 0 0 2px var(--gold), 0 0 22px rgba(212,175,55,.45); }
+@keyframes aucYours { 0% { transform: scale(.97); } 20% { transform: translateX(-7px); } 40% { transform: translateX(7px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } 100% { transform: none; } }
