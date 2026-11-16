@@ -484,7 +484,14 @@
       <div class="ch-go"><a class="btn" href="#/me">MY PROFILE</a><a class="btn" href="#/challenge/vs">HEAD TO HEAD</a></div>`;
     UI.profile.wire(app, () => rankedPage(app));
     const fb = UI.$('#rkFind', app); if (fb) fb.addEventListener('click', () => { location.hash = '#/ranked/find/' + 'ALL'; });
-    const pb = UI.$('#rkPractice', app); if (pb) pb.addEventListener('click', () => { if (UI.vsPractice) UI.vsPractice(); else location.hash = '#/challenge/vs'; });
+    // practice: pick the era first (each ranked era, or one at random like a ranked match), then the CPU
+    const pb = UI.$('#rkPractice', app); if (pb) pb.addEventListener('click', async () => {
+      const opts = [{ value: 'random', label: 'RANDOM ERA (LIKE RANKED)', gold: true }].concat(BUCKETS.map(b => ({ value: b.key, label: b.label + ' | ' + b.sub }))).concat([{ value: '', label: 'CANCEL' }]);
+      const r = UI.choose ? await UI.choose({ title: 'PRACTICE WHICH ERA?', html: '<p class="muted">Ranked rules against the CPU. Nothing counts.</p>', buttons: opts }) : { value: 'random' };
+      const v = r && r.value;   // UI.choose answers { value, checked }
+      if (!v) return;
+      if (UI.vsPractice) UI.vsPractice(v); else location.hash = '#/challenge/vs';
+    });
     const era = UI.$('#rkEra', app); era.addEventListener('change', () => { RK.era = era.value; ls.set('a13-rk-era', RK.era); rankedPage(app); });
     app.querySelectorAll('[data-scope]').forEach(b => b.addEventListener('click', () => { RK.mine = b.dataset.scope === '1'; ls.set('a13-rk-mine', RK.mine); rankedPage(app); }));
     fill(app);

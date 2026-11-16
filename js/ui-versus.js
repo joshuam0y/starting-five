@@ -281,9 +281,14 @@
   }
   // ranked practice: the ranked rules (an auction from the elite pool, ratings hidden, 24-second clock, best of 7) against the
   // CPU, never counted. Opened from the Ranked page.
-  UI.vsPractice = function () {
+  // bucket: a ranked era (UI.ranked.BUCKETS key) or 'random' (one at random, as a ranked match spins); none means all-time
+  UI.vsPractice = function (bucket) {
     try { hangUp(); } catch (e) { /* not connected */ }
-    VS.cpu = true; VS.cfg = null; VS.auc = null; VS.page = 'setup'; VS.skip = []; VS.year = 0; VS.names = ['', '']; VS.tnames = ['', ''];
+    const BK = (UI.ranked && UI.ranked.BUCKETS) || [];
+    const b = bucket === 'random' ? BK[Math.floor(Math.random() * BK.length)] : BK.find(x => x.key === bucket);
+    VS.cpu = true; VS.cfg = null; VS.auc = null; VS.page = 'setup'; VS.year = 0; VS.names = ['', '']; VS.tnames = ['', ''];
+    VS.skip = b && b.key !== 'all' ? ALL_YEARS.filter(y => y < b.from || y > b.to) : [];
+    if (b && UI.toast) UI.toast('Practice era: ' + b.label);
     Object.assign(VS.opts, { auction: 1, board: 0, ranked: 0, pub: 0, aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'ranked', aTheme: '', aShow: 0, bench: 0, bestOf: 7, blind: true, cap: 0, timer: 24, dupes: 0, bans: 0 });
     location.hash = '#/challenge/vs';
   };
@@ -868,7 +873,7 @@
     VS.skip = era === 'ALL' ? [] : ALL_YEARS.filter(y => decKeyY(y) !== era);
     const ch = chosen(); VS.year = ch.length === 1 ? ch[0] : 0;
     Object.assign(VS.opts, { auction: 1, board: 0, ranked: 1, pub: 1, aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'ranked', aTheme: '', aShow: 0, bench: 0, bestOf: 7, blind: true, cap: 0, bans: 0, timer: 24, dupes: 0 });
-    VS.cfg = null; VS.auc = null; VS.page = 'setup'; VS.ready = [false, false]; VS.skip = []; VS.year = 0; VS.names = ['', '']; VS.tnames = ['', '']; VS.spin = null; VS.shown = 0;
+    VS.cfg = null; VS.auc = null; VS.page = 'setup'; VS.ready = [false, false]; VS.names = ['', '']; VS.tnames = ['', '']; VS.spin = null; VS.shown = 0;
   }
   UI.vsQuick = {
     host(era) { quickPresets(era); QUICK = 1; host(); },
@@ -1510,7 +1515,7 @@
         const all = rivals.all(), k = pairKey(), ids = all[k] ? all[k].ids : []; all[k] = { ids }; rivals.save(all); series(app);   // keeps the ids so this series does not count again
       });
       if ($('#vsRematch')) $('#vsRematch').addEventListener('click', () => { RM.seed = cfg.seed; RM.me = true; send({ t: 'rematch', seed: cfg.seed }); maybeRematch(); series(app); });
-      if ($('#vsNew')) $('#vsNew').addEventListener('click', () => { VS.cfg = null; VS.shown = 0; VS.watch = null; VS.names = ['', '']; VS.tnames = ['', '']; go('setup'); });
+      if ($('#vsNew')) $('#vsNew').addEventListener('click', () => { VS.cfg = null; VS.shown = 0; VS.watch = null; VS.skip = []; VS.year = 0; VS.names = ['', '']; VS.tnames = ['', '']; go('setup'); });
       if (want && WATCH !== want) watch(want);   // the other phone pressed WATCH
     });
   }
