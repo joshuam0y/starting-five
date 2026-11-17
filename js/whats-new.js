@@ -2,6 +2,8 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 500, t: 'Head to Head starts on the auction, and online both phones go to the series together with the same lineup intro.' },
+  { v: 498, t: 'A big gold READY button in Head to Head, and every player you win in an auction shows his rating.' },
   { v: 494, t: 'Build Any Team results show your bench and a full team stats table. Repeats keep their real name.' },
   { v: 492, t: 'Every mode is called what the menu calls it (Season Mode, Head to Head, Tournament), and league tabs fit a phone.' },
   { v: 490, t: 'Free agency is shorter on phones: smaller cards, 15 at a time.' },
