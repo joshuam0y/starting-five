@@ -41,13 +41,13 @@
   // Every page, grouped. The menu opens as a panel under the top bar that fits the screen (it scrolls when the
   // window is short) and sits above the music bar; pages not grouped here land under MORE.
   const MENU = [
-    ['MY TEAM', [['team', 'My Team'], ['manage', 'Rotation'], ['trade', 'Trades'], ['fa', 'Free Agency'], ['finances', 'Finances'], ['draft', 'Draft'], ['rights', 'Draft Rights'],
+    ['MY TEAM', [['team', 'Roster'], ['manage', 'Rotation'], ['trade', 'Trades'], ['fa', 'Free Agency'], ['finances', 'Finances'], ['draft', 'Draft'], ['rights', 'Draft Rights'],
       ['rookies', 'Rookies'], ['progress', 'Progression'], ['gleague', 'G League']]],
     ['SEASON', [['season', 'Schedule'], ['standings', 'Standings'], ['stats', 'Stats'], ['leaders', 'Leaders'], ['playoffs', 'Playoffs'], ['allstar', 'All-Star'], ['live', 'Watch Live'], ['share', 'Share Season']]],
     ['LEAGUE', [['league', 'League Home'], ['news', 'News'], ['news/transactions', 'Transactions'], ['awards', 'Awards'], ['awardshow', 'Awards Show'],
       ['history', 'History'], ['records', 'Records'], ['retirements', 'Retirements'], ['classes', 'Draft Classes'], ['top20', 'Top 20 Players'], ['teams', 'All Teams']]],
     ['MODES', [['daily', 'Daily'], ['ranked', 'Ranked'], ['challenge/vs', 'Head to Head'], ['challenge', 'Season Mode'], ['new', 'New League'], ['challenge/tournament', 'Tournament'], ['challenge/tournament/online', 'Online Tournament'], ['fantasy', 'Fantasy Draft']]],
-    ['GAME', [['me', 'My Profile'], ['saves', 'Saves'], ['settings', 'Settings'], ['commish', 'Commissioner']]],
+    ['GAME', [['home', 'Main Menu'], ['me', 'My Profile'], ['saves', 'Saves'], ['settings', 'Settings'], ['commish', 'Commissioner']]],
     ['INFO', [['about', 'About'], ['faq', 'FAQ'], ['contact', 'Contact'], ['privacy', 'Privacy'], ['terms', 'Terms'], ['disclaimer', 'Disclaimer']]]
   ];
   function buildExtraNav() {

@@ -1391,3 +1391,14 @@ a.pr-i:hover { border-color: var(--gold); }
 .any-go label span { font-family: var(--display); font-size: 11px; letter-spacing: .14em; color: var(--muted); }
 .any-go .btn-big { flex: 1 1 100%; }
 .ch-any-b { border-color: var(--gold) !important; }
+/* the daily tour's pictures */
+.tour-ten { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; width: 100%; }
+.tour-ten .ch-ovr { font-size: 20px; padding: 6px 0; text-align: center; opacity: .35; }
+.tour-ten .ch-ovr.pick { opacity: 1; background: var(--gold); color: #111; border-color: var(--gold); }
+.tour-btns { display: flex; gap: 8px; width: 100%; margin-top: 8px; }
+.tour-btns i { flex: 1; font-style: normal; text-align: center; font-family: var(--display); letter-spacing: .12em; padding: 10px; border: 1px solid var(--line); }
+.tour-btns i.g { background: var(--gold); color: #111; border-color: var(--gold); }
+.tour-score { display: flex; gap: 10px; width: 100%; }
+.tour-score span { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px; border: 1px solid var(--line); }
+.tour-score small { font-family: var(--display); font-size: 11px; letter-spacing: .14em; color: var(--muted); }
+.tour-score b { font-family: var(--display); font-size: 34px; } .tour-score b.g { color: var(--gold); }

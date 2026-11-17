@@ -956,10 +956,10 @@
             <div class="auc-info"><small>UP FOR BID</small><div class="auc-nm"><b class="ch-ovr auc-ovr ${UI.ovrClass(cur.ovr)}" title="Rating">${esc(cur.ovr)}</b><h2>${esc(cur.name)}</h2></div><p>${esc(C.posLabel(cur))}${cur.season ? ' | \'' + String(cur.season - 1).slice(2) + '-\'' + String(cur.season).slice(2) : ''}${(() => { const tn = C.teamNick(cur.season, cur.from || cur.team); return tn ? ' | ' + esc(tn) : ''; })()}</p></div>
             <div class="auc-price"><small>${st.holder === 0 ? 'YOU HOLD' : 'THE HOUSE HOLDS'}</small><b>${money(st.price)}</b></div></section>
           ${mine && !canRaise ? `<div class="auc-bid"><div class="auc-broke"><b>YOU CAN'T TOP ${money(st.price)}</b><span>You have ${money(A.budget - st.spent[0])}${per - st.won[0].length > 1 ? ' and must keep ' + money((per - st.won[0].length - 1) * A.start) + ' for your other open spots' : ''}, so the most you can bid is ${money(Math.max(0, max))}.</span></div><div class="auc-go"><button type="button" class="btn btn-big" disabled>BID<small>can't top ${money(st.price)}</small></button><button type="button" class="btn btn-gold btn-big" id="aucPass">PASS<small>${st.holder === 0 ? 'You get him' : 'The house gets him'} for ${money(st.price)}</small></button></div></div>` : `
-          <div class="auc-bid"><div class="auc-maxline">YOUR MAX BID IS <b>${money(max)}</b></div><div class="auc-step"><button type="button" class="btn" id="aucDown"${DB.amt - A.raise < min ? ' disabled' : ''}>&minus;</button><div class="auc-amt"><small>YOUR BID</small><b>${money(DB.amt)}</b></div><button type="button" class="btn" id="aucUp"${DB.amt + A.raise > max ? ' disabled' : ''}>+</button></div>
+          <div class="auc-bid"><div class="auc-step"><button type="button" class="btn" id="aucDown"${DB.amt - A.raise < min ? ' disabled' : ''}>&minus;</button><div class="auc-amt"><small>YOUR BID</small><b>${money(DB.amt)}</b></div><button type="button" class="btn" id="aucUp"${DB.amt + A.raise > max ? ' disabled' : ''}>+</button></div>
             <div class="auc-chips">${quick.map(x => `<button type="button" class="ch-chip" data-add="${x.to}">${x.label}</button>`).join('')}<button type="button" class="ch-chip" data-to="${max}"${canRaise ? '' : ' disabled'}>ALL IN ${money(max)}</button></div>
-            <div class="auc-go"><button type="button" class="btn btn-gold btn-big" id="aucRaise"${mine && canRaise ? '' : ' disabled'}>BID</button><button type="button" class="btn btn-big" id="aucPass"${mine ? '' : ' disabled'}>PASS<small>${st.holder === 0 ? 'You get him' : 'The house gets him'} for ${money(st.price)}</small></button></div></div>`}
-          <div class="auc-dots">${st.ids.map((id, k) => `<i class="${k < st.i ? 'sold' : k === st.i ? 'now' : ''}"></i>`).join('')}</div><p class="auc-more">${left} MORE IN THE HIDDEN POOL | ${isPr ? 'PRACTICE' : 'ONE TRY A DAY'}</p>
+            <div class="auc-go"><button type="button" class="btn btn-gold btn-big" id="aucRaise"${mine && canRaise ? '' : ' disabled'}>BID ${money(DB.amt)}</button><button type="button" class="btn btn-big" id="aucPass"${mine ? '' : ' disabled'}>PASS<small>${st.holder === 0 ? 'You get him' : 'The house gets him'} for ${money(st.price)}</small></button></div></div>`}
+          <div class="auc-dots">${st.ids.map((id, k) => `<i class="${k < st.i ? 'sold' : k === st.i ? 'now' : ''}"></i>`).join('')}</div>
         </main>${side(1, 'r', 'THE HOUSE')}</div>`;
     const go = (a, to) => {
       const before = st.log.length;
@@ -1239,23 +1239,23 @@
   // ---------- the first-time tour of ranked ----------
   const TOURKEY = 'a13-rk-tour';
   const TOUR = [
-    ['FIND A MATCH', 'Tap Find a match. You get the closest rating searching now. The range widens every ten seconds.'],
-    ['THE LOBBY', 'See both ranks and your win chance. Press Ready. Nothing starts until you both do. Leaving here is free.'],
-    ['THE AUCTION', 'Ten hidden players, $20 each, five spots each. Bids start at $1, 24 seconds a bid. Pass and your opponent gets the player. Keep $1 for every open spot.'],
-    ['THE SERIES', 'Best of 7, no bench. To watch or sim the next game, one asks and the other agrees. Both phones report the score.'],
-    ['RANKS', 'Start at 1200, the bottom of Silver. Climb through Bronze, Silver, Gold, Platinum, Diamond, Master, Grandmaster, Legend. You can drop too.'],
-    ['IF YOU DROP', 'The game pauses. A banner gives you 90 seconds to rejoin. Miss it and you forfeit. The Forfeit button ends a game at once.']
+    ['FIND A MATCH', 'Tap Find a match. You play someone near your rank.'],
+    ['THE LOBBY', 'Both press Ready to start. Leaving now is free.'],
+    ['THE AUCTION', '$20 each, 10 players, 5 spots. Pass and they get him.'],
+    ['THE SERIES', 'Best of 7. Watch or sim each game.'],
+    ['RANKS', 'Win to climb from Bronze to Legend. Lose and you drop.'],
+    ['IF YOU DROP', 'You get 90 seconds to rejoin, or you forfeit.']
   ];
   // the daily's first-time tour: the goal, the bidding, the budget and clock, the score
   const DTOURKEY = 'a13-dy-tour';
+  // three slides, a picture each, a line you read in five seconds
   const DTOUR = [
-    ['THE GOAL', "Build the best five from today's ten players. You're scored against the best five possible."],
-    ['HOW TO BID', 'Ten players come up one at a time, starting at $1. Raise the bid, or pass and the house gets him at the current price.'],
-    // an example player, as he shows up in the auction: the big number is what to read first
-    ['READ THE RATING', 'The big number is his rating: higher is better. Bid more for the stars you want. Pass on the rest, but every player you pass goes to the house, and its five is the one you have to beat.',
-      () => `<div class="tour-ex"><b class="ch-ovr ${UI.ovrClass(88)}">88</b><span><b>PAUL GEORGE</b><small>SF | '13-'14 PACERS</small></span><em><small>PRICE</small>$4</em></div>`],
-    ['BUDGET AND CLOCK', '$20 total, five spots, 24 seconds a bid. Keep $1 for every spot you still need to fill.'],
-    ['YOUR SCORE', 'Your score is a percent of the best five. 100% means you picked exactly those five. One try a day.']
+    ['GET THE BEST 5', '10 players come up. Grab the best 5.',
+      () => `<div class="tour-ten">${[94, 71, 88, 66, 90, 79, 97, 62, 84, 75].map(o => `<b class="ch-ovr ${UI.ovrClass(o)}${o >= 84 ? ' pick' : ''}">${o}</b>`).join('')}</div>`],
+    ['BID OR PASS', 'Big number = how good. Pass, and the house gets him.',
+      () => `<div class="tour-ex"><b class="ch-ovr ${UI.ovrClass(88)}">88</b><span><b>PAUL GEORGE</b><small>SF | '13-'14 PACERS</small></span><em><small>PRICE</small>$4</em></div><div class="tour-btns"><i class="g">BID $5</i><i>PASS</i></div>`],
+    ['$20. BEAT THE HOUSE.', 'Save $1 for each open spot. One try a day.',
+      () => `<div class="tour-score"><span><small>BUDGET</small><b>$20</b></span><span><small>YOUR SCORE</small><b class="g">96%</b></span></div>`]
   ];
   // set: which tour to run (slides, label, the localStorage flag it sets); the default is the Ranked tour
   function openTour(done, set) {
