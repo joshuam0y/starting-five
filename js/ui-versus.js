@@ -1068,7 +1068,7 @@
     const sideBox = (i, cls) => {
       const won = st.won[i].map(id => ({ p: byId[id], price: (st.log.filter(x => x.id === id)[0] || {}).price }));
       const slots = Array.from({ length: per }, (_, k) => won[k]
-        ? `<li class="on"><span>${esc(won[k].p ? won[k].p.name : '?')}${won[k].p ? ' <small class="muted">' + esc(C.posLabel(won[k].p)) + '</small>' : ''}${yearOf(won[k].p)}</span><b>${money(won[k].price || 0)}</b></li>` : '<li class="empty"><span>OPEN</span></li>').join('');
+        ? `<li class="on"><span>${won[k].p && !blind ? '<b class="auc-ov ch-ovr ' + UI.ovrClass(won[k].p.ovr) + '">' + esc(won[k].p.ovr) + '</b>' : ''}${esc(won[k].p ? won[k].p.name : '?')}${won[k].p ? ' <small class="muted">' + esc(C.posLabel(won[k].p)) + '</small>' : ''}${yearOf(won[k].p)}</span><b>${money(won[k].price || 0)}</b></li>` : '<li class="empty"><span>OPEN</span></li>').join('');
       return `<aside class="auc-side ${cls}${st.turn === i ? ' turn' : ''}${st.holder === i ? ' holds' : ''}"><div class="auc-who"><small>${esc(who(i))}${me() === i ? ' (YOU)' : ''}</small><b class="auc-cash">${money(A.budget - st.spent[i])}</b><small>${st.won[i].length} OF ${per} SPOTS</small></div><ol class="auc-slots">${slots}</ol></aside>`;
     };
     const timed = cfg.timer > 0;

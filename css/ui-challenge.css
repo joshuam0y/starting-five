@@ -897,6 +897,19 @@
 .vs-rd.on i { background: #3ecf6e; box-shadow: 0 0 8px #3ecf6e; }
 .vs-rd.on b { color: #3ecf6e; }
 .vs-rd:disabled:not(.on) { cursor: default; }
+/* your own ready button: big and gold until you tap it, then green (the small gray box was easy to miss) */
+.vs-rd { min-height: 52px; }
+.vs-rd:not(:disabled):not(.on) { background: var(--gold); border-color: var(--gold); color: #111; animation: vsRdPulse 1.6s ease-in-out infinite; }
+.vs-rd:not(:disabled) span { display: none; }   /* your own button: just the action, centered (the name squeezed to one letter) */
+.vs-rd:not(:disabled) { justify-content: center; }
+.vs-rd:not(:disabled) b { margin-left: 0; }
+.vs-rd:not(:disabled):not(.on) b { color: #111; font-size: 14px; }
+.vs-rd:not(:disabled):not(.on) i { background: #111; }
+.vs-rd.on { background: rgba(62, 207, 110, .12); border-color: #3ecf6e; }
+.vs-rd.on b { font-size: 13px; }
+.vs-rd:not(:disabled).on b::after { content: ' | TAP TO UNDO'; color: var(--muted); font-size: 10px; letter-spacing: .08em; }
+@keyframes vsRdPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, .55); } 50% { box-shadow: 0 0 0 6px rgba(212, 175, 55, 0); } }
+@media (prefers-reduced-motion: reduce) { .vs-rd { animation: none !important; } }
 .vs-dock-go { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-left: auto; }
 .vs-dock-go .btn-big { padding: 12px 22px; font-size: 16px; }
 @media (max-width: 560px) { .vs-dock-go { width: 100%; } .vs-dock-go .btn-big { flex: 1; } }
@@ -1431,3 +1444,4 @@ a.pr-i:hover { border-color: var(--gold); }
 .any-none { padding: 14px 10px; }
 .any-open { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
 .any-slots + .any-open { margin-top: 8px; }
+.auc-slots .auc-ov { font-size: 12px; padding: 1px 5px; margin-right: 7px; min-width: 26px; text-align: center; display: inline-block; vertical-align: 1px; }
