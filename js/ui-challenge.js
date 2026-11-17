@@ -222,17 +222,17 @@
       <section class="ch-hero">
         <div class="ch-hero-k">DRAFT CHALLENGE</div>
         <h1 class="ch-hero-t">PICK FIVE. SIM A SEASON.</h1>
-        <p class="ch-hero-p">Build a starting five, drop them on a franchise and see how far they go. Just the five: they play all 48 minutes of every game and never get hurt a night. Separate from your Association saves.</p>
+        <p class="ch-hero-p">Your five play all 48 minutes. Never hurt.</p>
+        <a class="btn btn-gold ch-any-cta" href="#/challenge/any">BUILD ANY TEAM<small>Anyone, any season. Ten KDs?</small></a>
       </section>
       <div class="ch-setup">
         <div class="ch-step"><div class="ch-step-k">1 | THE POOL</div>
           <div class="ch-seg">
             <button type="button" class="ch-seg-b${!isAll ? ' on' : ''}" data-mode="year"><b>ONE SEASON</b><small>The real league of one year</small></button>
             <button type="button" class="ch-seg-b${isAll ? ' on' : ''}" data-mode="alltime"><b>ALL-TIME</b><small>Vets from every season, 30 teams draft</small></button>
-            <a class="ch-seg-b ch-any-b" href="#/challenge/any"><b>ANY TEAM</b><small>Anyone, any season. Ten KDs? Go.</small></a>
             <a class="ch-seg-b" href="#/challenge/vs"><b>HEAD TO HEAD</b><small>Draft against a friend, online or one phone</small></a>
           </div>
-          <small class="ch-hint">${isAll ? 'Seasons: every season you leave on is in one big pool, and nobody can be drafted twice.' : 'Seasons: you draft from the real league of the one season you pick.'}</small>
+          <small class="ch-hint">${isAll ? 'Every season left on goes in one pool.' : 'Draft from one real season.'}</small>
           ${isAll ? `<div class="ch-sub">SEASONS IN THE POOL <span class="muted">(${C.SEASONS.length - skip.length} of ${C.SEASONS.length} on)</span></div>
             <div class="row-btns vs-seas-all"><button type="button" class="btn btn-small${!skip.length ? ' on' : ''}" data-askip="all">ALL</button><button type="button" class="btn btn-small" data-askip="none">CLEAR</button>${decs.length > 1 ? decs.map(d => { const ys = C.SEASONS.filter(x => decOf(x.year) === d).map(x => x.year), n = ys.filter(y => skip.indexOf(y) < 0).length; return `<button type="button" class="btn btn-small${n === ys.length ? ' on' : n ? ' part' : ''}" data-adec="${d}">${d}s</button>`; }).join('') : ''}</div>
             <div class="vs-seas">${C.SEASONS.map(x => `<button type="button" class="ch-chip${skip.indexOf(x.year) < 0 ? ' on' : ''}" data-ayr="${x.year}">${esc(x.label)}</button>`).join('')}</div>
@@ -242,7 +242,7 @@
           <div class="ch-seg">${Object.keys(BUILD).map(k => `<button type="button" class="ch-seg-b${s.build === k ? ' on' : ''}" data-build="${k}"><b>${BUILD[k].label}</b><small>${esc(isAll && k === 'free' ? 'Snake draft: take anyone left when you are up.' : isAll ? 'When you are up, the wheel picks a team and season.' : BUILD[k].note)}</small></button>`).join('')}</div>
         </div>
         <div class="ch-step"><div class="ch-step-k">3 | YOUR FRANCHISE</div>
-          <p class="muted ch-small">${isAll ? 'Every team drafts five. You get this franchise\'s name and court.' : 'You take over this team. Its real roster leaves. Your five play all 48 minutes and never get hurt.'}</p>
+          <p class="muted ch-small">${isAll ? 'You get its name and court.' : 'Its real roster leaves. Yours moves in.'}</p>
           ${ready ? `<div class="ch-teams">${teams.map(t => `<button type="button" class="ch-team${s.team === t.abbr ? ' on' : ''}" data-team="${esc(t.abbr)}" style="--c1:${esc(t.colors[0])}">${logo(t, 34)}<span>${esc(t.name)}</span></button>`).join('')}</div>` : '<p class="muted">Loading teams...</p>'}
           <div class="ch-row">
             <label class="field"><span>TEAM NAME (OPTIONAL)</span><input id="chName" maxlength="32" placeholder="${esc(s.team ? tName(teamOf(teams, s.team)) : 'Keep the real name')}" value="${esc(s.name || '')}"></label>

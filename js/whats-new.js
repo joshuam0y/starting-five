@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 456, t: 'Season Mode leads with BUILD ANY TEAM, with fewer words on the setup screen.' },
   { v: 454, t: 'Easier to read: a 3-slide How to Play, BID shows the amount, and the league top bar is My Team, Schedule, Standings and MENU.' },
   { v: 452, t: 'Build Any Team: pick anyone from any season, repeats OK (10 KDs?), and sim a season. Season Mode, ANY TEAM.' },
   { v: 450, t: '2026-27 stars rated on the same scale as the seasons before: SGA and Wemby 99, Jokic 98. New leagues only.' },
