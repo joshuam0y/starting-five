@@ -14,10 +14,11 @@
     get() { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } },
     set(v) { if (typeof NET !== 'undefined' && NET.role === 'watch') return; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* private mode */ } }
   };
-  const FRESH = () => ({ year: 2008, teams: ['BOS', 'LAL'], names: ['', ''], tnames: ['', ''], opts: { bestOf: 5, blind: false, timer: 24, bench: 0, board: 0, dupes: 0, bans: 0, auction: 0, aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'stars', aTheme: '', aShow: 0, ranked: 0, pub: 0 }, cfg: null, auc: null, ready: [false, false], shown: 0, page: 'setup', spin: null, spun: [], respins: [1, 1], turn: null, pos: '', q: '', epoch: 0, hostSide: 0 });
+  const FRESH = () => ({ year: 2008, teams: ['BOS', 'LAL'], names: ['', ''], tnames: ['', ''], opts: { bestOf: 5, blind: false, timer: 24, bench: 0, board: 0, dupes: 0, bans: 0, auction: 1, aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'stars', aTheme: '', aShow: 0, ranked: 0, pub: 0 }, cfg: null, auc: null, ready: [false, false], shown: 0, page: 'setup', spin: null, spun: [], respins: [1, 1], turn: null, pos: '', q: '', epoch: 0, hostSide: 0 });
   let VS = Object.assign(FRESH(), ls.get() || {});
   if (!VS.cfg || VS.page === 'setup') { VS.names = ['', '']; VS.tnames = ['', '']; VS.skip = []; VS.year = 0; }   // a new game starts as Player 1 and Player 2 again, every season on
-  VS.opts = Object.assign({ bestOf: 5, blind: false, timer: 24, era: 2013, bench: 0, bans: 0, auction: 0, aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'stars', aShow: 0, ranked: 0, pub: 0 }, VS.opts || {});
+  VS.opts = Object.assign({ bestOf: 5, blind: false, timer: 24, era: 2013, bench: 0, bans: 0, auction: 1, aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'stars', aShow: 0, ranked: 0, pub: 0 }, VS.opts || {});
+  if (!VS.aucDefault) { VS.opts.auction = 1; VS.aucDefault = 1; }   // Head to Head defaults to the auction (once for older saved setups; a later switch to the wheel sticks)
   if (VS.opts.timer) VS.opts.timer = 24;   // the pick clock is a shot clock: 24 seconds or off
   // the seasons in play: every season but the ones switched off (VS.skip). One season left is a one-season
   // draft (cfg.year); more is the era spin over just those (cfg.year 0, cfg.seasons)
@@ -120,6 +121,7 @@
       <p class="muted">Series won. Games: ${esc(a)} ${R.games[a] || 0}, ${esc(b)} ${R.games[b] || 0}.${sw ? ' Sweeps: ' + esc(sw) + '.' : ''} ${esc(streak)}</p>
       <div class="vs-rival-log">${R.log.slice(0, 8).map(x => `<span class="${x.w === a ? 'a' : 'b'}">${esc(x.w.split(' ')[0])} ${esc(x.s)}<small>${esc(x.y ? short(x.y) : 'ALL')}</small></span>`).join('')}</div></section>`;
   }
+  let INTRO_ON = false;   // the series intro is showing (started by the other phone)
   const SHARED = ['year', 'skip', 'teams', 'names', 'tnames', 'opts', 'cfg', 'shown', 'watch', 'page', 'spin', 'spun', 'respins', 'turn', 'epoch', 'hostSide', 'auc', 'ready', 'watching', 'hostAcct'];
   let APP = null;   // the page element the versus screens draw into
 
@@ -241,8 +243,15 @@
     if (m.t === 'rankedonly' && NET.role === 'guest' && m.why === 'played') { UI.toast('You already played that player in ranked. Each ranked matchup counts once, so pick another opponent.', 'error'); QUICK = 0; hangUp(); route(); return; }
     if (m.t === 'rankedonly' && NET.role === 'guest') { UI.toast('That room is ranked, so both players need an account. Sign in to join it.', 'error'); hangUp(); route(); return; }
     if (m.t === 'state' && m.s && (m.s.epoch || 0) >= (VS.epoch || 0)) {
-      const prevEp = VS.epoch;
+      const prevEp = VS.epoch, prevPage = VS.page;
       SHARED.forEach(k => { if (k in m.s) VS[k] = m.s[k]; }); ls.set(VS);
+      // the other phone started the series: play the same lineup intro here, then follow it
+      if (prevPage === 'draft' && VS.page === 'series' && VS.cfg && !INTRO_ON) {
+        INTRO_ON = true; seen();
+        let B = null; try { B = board(VS.cfg); } catch (e) { B = null; }
+        seriesIntro(B, () => { INTRO_ON = false; route(); });
+        return;
+      }
       // the host handed the room over to this phone (a newer epoch that names our side as host)
       if (NET.role === 'guest' && prevEp >= 0 && VS.epoch > prevEp && VS.hostSide === NET.side) { VS.epoch--; becomeHost(true); return; }
       if (NET.role === 'guest') NET.side = 1 - (VS.hostSide || 0);
@@ -538,6 +547,14 @@
     if (VS.page === 'draft') draft(APP); else if (VS.page === 'series') series(APP); else setup(APP);
   }
   function go(page) { VS.page = page; push(); route(); window.scrollTo(0, 0); }
+  // both fives, introduced before the series (both phones play it online)
+  function seriesIntro(B, done) {
+    if (!UI.slib || !VS.cfg || !B) { done(); return; }
+    const byId = B.byId;
+    const groups = [0, 1].map(i => ({ label: who(i).toUpperCase() + ' | ' + ((tOf(B.teams, VS.cfg.sides[i].team).name) || '').toUpperCase(), color: (tOf(B.teams, VS.cfg.sides[i].team).colors || ['#888'])[0],
+      players: VS.cfg.sides[i].picks.map(id => byId[id]).filter(Boolean).map(p => (p.season || !VS.cfg.year ? p : Object.assign({}, p, { season: VS.cfg.year }))) }));
+    UI.slib.intro(groups, { ratings: !(VS.cfg.blind || (VS.opts && VS.opts.blind)) }, done);
+  }
 
   // rosters would not load: stay in the game (the room is still open) and offer to try again
   function loadFail(app, e, retry) {
@@ -1351,9 +1368,9 @@
         const go2 = () => { VS.shown = 0; go('series'); };
         if (!UI.slib || sim.dataset.busy) { go2(); return; }
         sim.dataset.busy = '1';
-        const groups = [0, 1].map(i => ({ label: who(i).toUpperCase() + ' | ' + ((tOf(B.teams, VS.cfg.sides[i].team).name) || '').toUpperCase(), color: (tOf(B.teams, VS.cfg.sides[i].team).colors || ['#888'])[0],
-          players: VS.cfg.sides[i].picks.map(id => byId[id]).filter(Boolean).map(p => (p.season || !VS.cfg.year ? p : Object.assign({}, p, { season: VS.cfg.year }))) }));
-        UI.slib.intro(groups, { ratings: !(VS.cfg.blind || (VS.opts && VS.opts.blind)) }, () => { delete sim.dataset.busy; go2(); });
+        // online, the other phone moves to the series now and plays the same intro there (onMsg), so both screens match
+        if (online() && linked()) { VS.shown = 0; VS.page = 'series'; push(); }
+        seriesIntro(B, () => { delete sim.dataset.busy; go2(); });
       });
     });
   }
