@@ -1413,3 +1413,6 @@ a.pr-i:hover { border-color: var(--gold); }
 .rk-mini .rk-notify { margin: 0; } .rk-mini #rkTourBtn { width: auto; margin: 0; }
 .rk-fpc .rk-fof { margin: -6px 0 4px; font-family: var(--display); letter-spacing: .14em; font-size: 13px; color: var(--text2); }
 .rk-fpc .rk-frk { font-size: 13px; color: var(--muted); margin: 0; }
+.tour-scale { display: flex; gap: 6px; width: 100%; margin-top: 8px; }
+.tour-scale span { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--display); font-size: 12px; letter-spacing: .12em; color: var(--text2); border: 1px solid var(--line); padding: 6px 4px; }
+.tour-scale .ch-ovr { font-size: 15px; padding: 1px 5px; }

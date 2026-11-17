@@ -1245,10 +1245,10 @@
   const DTOURKEY = 'a13-dy-tour';
   // three slides, a picture each, a line you read in five seconds
   const DTOUR = [
-    ['GET THE BEST 5', '10 players come up. Grab the best 5.',
+    ['GET THE BEST 5', '10 players come up. Grab the 5 highest numbers.',
       () => `<div class="tour-ten">${[94, 71, 88, 66, 90, 79, 97, 62, 84, 75].map(o => `<b class="ch-ovr ${UI.ovrClass(o)}${o >= 84 ? ' pick' : ''}">${o}</b>`).join('')}</div>`],
-    ['BID OR PASS', 'Big number = how good. Pass, and the house gets him.',
-      () => `<div class="tour-ex"><b class="ch-ovr ${UI.ovrClass(88)}">88</b><span><b>PAUL GEORGE</b><small>SF | '13-'14 PACERS</small></span><em><small>PRICE</small>$4</em></div><div class="tour-btns"><i class="g">BID $5</i><i>PASS</i></div>`],
+    ['BID OR PASS', 'The number is his rating. 99 is the best. Pass, and the house gets him.',
+      () => `<div class="tour-ex"><b class="ch-ovr ${UI.ovrClass(88)}">88</b><span><b>PAUL GEORGE</b><small>SF | '13-'14 PACERS</small></span><em><small>PRICE</small>$4</em></div><div class="tour-scale">${[[70, 'OK'], [80, 'GOOD'], [90, 'STAR']].map(([o, w]) => `<span><b class="ch-ovr ${UI.ovrClass(o)}">${o}${o === 90 ? '+' : ''}</b>${w}</span>`).join('')}</div><div class="tour-btns"><i class="g">BID $5</i><i>PASS</i></div>`],
     ['$20. BEAT THE HOUSE.', 'Save $1 for each open spot. One try a day.',
       () => `<div class="tour-score"><span><small>BUDGET</small><b>$20</b></span><span><small>YOUR SCORE</small><b class="g">96%</b></span></div>`]
   ];
