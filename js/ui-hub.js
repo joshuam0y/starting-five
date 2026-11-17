@@ -642,9 +642,9 @@
     let list = [];
     try { list = C.history(g, abbr, { today: window.LEAGUE && LEAGUE.currentDate ? LEAGUE.currentDate(g) || '' : '' }); } catch (e) { list = []; }
     if (!list.length) return '';
-    return `${UI.header('COACHES', 'Head coaches, newest first')}<ul class="tm-coaches">${list.map((c, i) => `<li${i === 0 ? ' class="now"' : ''}>
+    return `<details class="tm-coach-d"><summary>${UI.header('COACHES', list.length + ' head coaches. Tap to show.')}</summary><ul class="tm-coaches">${list.map((c, i) => `<li${i === 0 ? ' class="now"' : ''}>
       <b>${esc(c.name)}</b>${c.interim ? ' <span class="ts-tag">INTERIM</span>' : ''}${i === 0 ? ' <span class="ts-tag">CURRENT</span>' : ''}
-      <small>${c.from === c.to ? seasonLbl(c.from) : seasonLbl(c.from) + ' to ' + seasonLbl(c.to)}${c.note ? ' | ' + esc(c.note) : ''}</small></li>`).join('')}</ul>`;
+      <small>${c.from === c.to ? seasonLbl(c.from) : seasonLbl(c.from) + ' to ' + seasonLbl(c.to)}${c.note ? ' | ' + esc(c.note) : ''}</small></li>`).join('')}</ul></details>`;
   }
 
   P.team = function (app, abbr) {
@@ -671,15 +671,15 @@
         g: pg ? pg.g : 0, pts: pg ? pg.pts : -1, reb: pg ? pg.reb : -1, ast: pg ? pg.ast : -1, salary: Number(UI.salaryOf(p)) || 0, thru: end || 0
       } };
     });
-    const COLS = [['name', 'PLAYER', 'l'], ['pos', 'POS'], ['age', 'AGE'], ['ht', 'HT', 'hide-sm'], ['ovr', 'OVR']]
+    const COLS = [['name', 'PLAYER', 'l'], ['ovr', 'OVR'], ['pos', 'POS'], ['age', 'AGE'], ['ht', 'HT', 'hide-sm']]   // OVR right after the name, so phones never scroll for it
       .concat(hasSeason ? [['g', 'G', 'hide-sm'], ['pts', 'PTS'], ['reb', 'REB', 'hide-sm'], ['ast', 'AST', 'hide-sm']] : [])
       .concat([['salary', 'SALARY', 'hide-sm'], ['thru', 'THRU', 'hide-sm']]);
     const ASC = ['name', 'pos'];
     const sort = { key: 'ovr', dir: -1 };
     const rowHtml = ({ p, pg, end }) => `<tr>
         <td class="l"><a class="rt-name" href="#/player/${esc(p.id)}"><span class="rt-hs">${UI.headshot(p)}</span><span>${esc(p.name)} ${UI.injuryBadge(p)}</span></a></td>
-        <td class="rt-pos">${esc(posLabel(p))}</td><td>${esc(p.age)}</td><td class="hide-sm">${UI.fmtHt(p.ht)}</td>
         <td class="rt-ovr ${UI.ovrClass(p.ovr)}">${esc(p.ovr)}${UI.mv(p)}</td>
+        <td class="rt-pos">${esc(posLabel(p))}</td><td>${esc(p.age)}</td><td class="hide-sm">${UI.fmtHt(p.ht)}</td>
         ${hasSeason ? `<td class="hide-sm">${pg ? pg.g : 0}</td><td>${pg ? UI.fmt1(pg.pts) : '-'}</td><td class="hide-sm">${pg ? UI.fmt1(pg.reb) : '-'}</td><td class="hide-sm">${pg ? UI.fmt1(pg.ast) : '-'}</td>` : ''}
         <td class="hide-sm">${UI.fmtMoney(UI.salaryOf(p))}</td><td class="hide-sm">${end ? UI.fmtSeasonEnd(end) : '-'}</td>
       </tr>`;

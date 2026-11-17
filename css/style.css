@@ -1046,3 +1046,5 @@ body.no-assoc-nav .navmore-list a[data-nav="settings"], body.no-assoc-nav .navmo
 .wn-list li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px; align-items: baseline; }
 .wn-list b { font-family: var(--display); color: var(--gold2); letter-spacing: .06em; }
 .wn-list span { color: var(--text2); line-height: 1.4; }
+.tm-coach-d > summary { list-style: none; cursor: pointer; }
+.tm-coach-d > summary::-webkit-details-marker { display: none; }

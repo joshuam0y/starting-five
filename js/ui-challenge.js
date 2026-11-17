@@ -200,6 +200,7 @@
   }
   const SEASONS_READY = () => C.SEASONS.filter(x => x.ready !== false);
 
+  let MOREOPEN = false;   // MORE OPTIONS stays open across redraws
   function drawSetup(app) {
     const s = SETUP;
     const isAll = s.mode === 'alltime';
@@ -244,6 +245,7 @@
         <div class="ch-step"><div class="ch-step-k">3 | YOUR FRANCHISE</div>
           <p class="muted ch-small">${isAll ? 'You get its name and court.' : 'Its real roster leaves. Yours moves in.'}</p>
           ${ready ? `<div class="ch-teams">${teams.map(t => `<button type="button" class="ch-team${s.team === t.abbr ? ' on' : ''}" data-team="${esc(t.abbr)}" style="--c1:${esc(t.colors[0])}">${logo(t, 34)}<span>${esc(t.name)}</span></button>`).join('')}</div>` : '<p class="muted">Loading teams...</p>'}
+          <details class="ch-more" id="chMore"${MOREOPEN ? ' open' : ''}><summary>MORE OPTIONS</summary>
           <div class="ch-row">
             <label class="field"><span>TEAM NAME (OPTIONAL)</span><input id="chName" maxlength="32" placeholder="${esc(s.team ? tName(teamOf(teams, s.team)) : 'Keep the real name')}" value="${esc(s.name || '')}"></label>
             ${isAll ? '' : `<div class="field"><span>INJURIES (OTHER TEAMS)</span><div class="ch-seg ch-seg-sm"><button type="button" class="ch-seg-b${s.injuries ? ' on' : ''}" data-inj="1"><b>ON</b></button><button type="button" class="ch-seg-b${!s.injuries ? ' on' : ''}" data-inj="0"><b>OFF</b></button></div><small class="ch-hint">${s.injuries ? 'Rival teams lose players to injuries as the season goes on.' : 'Every rival team is healthy all year.'}</small></div>`}
@@ -251,6 +253,7 @@
             ${isAll ? `<div class="field"><span>SAME PLAYER TWICE</span><div class="ch-seg ch-seg-sm"><button type="button" class="ch-seg-b${!s.dupes ? ' on' : ''}" data-dupes="0"><b>NO DUPLICATES</b></button><button type="button" class="ch-seg-b${s.dupes ? ' on' : ''}" data-dupes="1"><b>DUPLICATES ON</b></button></div><small class="ch-hint">${s.dupes ? 'The same player can be drafted from different seasons, by you or any team. Only that exact season is gone once taken.' : 'A player is gone for good once taken, whatever the season.'}</small></div>` : ''}
             <div class="field"><span>SALARY CAP</span><div class="ch-seg ch-seg-sm">${CAPS.map(v => `<button type="button" class="ch-seg-b${(s.cap || 0) === v ? ' on' : ''}" data-cap="${v}"><b>${v ? '$' + v + 'M' : 'OFF'}</b></button>`).join('')}</div><small class="ch-hint">${s.cap ? 'Every player has a price from his rating. Your five must fit under $' + s.cap + 'M.' : 'No cap: take anyone.'}</small></div>
           </div>
+          </details>
         </div>
         <div class="ch-go"><button type="button" class="btn btn-gold btn-big" id="chStart"${s.team ? '' : ' disabled'}>${s.team ? 'START THE DRAFT' : 'PICK A FRANCHISE'}</button>
           ${ls.get(KEY_CUR) ? '<a class="btn" href="#/challenge/pick">BACK TO MY DRAFT</a>' : ''}</div>
@@ -275,6 +278,7 @@
     app.querySelectorAll('[data-decade]').forEach(b => b.addEventListener('click', () => { SETUP.decade = +b.dataset.decade; redraw(); }));
     app.querySelectorAll('[data-era]').forEach(b => b.addEventListener('click', () => { SETUP.era = +b.dataset.era; redraw(); }));
     app.querySelectorAll('[data-build]').forEach(b => b.addEventListener('click', () => { SETUP.build = b.dataset.build; redraw(); }));
+    const more = UI.$('#chMore', app); if (more) more.addEventListener('toggle', () => { MOREOPEN = more.open; });
     app.querySelectorAll('[data-inj]').forEach(b => b.addEventListener('click', () => { SETUP.injuries = b.dataset.inj === '1'; redraw(); }));
     app.querySelectorAll('[data-dupes]').forEach(b => b.addEventListener('click', () => { SETUP.dupes = +b.dataset.dupes; redraw(); }));
     app.querySelectorAll('[data-cap]').forEach(b => b.addEventListener('click', () => { SETUP.cap = +b.dataset.cap; redraw(); }));
