@@ -99,7 +99,7 @@
       drawSolo(app, o); return;
     }
     if (!(window.ENGINE && typeof window.ENGINE.newSeason === 'function')) {
-      app.innerHTML = UI.empty('SIM ENGINE NOT LOADED', 'The Draft Challenge needs the game engine (<code>js/engine.js</code>), which did not load.', '<div class="row-btns"><a class="btn" href="#/home">HOME</a></div>');
+      app.innerHTML = UI.empty('SIM ENGINE NOT LOADED', 'Season Mode needs the game engine (<code>js/engine.js</code>), which did not load.', '<div class="row-btns"><a class="btn" href="#/home">HOME</a></div>');
       return;
     }
     const part = String(arg || '').split('/');
@@ -115,7 +115,7 @@
     if (part[0] === 'result') { drawResult(app, part[1] != null && part[1] !== '' ? +part[1] : 0); return; }
     drawSetup(app);
   };
-  P.challenge.navLabel = 'Draft Challenge';
+  P.challenge.navLabel = 'Season Mode';
   P.challenge.navDesc = 'Pick a starting five from any season and sim it';
 
   // =====================================================================
@@ -236,7 +236,7 @@
     const eraBtns = C.SEASONS.filter(x => x.ready !== false).map(x => `<button type="button" class="ch-chip${+s.era === x.year ? ' on' : ''}" data-era="${x.year}">${esc(x.label)}</button>`).join('');
     app.innerHTML = `
       <section class="ch-hero">
-        <div class="ch-hero-k">DRAFT CHALLENGE</div>
+        <div class="ch-hero-k">SEASON MODE</div>
         <h1 class="ch-hero-t">PICK FIVE. SIM A SEASON.</h1>
         <p class="ch-hero-p">Your five play all 48 minutes. Never hurt.</p>
         <a class="btn btn-gold ch-any-cta" href="#/challenge/any">BUILD ANY TEAM<small>Anyone, any season. Ten KDs?</small></a>
@@ -960,7 +960,7 @@
     const c1 = (o.c && o.c[0]) || '#444', c2 = (o.c && o.c[1]) || c1, champ = o.x === 'champion';
     const opts = o.o || {};
     app.innerHTML = `<section class="sl-wrap"><div class="ch-res ${champ ? 'champ' : ''} sl-card" style="--c1:${esc(c1)};--c2:${esc(c2)}">
-        <div class="ch-res-k">${esc(o.lb || '')} DRAFT CHALLENGE | SHARED RESULT</div>
+        <div class="ch-res-k">${esc(o.lb || '')} SEASON MODE | SHARED RESULT</div>
         <div class="ch-res-main"><div><div class="ch-res-t">${esc(o.tn || 'MY FIVE')}</div><div class="ch-res-rec">${+o.w || 0}-${+o.l || 0}</div>
           <div class="ch-res-seed">${o.m === 'a' ? 'All-time pool' : 'One season'}${opts.i === 0 ? ' | injuries off' : ''}${opts.c ? ' | $' + esc(opts.c) + 'M cap' : ''}</div></div></div>
         <div class="ch-res-banner">${champ ? '<span class="ch-trophy" aria-hidden="true"></span>' : ''}<b>${esc(EXIT[o.x] || '')}</b><span>${esc(champ ? '' : o.rs || '')}</span></div>
@@ -1019,7 +1019,7 @@
   UI.slib = { b64, unb64, url: slUrl, copy: slCopy, read: slRead, bad: slBad, vsCard: drawVsCard, intro: slIntro };
   function slButton(r) {
     const b = UI.$('#chCopy');
-    if (b) b.addEventListener('click', () => { let u; try { u = slUrl('solo', soloCode(r)); } catch (e) { UI.toast('Could not make a link for this result.', 'error'); return; } slCopy(u, 'Draft Challenge result', (r.label || '') + ' draft challenge: ' + r.w + '-' + r.l + '. Think you can do better?'); });
+    if (b) b.addEventListener('click', () => { let u; try { u = slUrl('solo', soloCode(r)); } catch (e) { UI.toast('Could not make a link for this result.', 'error'); return; } slCopy(u, 'Season Mode result', (r.label || '') + ' Season Mode: ' + r.w + '-' + r.l + '. Think you can do better?'); });
   }
   function shareCode(r) {
     const c = r.cfg, o = { v: 1, m: c.mode === 'alltime' ? 'a' : 'y', y: c.year, b: c.build === 'wheel' ? 'w' : 'f', t: c.team, n: c.name || '', s: c.seed,
@@ -1032,7 +1032,7 @@
   }
   function openShared(app, code) {
     let o;
-    try { o = JSON.parse(unb64(code)); } catch (e) { app.innerHTML = UI.empty('LINK NOT READABLE', 'This challenge link is broken or cut off.', '<div class="row-btns"><a class="btn" href="#/challenge">DRAFT CHALLENGE</a></div>'); return; }
+    try { o = JSON.parse(unb64(code)); } catch (e) { app.innerHTML = UI.empty('LINK NOT READABLE', 'This challenge link is broken or cut off.', '<div class="row-btns"><a class="btn" href="#/challenge">SEASON MODE</a></div>'); return; }
     const cfg = { mode: o.m === 'a' ? 'alltime' : 'year', year: +o.y || 2013, build: o.b === 'w' ? 'wheel' : 'free', team: o.t, name: o.n || '', seed: +o.s,
       injuries: o.i !== 0, era: +o.e || 2013, dupes: o.u ? 1 : 0, picks: o.p || [] };
     if (Array.isArray(o.c)) { cfg.build = 'any'; cfg.custom = o.c.slice(0, 10).map(String); cfg.customYears = (o.cy || []).map(Number); }
@@ -1045,7 +1045,7 @@
         }
         RUN = { ch: buildChallenge(cfg, dr), fast: false, paused: false, ticker: [], shared: { w: o.w, l: o.l } };
         location.hash = '#/challenge/sim';
-      } catch (e) { app.innerHTML = UI.empty('COULD NOT OPEN THE CHALLENGE', esc(e && e.message ? e.message : e), '<div class="row-btns"><a class="btn" href="#/challenge">DRAFT CHALLENGE</a></div>'); }
+      } catch (e) { app.innerHTML = UI.empty('COULD NOT OPEN THE CHALLENGE', esc(e && e.message ? e.message : e), '<div class="row-btns"><a class="btn" href="#/challenge">SEASON MODE</a></div>'); }
     });
   }
 
@@ -1081,7 +1081,7 @@
     const log = r.log.map(g => `<li class="${g.won ? 'w' : 'l'}${g.playoff ? ' po' : ''}"><a href="#/challenge/game/${idx}/${esc(g.id)}"><span class="ch-log-d">${esc(UI.dateLabel ? UI.dateLabel(g.date) : g.date)}</span><b>${g.won ? 'W' : 'L'}</b><span>${g.us}-${g.them}</span><span>${g.home ? 'vs' : 'at'} ${esc(g.opp)}</span><small class="muted">${esc(g.top)}</small></a></li>`).join('');
     app.innerHTML = `
       <section class="ch-res ${r.exit === 'champion' ? 'champ' : ''}" style="--c1:${esc(me.colors[0])};--c2:${esc(me.colors[1] || me.colors[0])}">
-        <div class="ch-res-k">${r.build === 'any' ? esc(r.label) + ' | ANY TEAM' : esc(r.label) + ' DRAFT CHALLENGE | ' + esc(BUILD[r.build] ? BUILD[r.build].label : '')}</div>
+        <div class="ch-res-k">${r.build === 'any' ? esc(r.label) + ' | ANY TEAM' : esc(r.label) + ' SEASON MODE | ' + esc(BUILD[r.build] ? BUILD[r.build].label : '')}</div>
         <div class="ch-res-main">${logo(me, 92)}<div><div class="ch-res-t">${esc(tName(me))}</div><div class="ch-res-rec">${r.w}-${r.l}</div><div class="ch-res-seed">${esc(seedTxt)}${r.injuries ? '' : ' | injuries off'}</div></div></div>
         <div class="ch-res-banner">${r.exit === 'champion' ? '<span class="ch-trophy" aria-hidden="true"></span>' : ''}<b>${esc(EXIT[r.exit] || '')}</b><span>${esc(r.exit === 'champion' ? (r.series.length ? 'Beat the ' + r.series[r.series.length - 1].oppName + ' ' + r.series[r.series.length - 1].w + '-' + r.series[r.series.length - 1].l + ' in the Finals' : '') : r.result)}</span></div>
         ${realT ? `<div class="ch-res-real">The real ${esc(seasonLabel(r.year))} ${esc(tName(me.orig || me))} went ${realT.w}-${realT.l}.</div>` : ''}
@@ -1203,7 +1203,7 @@
     let url = location.origin + location.pathname + '#/challenge';
     if (!plain) { try { url += '/s/' + shareCode(r); } catch (e) { /* plain link */ } }
     const me = r.team && typeof r.team === 'object' ? r.team : {};
-    const spec = { kicker: (r.label || '') + (r.build === 'any' ? ' | ANY TEAM' : ' DRAFT CHALLENGE'), title: tName(me) || 'MY FIVE', big: r.w + '-' + r.l, gold: r.exit === 'champion',
+    const spec = { kicker: (r.label || '') + (r.build === 'any' ? ' | ANY TEAM' : ' | SEASON MODE'), title: tName(me) || 'MY FIVE', big: r.w + '-' + r.l, gold: r.exit === 'champion',
       banner: r.exit === 'champion' ? 'NBA CHAMPIONS' : String(r.result || '').toUpperCase(), colors: me.colors, logo: me.logo,
       lines: r.five.map(x => [C.primaryPos(x.pos), x.name + (x.line ? '   ' + x.line.pts.toFixed(1) + ' PTS' : '')]) };
     if (UI.shareResult) { UI.shareResult(spec, text, url, 'draft-challenge'); return; }

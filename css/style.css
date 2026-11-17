@@ -1058,7 +1058,7 @@ body.no-assoc-nav .navmore-list a[data-nav="settings"], body.no-assoc-nav .navmo
   .ts-card .ts-nm b { font-size: 15px; }
   .ts-card .ts-ovr small { display: none; }
   .ts-card .ts-ovr b { font-size: 18px; }
-  .ts-card .ts-tag { font-size: 9px; padding: 1px 5px; }
+  .ts-card .ts-tag { font-size: 10px; padding: 1px 5px; }
 }
 /* phones: the fantasy draft's team picker, three small tiles a row */
 @media (max-width: 560px) {

@@ -230,7 +230,7 @@
     const chips = (list, cur, attr) => list.map(([v, l]) => `<button type="button" class="ch-chip${cur === v ? ' on' : ''}" data-${attr}="${v}">${l}</button>`).join('');
     const ch = chosen();
     app.innerHTML = `
-      <section class="ch-hero"><div class="ch-hero-k">DRAFT CHALLENGE | TOURNAMENT</div><h1 class="ch-hero-t">LAST FIVE STANDING.</h1>
+      <section class="ch-hero"><div class="ch-hero-k">TOURNAMENT</div><h1 class="ch-hero-t">LAST FIVE STANDING.</h1>
         <p class="ch-hero-p">Four or eight teams, one phone. Humans draft five (or eight) with the wheel or an open board, passing the phone along, and AI teams can fill any empty seats. Then a bracket: winner moves on, all five play 48 minutes, and every game can be watched on the court.</p></section>
       <div class="ch-setup tn-setup">
         <div class="ch-step"><div class="ch-step-k">1 | PLAYERS</div>

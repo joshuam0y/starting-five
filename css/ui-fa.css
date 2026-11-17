@@ -168,9 +168,11 @@
   .fa-chips { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 860px) {
-  .fa-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: 'who who' 'ask fit' 'act act' 'reply reply' 'offer offer'; padding: 0 12px 10px 0; row-gap: 8px; }
+  /* one row under the name: price, fit tags, the offer button (three stacked rows made each card about 195px) */
+  .fa-row { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: 'who who who' 'ask fit act' 'reply reply reply' 'offer offer offer'; padding: 0 12px 10px 0; row-gap: 6px; column-gap: 10px; align-items: center; }
   .fa-ask, .fa-fit { padding-left: 15px; }
-  .fa-act { justify-self: stretch; justify-content: flex-start; padding-left: 15px; }
+  .fa-fit { padding-left: 0; flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .fa-act { justify-self: end; }
   .fa-offer { grid-template-columns: minmax(0, 1fr); padding-right: 0; }
   .fa-total { justify-self: start; }
 }
