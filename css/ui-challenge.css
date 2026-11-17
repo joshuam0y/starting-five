@@ -1416,3 +1416,11 @@ a.pr-i:hover { border-color: var(--gold); }
 .tour-scale { display: flex; gap: 6px; width: 100%; margin-top: 8px; }
 .tour-scale span { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--display); font-size: 12px; letter-spacing: .12em; color: var(--text2); border: 1px solid var(--line); padding: 6px 4px; }
 .tour-scale .ch-ovr { font-size: 15px; padding: 1px 5px; }
+/* daily result: the share squares with each rating under it, and the color key */
+.dy-sq { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 4px auto 14px; text-align: center; }
+.dy-sq-k { font-family: var(--display); font-size: 11px; letter-spacing: .16em; color: var(--muted); }
+.dy-sq-row { display: flex; gap: 10px; }
+.dy-sq-row span { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.dy-sq-row i { font-style: normal; font-size: 22px; line-height: 1; }
+.dy-sq-row b { font-family: var(--display); font-size: 13px; color: var(--text2); }
+.dy-sq small { color: var(--muted); font-size: 12px; }
