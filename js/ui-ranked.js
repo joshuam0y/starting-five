@@ -774,7 +774,7 @@
       ov.innerHTML = `<div class="rk-tour-b rk-fb"><small>${isP ? prTag(day) : 'DAILY #' + dayNo(day)} | ${esc(TH.title)}</small>
         ${fiveCards(five)}
         <div class="rk-fsc"><small>LINEUP SCORE</small><b id="fsN">0.0</b></div>
-        <div class="rk-fpc"><h2 class="rk-pop-n" id="fpN">0.0%</h2><div class="rk-tier" id="fTier"></div><p class="rk-frk" id="fRank"></p><p>OF A PERFECT FIVE</p></div>
+        <div class="rk-fpc"><h2 class="rk-pop-n" id="fpN">0.0%</h2><p class="rk-fof">OF A PERFECT FIVE</p><div class="rk-tier" id="fTier"></div><p class="rk-frk" id="fRank"></p></div>
         <p class="rk-pop-m" id="popMile"></p><p class="rk-pop-s" id="popStd"></p><div class="rk-tour-go rk-fgo">${isP ? '<a class="btn btn-gold btn-big" id="popShare" href="#/daily/practice/' + esc(prKey) + '/' + Date.now() + '">PLAY AGAIN</a>' : '<button type="button" class="btn btn-gold btn-big" id="popShare">SHARE YOUR SCORE</button>'}<button type="button" class="btn" id="popClose">CLOSE</button></div><button type="button" class="rk-skip" id="fSkip">TAP TO SKIP</button></div>`;
       document.body.appendChild(ov);
       if (!isP) { const n = streakNow().n; if (MILES.includes(n)) ov.querySelector('#popMile').textContent = n + ' DAY STREAK'; }
@@ -786,7 +786,7 @@
         let R = null, stamped = false, upd = false;   // R: where this score sits among every result today's auction can end in
         const dist = reachLoad(era, day, byId);
         const tierOf = () => R ? (R.top ? 'THE BEST POSSIBLE' : R.gap >= 99 ? 'LEGENDARY' : R.gap >= 98 ? 'ELITE' : R.gap >= 97 ? 'ALL STAR' : R.gap >= 96 ? 'STARTER LEVEL' : 'ROLE PLAYERS') : (pct >= 97 ? 'LEGENDARY' : pct >= 94 ? 'ELITE' : pct >= 90 ? 'ALL STAR' : pct >= 80 ? 'STARTER LEVEL' : 'ROLE PLAYERS');
-        const rankLine = () => R ? (R.top ? 'NO RESULT TODAY BEATS THIS ONE' : 'BETTER THAN ' + Math.floor(R.p) + '% OF ALL ' + R.n.toLocaleString() + ' POSSIBLE RESULTS') : '';
+        const rankLine = () => R ? (R.top ? 'NO RESULT TODAY BEATS THIS ONE' : 'BETTER THAN ' + Math.floor(R.p) + '% OF ALL RESULTS') : '';
         const paintRank = () => { const t = q('#fTier'), r = q('#fRank'); const tk = TIERKEY[tierOf()] || ''; q('.rk-fb').dataset.t = tk; if (t) { t.textContent = tierOf(); t.dataset.t = tk; } if (r) r.textContent = rankLine(); const pg = UI.$('#rkReach', app); if (pg) pg.textContent = rankLine(); const tp = UI.$('#rkTierPg', app); if (tp) { tp.textContent = tierOf(); tp.dataset.t = tk; const sc = tp.closest('.rk-score'); if (sc) sc.dataset.t = tk; } };
         const sfx = n => { if (window.SFX) try { window.SFX.play(n); } catch (e) { /* silent */ } };
         const count = (el, to, ms, dec, suf, tick) => { const t0 = performance.now(); const step = now => { const k = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - k, 3); el.textContent = (to * e).toFixed(dec) + suf; if (tick && k < 1 && Math.floor(k * 14) !== step.l) { step.l = Math.floor(k * 14); sfx('tick'); } if (k < 1 && ov.isConnected) requestAnimationFrame(step); }; requestAnimationFrame(step); };
