@@ -274,10 +274,10 @@ a.play-next:hover { border-color: var(--gold); color: #fff; }
 .ct-t { font-family: var(--display); font-weight: 700; font-size: 26px; text-transform: uppercase; letter-spacing: .04em; line-height: 1.1; }
 .field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 180px; min-width: 0; }
 .field span { font-family: var(--display); font-size: 12px; letter-spacing: .2em; color: var(--muted); }
-.field input, .field select, .rename input {
+.field input, .field select, .rename input, .any-find input {
   width: 100%; padding: 10px 12px; background: #000; border: 1px solid var(--line2); color: #fff; font: inherit; border-radius: 2px;
 }
-.field input:focus, .field select:focus, .rename input:focus { border-color: var(--gold); outline: none; }
+.field input:focus, .field select:focus, .rename input:focus, .any-find input:focus { border-color: var(--gold); outline: none; }
 .confirm-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
 .team-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
