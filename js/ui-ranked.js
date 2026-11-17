@@ -603,8 +603,10 @@
   // what today is, from the date alone (no data needed): the kind rotates daily, the pick inside it comes from the date
   // From CYCLE_FROM on, the days walk a shuffled order of the whole catalog, so no theme repeats until every one has
   // been played (about four months), and two themes of the same kind never fall on back-to-back days. Days before it
-  // keep the old rotation: their boards and answer keys were already written (data/days, data/reach, daily_key).
-  const CYCLE_FROM = '2027-01-17', CYC = {};
+  // keep the old rotation (Daily #1 to #6 were played on it). The first cycle also keeps the themes of the last 40
+  // old-rotation days out of its first 40 days.
+  const CYCLE_FROM = '2026-11-18', CYC = {};
+  const dayPlus = (d, k) => new Date(Date.parse(d + 'T00:00:00Z') + k * 86400000).toISOString().slice(0, 10);
   function cycleOrder(c) {
     if (CYC[c]) return CYC[c];
     const list = themeCatalog().slice().sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
@@ -612,7 +614,7 @@
     const rnd = () => (s = hash('r' + s)) / 4294967296;
     for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const t = list[i]; list[i] = list[j]; list[j] = t; }
     // across the seam between cycles: the last GAP themes of the cycle before stay out of the first GAP days of this one
-    const GAP = 40, prev = c > 0 ? cycleOrder(c - 1) : null;
+    const GAP = 40, prev = c > 0 ? cycleOrder(c - 1) : Array.from({ length: GAP }, (_, k) => oldRotation(dayPlus(CYCLE_FROM, k - GAP)));
     const tail = new Set(prev ? prev.slice(-GAP).map(t => t.key) : []);
     const head = list.filter(t => !tail.has(t.key)).slice(0, GAP), inHead = new Set(head.map(t => t.key));
     const order = head.concat(list.filter(t => !inHead.has(t.key)));
@@ -629,6 +631,9 @@
       const n = Math.round((Date.parse(day + 'T00:00:00Z') - Date.parse(CYCLE_FROM + 'T00:00:00Z')) / 86400000), L = themeCatalog().length;
       return cycleOrder(Math.floor(n / L))[n % L];
     }
+    return oldRotation(day);
+  }
+  function oldRotation(day) {
     const idx = Math.floor(Date.parse(day + 'T00:00:00Z') / 86400000), kind = ((idx % 9) + 9) % 9, h = hash(day);
     if (kind === 0) return T_CURRENT(MODERN[h % MODERN.length]);
     if (kind === 1) return T_FAMOUS(FAMOUS[h % FAMOUS.length]);
@@ -667,7 +672,16 @@
     const sp = info.spec, top = l => l.sort((a, b) => b.ovr - a.ovr || (a.id < b.id ? -1 : 1)).slice(0, 12);
     let pool = [];
     const allTime = () => { const best = {}; C.allTimePool().forEach(e => { if (!best[e.base] || e.ovr > best[e.base].ovr) best[e.base] = e; }); return Object.keys(best).map(k => Object.assign({}, best[k], { id: best[k].key, team: best[k].from })); };
-    if (sp.t === 'rookie') { await C.load(sp.year); pool = C.seasonData(sp.year).players.filter(x => x.rookie).map(x => Object.assign({}, x, { season: sp.year })); }
+    if (sp.t === 'rookie') {
+      await C.load(sp.year);
+      // a rookie's season rating comes from his per-minute stats, which undersells a rookie with a big role (2018-19 Luka 78, Mo Bamba 79):
+      // where his real 2K rating that year is known (data/targets.js, 2012-13 on), it is used, on the game's scale
+      const T = window.TARGETS, PR = window.PROG;
+      pool = C.seasonData(sp.year).players.filter(x => x.rookie).map(x => {
+        const r = T && T[x.id] && T[x.id][sp.year], v = r != null && PR && PR.scaleRating ? Math.round(PR.scaleRating(sp.year, +r)) : null;
+        return Object.assign({}, x, { season: sp.year }, v ? { ovr: v } : {});
+      });
+    }
     else if (sp.t === 'u25') { await C.load(2027); pool = C.seasonData(2027).players.filter(x => x.age < 25).map(x => Object.assign({}, x, { season: 2027 })); }
     else if (sp.t === 'season') { await C.load(sp.year); pool = C.seasonData(sp.year).players.filter(x => x.team === sp.abbr).map(x => Object.assign({}, x, { season: sp.year })); }
     else {
