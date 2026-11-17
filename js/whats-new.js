@@ -2,7 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
-  { v: 472, t: 'How to Play shows what a rating means: 70 OK, 80 good, 90+ star, 99 the best.' },
+  { v: 474, t: 'How to Play explains the house and what a rating means: 70 OK, 80 good, 90+ star, 99 the best.' },
   { v: 470, t: 'Fixed: starting a second league in another season no longer bumps some players above their real level.' },
   { v: 468, t: 'New leagues, Season Mode and the Fantasy Draft open on 2026-27. Faster team pickers, stars first, and a shorter Tournament setup.' },
   { v: 466, t: 'Trades: draft pick lists fold up. Head to Head only asks for your name when you play online.' },
