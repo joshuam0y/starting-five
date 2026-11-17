@@ -26,6 +26,7 @@ jobs:
           set -o pipefail
           if ! node tools/update-ratings.js --write | tee ratings.txt; then echo "ESPN check failed, nothing changed"; exit 0; fi
           if git diff --quiet; then echo "no rating changed"; exit 0; fi
+          node tools/build-player-index.js   # Build Any Team's search shows this season's new ratings
           eff=$(TZ=America/Los_Angeles date -d 'next wednesday' +%F)
           python3 - <<'PY'
           import re

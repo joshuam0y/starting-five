@@ -123,11 +123,16 @@
   // in a real league. Tap to add, tap again to remove. The first five start.
   // =====================================================================
   const KEY_ANY = 'a13-ch-any';
-  let ANY = Object.assign({ keys: [], ext: [], q: '', from: 'pool', year: 0, team: '' }, ls.get(KEY_ANY) || {});
+  let ANY = Object.assign({ keys: [], ext: [], q: '', from: 'all', year: 0, team: '' }, ls.get(KEY_ANY) || {});
+  if (!ANY.v2) { ANY.from = 'all'; ANY.v2 = 1; }   // the search now covers every player of every season by default
   const anySave = () => ls.set(KEY_ANY, ANY);
   const norm = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   let POOLC = null;
   const poolList = () => POOLC || (POOLC = window.CHALLENGE_POOL.players.map(p => ({ p, key: p.id + '@' + p.season, n: norm(p.name) })).sort((a, b) => b.p.ovr - a.p.ovr));
+  // every player of every season (data/player-index.js, loaded on first use): role players too, each season his own row
+  let IDXC = null, idxLoading = null;
+  const loadIndex = () => window.PLAYER_INDEX ? Promise.resolve() : (idxLoading = idxLoading || new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'data/player-index.js'; sc.onload = () => (window.PLAYER_INDEX ? ok() : no(new Error('The player list did not load.'))); sc.onerror = () => { idxLoading = null; no(new Error('The player list did not load. Check the connection and try again.')); }; document.head.appendChild(sc); }));
+  const allList = () => IDXC || (IDXC = (() => { const out = []; Object.keys(window.PLAYER_INDEX || {}).forEach(id => { const [name, ss] = window.PLAYER_INDEX[id], n = norm(name); ss.forEach(([y, team, ovr, pos]) => out.push({ p: { id, name, season: y, team, ovr, pos }, key: id + '@' + y, n })); }); return out.sort((a, b) => b.p.ovr - a.p.ovr); })());
   const seasonList = y => { const d = C.seasonData(y); return d ? d.players.map(p => ({ p: Object.assign({ season: y }, p), key: p.id + '@' + y, n: norm(p.name) })).sort((a, b) => b.p.ovr - a.p.ovr) : []; };
   const ANY_IDEAS = [
     ['10 KEVIN DURANTS', L => { const kd = L.find(x => x.p.name === 'Kevin Durant'); return kd ? Array(10).fill(kd.key) : []; }],
@@ -141,32 +146,41 @@
     const ready = SEASONS_READY();
     const lastY = ready.length ? ready[ready.length - 1].year : 2013;
     if (!ANY.year || !ready.some(x => x.year === ANY.year)) ANY.year = lastY;
-    const need = ['pool', ANY.year].concat(ANY.from !== 'pool' ? [+ANY.from] : []);
-    if (!need.every(y => C.loaded(y))) {
+    const used = new Set(ANY.keys.map(k => +k.split('@')[1]));
+    const need = ['pool', ANY.year].concat(ANY.from !== 'pool' && ANY.from !== 'all' ? [+ANY.from] : [], ANY.ext.filter(y => used.has(y)));
+    const idxOk = ANY.from !== 'all' || !!window.PLAYER_INDEX;
+    if (!need.every(y => C.loaded(y)) || !idxOk) {
       app.innerHTML = '<section class="ch-load"><div class="ch-spin-ring"></div><div>LOADING PLAYERS...</div></section>';
-      Promise.all(need.map(y => C.load(y))).then(() => { if (/^#\/challenge\/any/.test(location.hash)) drawAny(app); })
+      Promise.all(need.map(y => C.load(y)).concat(idxOk ? [] : [loadIndex()])).then(() => { if (/^#\/challenge\/any/.test(location.hash)) drawAny(app); })
         .catch(e => { app.innerHTML = UI.empty('PLAYERS DID NOT LOAD', esc(e && e.message ? e.message : e), '<div class="row-btns"><a class="btn" href="#/challenge/any">TRY AGAIN</a></div>'); });
       return;
     }
     const teams = C.seasonData(ANY.year).teams.slice().sort((a, b) => tName(a).localeCompare(tName(b)));
     if (!teams.some(t => t.abbr === ANY.team)) ANY.team = teams[0].abbr;
-    const src = ANY.from === 'pool' ? poolList() : seasonList(+ANY.from);
+    const src = ANY.from === 'pool' ? poolList() : ANY.from === 'all' ? allList() : seasonList(+ANY.from);
     const q = norm(ANY.q).trim();
-    const hits = (q ? src.filter(e => e.n.indexOf(q) >= 0) : src).slice(0, 40);
+    // a search over every season lists each match's seasons together, newest first
+    // no search: each player once, at his best season (the list is sorted best first)
+    const once = list => { const seen = {}; return list.filter(e => !seen[e.p.id] && (seen[e.p.id] = 1)); };
+    const hits = (q ? src.filter(e => e.n.indexOf(q) >= 0) : ANY.from === 'pool' || ANY.from === 'all' ? once(src) : src).slice().sort(q && ANY.from === 'all' ? ((a, b) => a.p.name.localeCompare(b.p.name) || b.p.season - a.p.season) : () => 0).slice(0, q ? 60 : 40);
+    const nMatch = q ? new Set(src.filter(e => e.n.indexOf(q) >= 0).map(e => e.p.id)).size : 0;
     const ent = k => { const e = C.customEntry(k); return e; };
     const lab = y => "'" + String(y - 1).slice(2) + '-' + String(y).slice(2);
-    const slots = Array.from({ length: 10 }, (_, i) => {
+    // only the filled spots, then one line for what is still open (ten empty boxes pushed the search off a phone screen)
+    const openLine = ANY.keys.length < 5 ? `${5 - ANY.keys.length} more to fill the starting five` : ANY.keys.length < 10 ? `Starting five set. Bench: ${10 - ANY.keys.length} open (optional)` : 'Full: five starters, five on the bench';
+    const slots = Array.from({ length: Math.min(10, ANY.keys.length) }, (_, i) => {
       const k = ANY.keys[i], e = k ? ent(k) : null;
       return `<li class="any-slot${e ? '' : ' empty'}${i === 5 ? ' any-b1' : ''}">${e ? `<button type="button" data-rm="${i}" aria-label="Remove ${esc(e.name)}"><span class="n">${esc(e.name)}</span><small>${esc(lab(e.season))} ${esc(e.from || '')}</small>${ovrSpan(e.ovr)}<i aria-hidden="true">x</i></button>` : `<span class="muted">${i < 5 ? 'STARTER' : 'BENCH'}</span>`}</li>`;
     }).join('');
     const n = ANY.keys.length;
-    const seasonOpts = ['<option value="pool"' + (ANY.from === 'pool' ? ' selected' : '') + '>All-time stars</option>'].concat(ready.slice().reverse().map(x => `<option value="${x.year}"${String(ANY.from) === String(x.year) ? ' selected' : ''}>${esc(x.label)}</option>`)).join('');
+    const seasonOpts = ['<option value="all"' + (ANY.from === 'all' ? ' selected' : '') + '>All players</option>', '<option value="pool"' + (ANY.from === 'pool' ? ' selected' : '') + '>All-time stars</option>'].concat(ready.slice().reverse().map(x => `<option value="${x.year}"${String(ANY.from) === String(x.year) ? ' selected' : ''}>${esc(x.label)}</option>`)).join('');
     const leagueOpts = ready.slice().reverse().map(x => `<option value="${x.year}"${ANY.year === x.year ? ' selected' : ''}>${esc(x.label)}</option>`).join('');
     app.innerHTML = `${UI.header('BUILD ANY TEAM', 'Tap players to add them. Repeats OK. Then sim a season.')}
       <div class="ch-chips ch-swipe any-ideas">${ANY_IDEAS.map((x, i) => `<button type="button" class="ch-chip" data-idea="${i}">${x[0]}</button>`).join('')}</div>
-      <section class="any-team"><div class="any-k">YOUR TEAM <b>${n}/10</b>${n ? '<button type="button" class="btn btn-small" id="anyClear">CLEAR</button>' : ''}</div><ol class="any-slots">${slots}</ol></section>
-      <div class="any-find"><input id="anyQ" type="search" placeholder="Search any player" value="${esc(ANY.q)}" autocomplete="off"><select id="anyFrom" aria-label="Players from">${seasonOpts}</select></div>
-      <ul class="any-hits">${hits.map(e => `<li><button type="button" data-add="${esc(e.key)}"${n >= 10 ? ' disabled' : ''}><span class="n">${esc(e.p.name)}</span><small>${esc(lab(e.p.season))} ${esc(e.p.team || '')} | ${esc(e.p.pos || '')}</small>${ovrSpan(e.p.ovr)}<b class="any-plus" aria-hidden="true">+</b></button></li>`).join('') || '<li class="muted">Nobody by that name here. Try All-time stars or another season.</li>'}</ul>
+      <section class="any-team"><div class="any-k">YOUR TEAM <b>${n}/10</b>${n ? '<button type="button" class="btn btn-small" id="anyClear">CLEAR</button>' : ''}</div>${slots ? `<ol class="any-slots">${slots}</ol>` : ''}<p class="any-open">${openLine}</p></section>
+      <div class="any-find"><input id="anyQ" type="search" placeholder="${ANY.from === 'all' ? 'Any player, any season' : 'Search players'}" value="${esc(ANY.q)}" autocomplete="off" autocorrect="off" spellcheck="false"><select id="anyFrom" aria-label="Players from">${seasonOpts}</select></div>
+      <p class="any-note">${q ? (nMatch ? nMatch + (nMatch === 1 ? ' player' : ' players') + (ANY.from === 'all' ? ', every season he played' : '') + '. Tap a season to add it.' : '') : ANY.from === 'all' ? 'Each player at his best. Search a name for all his seasons.' : ANY.from === 'pool' ? 'The best few of every season.' : 'The whole league that season.'}</p>
+      <ul class="any-hits">${hits.map(e => { const on = ANY.keys.filter(k => k === e.key).length; return `<li${on ? ' class="in"' : ''}><button type="button" data-add="${esc(e.key)}"${n >= 10 ? ' disabled' : ''}><span class="n">${esc(e.p.name)}${on ? ` <em class="any-on">ON TEAM${on > 1 ? ' x' + on : ''}</em>` : ''}</span><small>${esc(lab(e.p.season))} ${esc(e.p.team || '')} | ${esc(e.p.pos || '')}</small>${ovrSpan(e.p.ovr)}<b class="any-plus" aria-hidden="true">+</b></button></li>`; }).join('') || `<li class="muted any-none">No player by that name${ANY.from === 'all' ? '' : ' here. Try All players'}.</li>`}</ul>
       <div class="any-go">
         <label><span>PLAY IN</span><select id="anyYear">${leagueOpts}</select></label>
         <label><span>AS</span><select id="anyTeam">${teams.map(t => `<option value="${esc(t.abbr)}"${t.abbr === ANY.team ? ' selected' : ''}>${esc(tName(t))}</option>`).join('')}</select></label>
@@ -187,7 +201,7 @@
     app.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => { ANY.keys.splice(+b.getAttribute('data-rm'), 1); redraw(); }));
     app.querySelectorAll('[data-idea]').forEach(b => b.addEventListener('click', () => { ANY.keys = ANY_IDEAS[+b.getAttribute('data-idea')][1](poolList()); redraw(); }));
     const clr = UI.$('#anyClear', app); if (clr) clr.addEventListener('click', () => { ANY.keys = []; redraw(); });
-    UI.$('#anyFrom', app).addEventListener('change', e => { ANY.from = e.target.value === 'pool' ? 'pool' : +e.target.value; redraw(); });
+    UI.$('#anyFrom', app).addEventListener('change', e => { ANY.from = e.target.value === 'pool' || e.target.value === 'all' ? e.target.value : +e.target.value; redraw(); });
     UI.$('#anyYear', app).addEventListener('change', e => { ANY.year = +e.target.value; redraw(); });
     UI.$('#anyTeam', app).addEventListener('change', e => { ANY.team = e.target.value; anySave(); });
     UI.$('#anyStart', app).addEventListener('click', () => {
