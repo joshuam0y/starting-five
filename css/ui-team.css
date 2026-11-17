@@ -1,6 +1,14 @@
 /* Front office, news, awards and history pages (js/ui-team.js, js/ui-history.js). Black and gold, condensed type. */
 
 .fr-small { font-size: 13px; margin: 6px 0 0; }
+/* rotation: coach style and position coverage fold up */
+.frr-styd > summary, .frc-d > summary { cursor: pointer; list-style: none; font-family: var(--display); letter-spacing: .12em; font-size: 13px; color: var(--muted); padding: 10px 0; }
+.frr-styd > summary::-webkit-details-marker, .frc-d > summary::-webkit-details-marker { display: none; }
+.frr-styd > summary b { color: var(--gold); }
+.frr-styd > summary::after, .frc-d > summary::after { content: ' +'; color: var(--gold); }
+.frr-styd[open] > summary::after, .frc-d[open] > summary::after { content: ' -'; }
+.frc-d > summary small { color: #7ed58a; letter-spacing: .08em; margin-left: 6px; }
+.frc-warn { color: #ff8a80; margin-left: 6px; }
 
 /* franchise sub nav */
 .fr-subnav { display: flex; gap: 0; margin: -6px 0 22px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }

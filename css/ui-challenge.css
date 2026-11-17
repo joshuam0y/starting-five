@@ -1411,3 +1411,5 @@ a.pr-i:hover { border-color: var(--gold); }
 .ch-more[open] > summary { margin-bottom: 10px; }
 .rk-mini { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
 .rk-mini .rk-notify { margin: 0; } .rk-mini #rkTourBtn { width: auto; margin: 0; }
+.rk-fpc .rk-fof { margin: -6px 0 4px; font-family: var(--display); letter-spacing: .14em; font-size: 13px; color: var(--text2); }
+.rk-fpc .rk-frk { font-size: 13px; color: var(--muted); margin: 0; }

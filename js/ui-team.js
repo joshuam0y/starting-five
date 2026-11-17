@@ -143,8 +143,9 @@
     const edge = Math.max(-3, Math.min(2.5, (c - 60) / 12));
     return `<section class="fr-chem"><div class="fr-chem-n"><small>TEAM CHEMISTRY</small><b class="${c >= 67 ? 'up' : c < 45 ? 'down' : ''}">${c}</b><span>${word}</span></div>
       <ul>${part('winning', 'WINNING LATELY')}${part('continuity', 'ROSTER CONTINUITY')}${part('mood', 'LOCKER ROOM MOOD')}</ul>
-      <p class="muted">On the court: ${edge >= 0 ? '+' : ''}${Math.round(edge * 2) / 2} for every player. Wins, a steady rotation and happy players build it; losing streaks and roster churn cost it.</p></section>`;
+      <p class="muted">${edge >= 0 ? '+' : ''}${Math.round(edge * 2) / 2} for every player. Wins and a steady roster build it.</p></section>`;
   }
+  let STYOPEN = false, COVOPEN = false;   // the rotation page's folded panels stay as you left them
   const TOTAL_MIN = 240;
   const sumMin = rot => rot.active.reduce((a, id) => a + (Number(rot.minutes[id]) || 0), 0);
 
@@ -369,6 +370,12 @@
       return `<div class="fr-mintotal ${left === 0 ? 'ok' : 'open'}" id="frMinTotal"><b>${total}</b> / ${TOTAL_MIN} MIN${left > 0 && !rot.auto ? ` <small>${left} LEFT</small>` : ''}</div>`;
     }
     // Position coverage: minutes at PG, SG, SF, PF and C against the 48 each one needs
+    // a thin position opens the coverage panel on its own
+    function thinNow() {
+      const PS = POSN();
+      if (!PS || typeof PS.coverage !== 'function') return false;
+      try { const cv = PS.coverage(rot.active.map(id => rot.byId.get(id)).filter(Boolean), rot.minutes); return SLOTS.some(k => cv.by[k].min < cv.need - 4); } catch (e) { return false; }
+    }
     function coverageHtml(minutes) {
       const PS = POSN();
       if (!PS || typeof PS.coverage !== 'function') return '';
@@ -393,7 +400,7 @@
       const notes = thin.map(k => `<li class="bad"><b>Thin at ${k}:</b> only ${cv.by[k].min} of ${need} minutes. Consider trading for a ${k}.</li>`);
       deep.forEach(k => notes.push(`<li class="deep"><b>Crowded at ${k}:</b> ${cv.by[k].min} minutes for ${need}. A ${k} could be your trade bait.</li>`));
       if (!notes.length) notes.push(`<li class="good"><b>Every position is covered.</b> All five spots have close to ${need} minutes.</li>`);
-      return `<div class="frc-head"><span>POSITION COVERAGE</span><small>Minutes at each position. A player's minutes count at his primary position, then fill a short position he can play as his secondary (*).</small></div>
+      return `<div class="frc-head"><span>POSITION COVERAGE</span><small>Minutes at each spot. * = his second position.</small></div>
         <div class="frc-bars">${bars}</div>
         <ul class="frc-notes">${notes.join('')}</ul>
         <div class="frc-key"><span><i class="p"></i>Primary</span><span><i class="s"></i>Secondary</span><span><em></em>48 needed</span></div>`;
@@ -419,13 +426,14 @@
             <button type="button" role="radio" aria-checked="${rot.auto}" class="${rot.auto ? 'on' : ''}" data-mode="auto"><b>AUTO</b><small>Best lineup every game</small></button>
             <button type="button" role="radio" aria-checked="${!rot.auto}" class="${!rot.auto ? 'on' : ''}" data-mode="manual"><b>MANUAL</b><small>You set it</small></button>
           </div>
+          <details class="frr-styd" id="frStyD"${STYOPEN ? ' open' : ''}><summary>COACH STYLE: <b>${esc((autoStyles()[team.autoStyle || 'best'] || autoStyles().best || { label: 'BEST FIT' }).label)}</b></summary>
           <div class="frr-styles" role="radiogroup" aria-label="Auto rotation style">${Object.keys(autoStyles()).map(k => {
             const st = autoStyles()[k], on = rot.auto && (team.autoStyle || 'best') === k;
             return `<button type="button" role="radio" aria-checked="${on}" class="${on ? 'on' : ''}" data-style="${k}"><b>${esc(st.label)}</b><small>${esc(st.note)}</small></button>`;
-          }).join('')}</div>
+          }).join('')}</div></details>
           <div class="frr-state">${rot.auto
-            ? '<b>AUTO ROTATION IS ON.</b> Your coach starts the best healthy five and sets the minutes before every game. This is what he would play right now. Change anything and you switch to manual.'
-            : '<b>MANUAL ROTATION.</b> Your starters and minutes are used every game. Hurt starters are replaced by the best healthy player.'}</div>
+            ? '<b>AUTO.</b> Your coach picks the best healthy lineup each game. Change anything to go manual.'
+            : '<b>MANUAL.</b> Your lineup and minutes, every game. A hurt starter is replaced by the best healthy player.'}</div>
         </div>
         <div class="frr-bar">
           ${totalHtml(total)}
@@ -433,7 +441,7 @@
           ${rot.auto ? '' : `<span class="fr-rot-btns"><button type="button" class="btn btn-small" id="frAutoMin">DEFAULT MINUTES</button>
             <button type="button" class="btn btn-small" id="frBalance">FIT TO 240</button></span>`}
         </div>
-        <section class="frc" id="frCov" aria-label="Position coverage">${coverageHtml(rot.minutes)}</section>
+        <details class="frc-d" id="frCovD"${COVOPEN || thinNow() ? ' open' : ''}><summary>POSITION COVERAGE${thinNow() ? ' <b class="frc-warn">THIN SPOT</b>' : ' <small>All covered</small>'}</summary><section class="frc" id="frCov" aria-label="Position coverage">${coverageHtml(rot.minutes)}</section></details>
         <div class="frr-head" aria-hidden="true"><span>SLOT</span><span></span><span>PLAYER</span><span>POS</span><span>OVR</span><span>MIN</span></div>
         <div class="frr-sec">STARTERS</div>
         <ol class="frr-list">${starters.map((id, i) => row(id, 'active', i)).join('')}</ol>
@@ -509,6 +517,8 @@
     guard.check = () => (!rot.auto && body.isConnected ? sumMin(rot) : null);
     guard.autoFill = autoFill;
     function bind() {
+      const sd = UI.$('#frStyD', body); if (sd) sd.addEventListener('toggle', () => { STYOPEN = sd.open; });
+      const cd = UI.$('#frCovD', body); if (cd) cd.addEventListener('toggle', () => { COVOPEN = cd.open; });
       UI.$$('[data-style]', body).forEach(b => b.addEventListener('click', () => {
         const k = b.getAttribute('data-style'), st = autoStyles()[k];
         picked = null;
