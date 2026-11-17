@@ -100,7 +100,8 @@
   // One gold button that always does the obvious next step (UI.nextAction in js/ui-season.js): the next
   // game, the awards show, the playoffs, the next offseason step. In the top bar on wide screens, a
   // sticky bar above the music bar on phones. N on the keyboard presses it.
-  const NEXT_HIDDEN = ['new', 'live', 'fantasy', 'challenge'];   // pages with their own flow
+  const NEXT_HIDDEN = ['new', 'live', 'fantasy', 'challenge',   // pages with their own flow
+    'home', 'daily', 'ranked', 'top20', 'me', 'u', 'watch', 'about', 'faq', 'contact', 'privacy', 'terms', 'disclaimer'];   // and pages outside the Association
   function nextBtn() {
     let b = document.getElementById('nextBtn');
     if (b) return b;

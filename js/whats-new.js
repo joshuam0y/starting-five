@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 448, t: 'Your league\'s NEXT GAME bar no longer covers the Daily, Ranked and the main menu on phones.' },
   { v: 446, t: 'Sharing from a computer adds https:// so Discord and Slack make it a link. Phones keep the short link.' },
   { v: 440, t: 'Top 20 is on the main menu, and with a league open it shows your league\'s best 20 first.' },
   { v: 438, t: 'Finances: tap any season to switch years, and teams under the payroll minimum show how far short they are.' },
