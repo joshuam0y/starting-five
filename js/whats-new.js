@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 450, t: '2026-27 stars rated on the same scale as the seasons before: SGA and Wemby 99, Jokic 98. New leagues only.' },
   { v: 448, t: 'Your league\'s NEXT GAME bar no longer covers the Daily, Ranked and the main menu on phones.' },
   { v: 446, t: 'Sharing from a computer adds https:// so Discord and Slack make it a link. Phones keep the short link.' },
   { v: 440, t: 'Top 20 is on the main menu, and with a league open it shows your league\'s best 20 first.' },
