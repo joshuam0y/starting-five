@@ -15,7 +15,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const b = await pp.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox'] });
   const p = await b.newPage();
   await p.goto(BASE + '/#/home'); await sleep(2500);
-  await p.evaluate(() => { UI.profile.signedIn = () => false; UI.profile.rpc = async () => []; });
+  // __A13_LIVE: build every board from the current ratings, never from an old data/days snapshot (the game plays snapshots)
+  await p.evaluate(() => { window.__A13_LIVE = true; UI.profile.signedIn = () => false; UI.profile.rpc = async () => []; });
   const rows = [];
   for (const day of days) {
     const r = await p.evaluate(async d => { try { return await UI.ranked.reachFor(d); } catch (e) { return { err: String(e) }; } }, day);
