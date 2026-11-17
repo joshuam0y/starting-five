@@ -665,7 +665,7 @@
     return (FROZEN[day] = null);
   }
   const prTag = day => { const d = SEEDDAY[day]; if (!d) return 'PRACTICE'; return FROZEN[d] ? 'PRACTICE | AS PLAYED ' + new Date(d + 'T12:00:00Z').toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' }).toUpperCase() : 'PRACTICE | TODAY\'S RATINGS'; };   // says whether the replay is the day's exact board
-  const startFor = (day, cfg, pool) => { const st = C.auctionStart(cfg, pool), f = FROZEN[sd(day)]; if (f) st.ids = f.ids.slice(); return st; };   // a frozen day (the daily or its practice): the exact order it was played in
+  const startFor = (day, cfg, pool) => { const st = C.auctionStart(cfg, pool), f = window.__A13_LIVE ? null : FROZEN[sd(day)]; if (f) st.ids = f.ids.slice(); return st; };   // a frozen day (the daily or its practice): the exact order it was played in
   const BUILT = {};
   async function buildTheme(info) {
     if (BUILT[info.key]) return BUILT[info.key];
@@ -699,7 +699,7 @@
   async function dailyTheme(day) {
     if (THEME[day]) return THEME[day];
     // a day with a snapshot (data/days, written with its answer key) always plays that board, so a ratings change never moves a day
-    const fz = await loadFrozen(day);
+    const fz = window.__A13_LIVE ? null : await loadFrozen(day);   // tools/gen-reach.js builds boards fresh, with the new ratings
     if (fz) return (THEME[day] = { info: dailyThemeInfo(day), pool: fz.players, years: [] });
     let t = await buildTheme(dailyThemeInfo(day));
     if (t.pool.length < 10) { await C.load('pool'); const best = {}; C.allTimePool().forEach(e => { if (!best[e.base] || e.ovr > best[e.base].ovr) best[e.base] = e; }); t = { info: Object.assign({}, t.info, { title: 'THE ALL-TIME GREATS', tag: 'Today\'s theme had too few players' }), pool: Object.keys(best).map(k => Object.assign({}, best[k], { id: best[k].key, team: best[k].from })).sort((a, b) => b.ovr - a.ovr).slice(0, 12), years: [] }; }
