@@ -1048,3 +1048,23 @@ body.no-assoc-nav .navmore-list a[data-nav="settings"], body.no-assoc-nav .navmo
 .wn-list span { color: var(--text2); line-height: 1.4; }
 .tm-coach-d > summary { list-style: none; cursor: pointer; }
 .tm-coach-d > summary::-webkit-details-marker { display: none; }
+/* phones: the team picker is a compact two-column grid (logo, name, team OVR, one tag), not 30 tall cards */
+@media (max-width: 560px) {
+  .ts-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .team-tile.ts-card { padding: 8px 9px; gap: 6px; }
+  .ts-card .ts-stars, .ts-card .ts-tags .ts-tag ~ .ts-tag, .ts-card .ts-nm small { display: none; }
+  .ts-card .ts-top { gap: 6px; align-items: center; }
+  .ts-card .ts-top .logo, .ts-card .ts-top img { width: 34px !important; height: 34px !important; }
+  .ts-card .ts-nm b { font-size: 15px; }
+  .ts-card .ts-ovr small { display: none; }
+  .ts-card .ts-ovr b { font-size: 18px; }
+  .ts-card .ts-tag { font-size: 9px; padding: 1px 5px; }
+}
+/* phones: the fantasy draft's team picker, three small tiles a row */
+@media (max-width: 560px) {
+  .fd-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 6px; }
+  .fd-grid .team-tile { padding: 8px 4px; min-height: 0; }
+  .fd-grid .team-tile .logo, .fd-grid .team-tile img { width: 40px !important; height: 40px !important; }
+  .fd-grid .tt-city { display: none; }
+  .fd-grid .tt-name { font-size: 13px; }
+}

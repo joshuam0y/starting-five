@@ -315,9 +315,10 @@
   };
 
   // ---------- New league: pick a team (2K13 style cards) ----------
-  let newStart = 2013, newToday = false, newQuick = null, newReal = false, newSummer = false;   // newSummer: start at the draft before the season   // newReal: real-life mode   // newQuick: a quick start's team, opened once its season loads   // newToday: the season being played, from today (data/start-YYYY.js today)
+  let newStart = null, newToday = false, newQuick = null, newReal = false, newSummer = false;   // newSummer: start at the draft before the season   // newReal: real-life mode   // newQuick: a quick start's team, opened once its season loads   // newToday: the season being played, from today (data/start-YYYY.js today)
   P.new = function (app) {
     if (!UI.canPlay()) { app.innerHTML = UI.notBuilt('engine'); return; }
+    if (newStart == null) newStart = Math.max(...UI.START_YEARS.map(x => x.year));   // a new league opens on the newest season, not 2012-13
     // Always opening-night data: 2012-13 is LEAGUE_2012; other seasons load data/start-YYYY.js first.
     // draft night: the summer before the chosen season, from the season before's file (played out with its real results)
     const canSummer = y => y - 1 >= 2004 && y - 1 !== 2013 && UI.START_YEARS.some(x => x.year === y - 1 && x.file);
@@ -373,15 +374,15 @@
     const slots = UI.saves.list();
     const first = UI.saves.firstEmpty() || 1;
     const seasons = UI.START_YEARS.map(s => `<button type="button" class="ch-chip${s.year === newStart ? ' on' : ''}" data-start="${s.year}" title="${esc(s.note || '')}">${esc(s.label)}</button>`).join('');
-    app.innerHTML = `${UI.header('SELECT YOUR TEAM', 'TEAM OVR rates a team from its top eight players. Contender or rebuild depends on where it ranks that season and how old its core is.')}
+    app.innerHTML = `${UI.header('SELECT YOUR TEAM', 'Tap a team, or let us pick.')}
       <div class="ts-start"><span class="ts-start-k">START IN</span><div class="ch-chips ch-swipe">${seasons}</div><span class="muted ts-start-n">${summer ? 'Draft night ' + start + ': the ' + esc(seasonLbl) + ' season plays out with its real records, champion and stats, then you run the draft and free agency before ' + esc((newStart - 1) + '-' + String(newStart).slice(2)) + '.' : T ? 'The ' + esc(seasonLbl) + ' season from today: every game so far counts with its real score, real stats so far, today\'s rosters and injuries.' : esc((UI.START_YEARS.find(s => s.year === start) || {}).note || '') + ': the real ' + esc(seasonLbl) + ' rosters, contracts and draft picks.'}</span>
         <div class="ch-chips ch-swipe ts-when" role="group" aria-label="When"><button type="button" class="ch-chip${!summer && !T ? ' on' : ''}" data-when="open">OPENING NIGHT</button>${canSummer(newStart) ? `<button type="button" class="ch-chip${summer ? ' on' : ''}" data-when="summer">DRAFT NIGHT ${newStart - 1}</button>` : ''}${!summer && S && S.today ? `<button type="button" class="ch-chip${T ? ' on' : ''}" data-when="today">TODAY, ${esc(UI.dateLabel(S.today.date).toUpperCase())}</button>` : ''}</div></div>
       <div class="ts-start ts-real"><span class="ts-start-k">REAL LIFE</span><div class="ch-chips"><button type="button" class="ch-chip${newReal ? '' : ' on'}" data-real="0">OFF</button><button type="button" class="ch-chip${newReal ? ' on' : ''}" data-real="1">ON</button></div>
         <span class="muted ts-start-n">${newReal ? 'The real trades, signings and releases happen on their real dates, as long as the players are still where real life had them. AI teams make no trades of their own, and your team is always yours.' : 'Off: AI teams make their own moves.'}</span></div>
       <div class="ts-bar">
         <div class="ts-filters" role="group" aria-label="Filter teams">${FILTERS.map(([k, l], i) => `<button type="button" data-f="${k}" class="${i ? '' : 'on'}" aria-pressed="${!i}">${l}</button>`).join('')}</div>
-        <button type="button" class="btn btn-small ts-random" id="randomBtn">RANDOM TEAM</button>
-        ${window.EXPANSION && window.EXPANSION.customTeam && !summer && !T ? '<button type="button" class="btn btn-small btn-gold ts-random" id="expBtn">EXPANSION TEAM</button>' : ''}
+        <button type="button" class="btn btn-small btn-gold ts-random" id="randomBtn">PICK FOR ME</button>
+        ${window.EXPANSION && window.EXPANSION.customTeam && !summer && !T ? '<button type="button" class="btn btn-small ts-random" id="expBtn">EXPANSION TEAM</button>' : ''}
       </div>
       <div id="tsGrid"></div>
       <div class="ts-modal" id="expForm" hidden role="dialog" aria-modal="true" aria-labelledby="expTitle">

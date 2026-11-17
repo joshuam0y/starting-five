@@ -20,11 +20,12 @@
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
     del(k) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } }
   };
-  let SETUP = Object.assign({ mode: 'year', year: 2013, build: 'free', team: '', name: '', injuries: true, era: 2013, cap: 0, ratings: true }, ls.get(KEY_SETUP) || {});
+  const NEWEST = ((C.SEASONS || []).filter(x => x.ready !== false).slice(-1)[0] || { year: 2013 }).year;   // a first visit opens on the newest season
+  let SETUP = Object.assign({ mode: 'year', year: NEWEST, build: 'free', team: '', name: '', injuries: true, era: 2013, cap: 0, ratings: true }, ls.get(KEY_SETUP) || {});
   SETUP.skip = [];   // every visit starts with all seasons on, not the last game's picks
   let CUR = null;        // { cfg, used: [], respins, spin, dr }
   let RUN = null;        // the season being simmed { ch, fast, paused }
-  let VIEW = { pos: '', q: '', team: '', season: '', letter: '', sort: 'az', bud: '', lim: 60 };
+  let VIEW = { pos: '', q: '', team: '', season: '', letter: '', sort: 'ovr', bud: '', lim: 60 };   // stars first (ratings off falls back to A to Z)
   let ODDS = null;       // run it back 10 times
 
   // ---------- small helpers ----------
@@ -294,7 +295,7 @@
       ensureData(cfg, app, () => {
         try {
           CUR = { cfg, used: [], respins: 1, spin: null, dr: isAll ? C.newDraft(cfg) : null };
-          VIEW = { pos: '', q: '', team: '', season: '', letter: '' };
+          VIEW = { pos: '', q: '', team: '', season: '', letter: '', sort: 'ovr', bud: '', lim: 60 };
           saveCur();
           location.hash = '#/challenge/pick';
         } catch (e) { UI.toast('Could not start: ' + (e && e.message ? e.message : e), 'error'); }
@@ -1066,7 +1067,7 @@
     const log = r.log.map(g => `<li class="${g.won ? 'w' : 'l'}${g.playoff ? ' po' : ''}"><a href="#/challenge/game/${idx}/${esc(g.id)}"><span class="ch-log-d">${esc(UI.dateLabel ? UI.dateLabel(g.date) : g.date)}</span><b>${g.won ? 'W' : 'L'}</b><span>${g.us}-${g.them}</span><span>${g.home ? 'vs' : 'at'} ${esc(g.opp)}</span><small class="muted">${esc(g.top)}</small></a></li>`).join('');
     app.innerHTML = `
       <section class="ch-res ${r.exit === 'champion' ? 'champ' : ''}" style="--c1:${esc(me.colors[0])};--c2:${esc(me.colors[1] || me.colors[0])}">
-        <div class="ch-res-k">${esc(r.label)} DRAFT CHALLENGE | ${esc(BUILD[r.build] ? BUILD[r.build].label : '')}</div>
+        <div class="ch-res-k">${r.build === 'any' ? esc(r.label) + ' | ANY TEAM' : esc(r.label) + ' DRAFT CHALLENGE | ' + esc(BUILD[r.build] ? BUILD[r.build].label : '')}</div>
         <div class="ch-res-main">${logo(me, 92)}<div><div class="ch-res-t">${esc(tName(me))}</div><div class="ch-res-rec">${r.w}-${r.l}</div><div class="ch-res-seed">${esc(seedTxt)}${r.injuries ? '' : ' | injuries off'}</div></div></div>
         <div class="ch-res-banner">${r.exit === 'champion' ? '<span class="ch-trophy" aria-hidden="true"></span>' : ''}<b>${esc(EXIT[r.exit] || '')}</b><span>${esc(r.exit === 'champion' ? (r.series.length ? 'Beat the ' + r.series[r.series.length - 1].oppName + ' ' + r.series[r.series.length - 1].w + '-' + r.series[r.series.length - 1].l + ' in the Finals' : '') : r.result)}</span></div>
         ${realT ? `<div class="ch-res-real">The real ${esc(seasonLabel(r.year))} ${esc(tName(me.orig || me))} went ${realT.w}-${realT.l}.</div>` : ''}
@@ -1188,7 +1189,7 @@
     let url = location.origin + location.pathname + '#/challenge';
     if (!plain) { try { url += '/s/' + shareCode(r); } catch (e) { /* plain link */ } }
     const me = r.team && typeof r.team === 'object' ? r.team : {};
-    const spec = { kicker: (r.label || '') + ' DRAFT CHALLENGE', title: tName(me) || 'MY FIVE', big: r.w + '-' + r.l, gold: r.exit === 'champion',
+    const spec = { kicker: (r.label || '') + (r.build === 'any' ? ' | ANY TEAM' : ' DRAFT CHALLENGE'), title: tName(me) || 'MY FIVE', big: r.w + '-' + r.l, gold: r.exit === 'champion',
       banner: r.exit === 'champion' ? 'NBA CHAMPIONS' : String(r.result || '').toUpperCase(), colors: me.colors, logo: me.logo,
       lines: r.five.map(x => [C.primaryPos(x.pos), x.name + (x.line ? '   ' + x.line.pts.toFixed(1) + ' PTS' : '')]) };
     if (UI.shareResult) { UI.shareResult(spec, text, url, 'draft-challenge'); return; }
