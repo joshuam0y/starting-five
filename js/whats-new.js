@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 460, t: 'Ranked is simpler: one SIGN IN TO PLAY button, practice next to it, and HOW IT WORKS for the rules.' },
   { v: 458, t: 'My Team opens your roster (rotation is one tap away), OVR sits next to each name, and Season Mode extras fold into MORE OPTIONS.' },
   { v: 456, t: 'Season Mode leads with BUILD ANY TEAM, with fewer words on the setup screen.' },
   { v: 454, t: 'Easier to read: a 3-slide How to Play, BID shows the amount, and the league top bar is My Team, Schedule, Standings and MENU.' },

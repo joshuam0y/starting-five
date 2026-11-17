@@ -1409,3 +1409,5 @@ a.pr-i:hover { border-color: var(--gold); }
 .ch-more > summary::-webkit-details-marker { display: none; }
 .ch-more > summary::after { content: ' +'; } .ch-more[open] > summary::after { content: ' -'; }
 .ch-more[open] > summary { margin-bottom: 10px; }
+.rk-mini { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.rk-mini .rk-notify { margin: 0; } .rk-mini #rkTourBtn { width: auto; margin: 0; }
