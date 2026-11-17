@@ -164,10 +164,14 @@
   // player looks like a 2K13 role player in every season. 2013 and earlier stay as they are; years
   // after the data use its last season.
   // ---------------------------------------------------------------------------
-  var BASE_YEAR = 2013, scaleCache = null;
+  // the tables follow the targets table in use: a league that opens in another season swaps it (league.js useStart),
+  // and one cache for every league made a later league's ratings depend on which league was built first
+  var BASE_YEAR = 2013, scaleCache = null, scaleFor = null;
   function scaleTables() {
-    if (scaleCache) return scaleCache;
-    var T = targets(), by = {};
+    var T = targets();
+    if (scaleCache && scaleFor === T) return scaleCache;
+    scaleFor = T;
+    var by = {};
     if (T) Object.keys(T).forEach(function (id) {
       var t = T[id];
       for (var k in t) if (/^\d{4}$/.test(k) && typeof t[k] === 'number') (by[k] = by[k] || []).push(t[k]);
