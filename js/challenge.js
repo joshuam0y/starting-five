@@ -248,7 +248,6 @@
         if (!e) return;
         var p = e, n = (count[e.base] = (count[e.base] || 0) + 1);
         p.id = 'cu' + i + '-' + key; p.injury = null;
-        if (n > 1) p.name = e.name + ' ' + n;   // Kevin Durant, Kevin Durant 2, ...
         p.realTeam = e.from; p.team = sides[0].team; p.pick = ids.length + 1;
         if (p.pick > 5) p.customBench = true;
         players[p.id] = p; picked[p.id] = true; ids.push(p.id);
@@ -958,7 +957,9 @@
         label: p.label || null, fromTeam: fromTeam(ch, p), line: perGame(s.playerStats[id]), po: perGame(s.playoffStats[id]), real: p.stats || null, tags: tags[id] || [] };
     }).filter(Boolean);
     var bench = Object.keys(ch.players).filter(function (id) { var p = ch.players[id]; return p.team === u && (p.scrub || p.customBench); }).map(function (id) {
-      var p = ch.players[id]; return { id: id, name: p.name, pos: p.pos, ovr: p.ovr, line: perGame(s.playerStats[id]) };
+      var p = ch.players[id];
+      return { id: id, name: p.name, pos: p.pos, ovr: p.ovr, line: perGame(s.playerStats[id]), po: perGame(s.playoffStats[id]),
+        custom: !!p.customBench, season: p.season || null, label: p.label || null, from: p.realTeam || p.from || null, nbaId: p.nbaId || null, fromTeam: p.customBench ? fromTeam(ch, p) : null, tags: tags[id] || [] };
     }).sort(function (a, b) { return ((b.line && b.line.mpg) || 0) - ((a.line && a.line.mpg) || 0); });
     // best nights and the game log, from the user's box scores
     var best = [], log = [];
