@@ -620,10 +620,10 @@
       const ready = !online() || linked();
       app.innerHTML = `
         <section class="ch-hero"><div class="ch-hero-k">DRAFT CHALLENGE | TWO PLAYERS</div><h1 class="ch-hero-t">YOU VS ME.</h1>
-          <p class="ch-hero-p">Take turns spinning the wheel and taking one player from the team it lands on, until you both have five (or switch the wheel off and draft from an open board). Then a series: nobody comes off the bench, all five play 48 minutes, so positions and fit matter.</p></section>
+          <p class="ch-hero-p">Draft five each. Then play a series.</p></section>
         ${netBar()}
         <div class="ch-setup vs-setup">
-          ${UI.profile.bar()}${PEND ? `<p class="muted">Pick a name below to join room <b>${esc(PEND)}</b>.</p>` : ''}
+          ${online() || PEND || VS.wantNet ? UI.profile.bar() : ''}${PEND ?`<p class="muted">Pick a name below to join room <b>${esc(PEND)}</b>.</p>` : ''}
           <div class="ch-step"><div class="ch-step-k">1 | HOW YOU PLAY</div>
             <div class="ch-seg vs-seg3"><button type="button" class="ch-seg-b${!online() && !VS.cpu ? ' on' : ''}" data-net="local"><b>SAME PHONE</b><small>Pass it back and forth</small></button>
               <button type="button" class="ch-seg-b${!online() && VS.cpu ? ' on' : ''}" data-net="cpu"><b>VS CPU</b><small>Auction against the computer</small></button>
@@ -696,7 +696,8 @@
       if (KEEP != null) { const y = KEEP; KEEP = null; window.scrollTo(0, y); requestAnimationFrame(() => window.scrollTo(0, y)); }   // a setup choice keeps your place, even when it had to load a season first
       app.querySelectorAll('[data-net]').forEach(b => b.addEventListener('click', () => {
         const v = b.dataset.net;
-        if (v !== 'local' && v !== 'cpu' && !UI.profile.canPlay()) { UI.toast('Pick a guest name or sign in first.', 'error'); const bar = UI.$('.pf-bar', app); if (bar) bar.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+        if (v !== 'local' && v !== 'cpu' && !UI.profile.canPlay()) { VS.wantNet = true; route(); UI.toast('Pick a guest name or sign in first.', 'error'); const bar = UI.$('.pf-bar', app); if (bar) bar.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+        VS.wantNet = v === 'host' || v === 'join';
         VS.practice = false;
         if (v !== 'cpu') VS.cpu = false;
         if (v === 'cpu') { hangUp(); VS.cpu = true; VS.opts.auction = 1; VS.opts.bench = 0; { const L = (window.TOURNAMENT && window.TOURNAMENT.api && window.TOURNAMENT.api.CPU_NAMES) || ['CPU Shaq', 'CPU Curry', 'CPU Duncan', 'CPU Giannis']; VS.names[1] = L[Math.floor(Math.random() * L.length)]; } }   // a legend's name, like the tournament bots   // the computer: an auction, five each

@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 466, t: 'Trades: draft pick lists fold up. Head to Head only asks for your name when you play online.' },
   { v: 464, t: 'Rotation page is shorter: coach styles and position coverage fold up (coverage opens by itself when a spot is thin).' },
   { v: 462, t: 'Daily result card reads top to bottom: your percent, then how it ranks.' },
   { v: 460, t: 'Ranked is simpler: one SIGN IN TO PLAY button, practice next to it, and HOW IT WORKS for the rules.' },

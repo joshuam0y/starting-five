@@ -4,6 +4,9 @@
 (function () {
   'use strict';
   const UI = window.UI;
+  // which teams' draft-pick lists are open, so a redraw keeps them as you left them
+  const PICKOPEN = {};
+  document.addEventListener('toggle', e => { const d = e.target; if (d && d.classList && d.classList.contains('ft-picks-d')) PICKOPEN[d.getAttribute('data-abbr')] = d.open; }, true);
   if (!UI) return;
   const P = UI.pages = UI.pages || {};
   const esc = UI.esc;
@@ -464,8 +467,8 @@
         <div class="ft-sub">Payroll ${F.money(F.payroll(st, abbr, yr))} | ${rosterNow(st, abbr, yr)} on the roster | ${esc(({ contend: 'Contending', rebuild: 'Rebuilding', neutral: 'Middle of the pack' })[st.teams[abbr].direction] || '')}</div></div></div>
       <div class="ft-group">PLAYERS</div>
       <div class="ft-list">${rows || '<p class="muted">No players.</p>'}</div>
-      <div class="ft-group">DRAFT PICKS</div>
-      <div class="ft-list">${prow || '<p class="muted">No tradable picks.</p>'}</div>
+      <details class="ft-picks-d" data-abbr="${esc(abbr)}"${prow.indexOf('ft-pick on') >= 0 || PICKOPEN[abbr] ? ' open' : ''}><summary class="ft-group">DRAFT PICKS <small>${(prow.match(/data-kind="pick"/g) || []).length}</small></summary>
+      <div class="ft-list">${prow || '<p class="muted">No tradable picks.</p>'}</div></details>
     </section>`;
   }
 
