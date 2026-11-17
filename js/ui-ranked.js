@@ -183,6 +183,8 @@
     return { n, done, best: Math.max(best, n) };
   }
   // the daily record on a profile: how many played, the average and best percentage of a perfect five, and the streaks
+  // under the share button: your five squares, each over his rating, and what the colors mean
+  const sqKey = ovrs => (ovrs && ovrs.length ? `<div class="dy-sq"><div class="dy-sq-k">YOUR SHARE SQUARES</div><div class="dy-sq-row">${ovrs.map(o => `<span><i>${sqEmoji(o)}</i><b>${o}</b></span>`).join('')}</div><small>One square per player: \u{1F7EA} 90+ | \u{1F7E6} 80s | \u{1F7E9} 70s | \u{1F7E8} 60s | \u{1F7E5} under 60</small></div>` : '');
   const sqEmoji = o => o >= 90 ? '\u{1F7EA}' : o >= 80 ? '\u{1F7E6}' : o >= 70 ? '\u{1F7E9}' : o >= 60 ? '\u{1F7E8}' : '\u{1F7E5}';   // the share squares, by player rating
   const ovrOf = p => (p.baseOvr != null ? p.baseOvr : (p.ovr || 0));
   const f1 = v => Number(v).toFixed(1);   // percentages and scores always show one decimal
@@ -863,7 +865,7 @@
     const five = (sv.names || []).map(n => pool.find(p => p.name === n)).filter(Boolean);   // the five players are looked up in the day's ten
     app.innerHTML = `<div class="ch-top"><div><div class="ch-top-k">DAILY #${dayNo(day)} | ${esc(day)} | ${esc(TH.title)}</div><div class="ch-top-t">YOU ALREADY PLAYED TODAY</div></div><a class="btn btn-small" href="#/daily">BACK</a></div>
       <section class="rk-score">${five.length === 5 ? fiveCards(five, true) : ''}<small>YOUR LINEUP SCORE</small><b>${Number(sv.score).toFixed(1)}</b>${pct == null ? '' : `<div class="rk-pct"><b>${pct.toFixed(1)}%</b> OF A PERFECT FIVE</div>`}<div class="rk-streak" id="rkStreak"></div><div class="rk-tier on rk-tier-pg" id="rkTierPg"></div><div class="rk-std" id="rkReach"></div><div class="rk-std" id="rkStd"></div>${five.length === 5 ? '' : '<span class="muted">' + (sv.names ? esc(sv.names.join(', ')) : 'Played on another device.') + '</span>'}</section>
-      <div class="ch-go"><a class="btn btn-gold" href="#/daily">SEE THE BOARD</a>${pct == null ? '' : '<button type="button" class="btn" id="dlShare">SHARE YOUR SCORE</button>'}</div>`;
+      <div class="ch-go"><a class="btn btn-gold" href="#/daily">SEE THE BOARD</a>${pct == null ? '' : '<button type="button" class="btn" id="dlShare">SHARE YOUR SCORE</button>'}</div>${pct == null ? '' : sqKey(sv.ovrs)}`;
     const sk = streakNow(), el = UI.$('#rkStreak', app); if (el && sk.n) el.innerHTML = '<b>' + sk.n + '</b> DAY DAILY STREAK';
     const doShare = async btn => { if (btn) btn.disabled = true; await shareCard({}, dailyShareText(day, TH.title, sv.ovrs, pct), '#/daily'); if (btn) btn.disabled = false; };
     const sh = UI.$('#dlShare', app); if (sh) sh.addEventListener('click', () => doShare(sh));
@@ -937,7 +939,7 @@
         <details class="rk-det rk-house"><summary>WHAT EACH PLAYER COST, AND THE HOUSE'S FIVE</summary><div class="vs-sides vs-compact">${sideBox(0, 'YOU')}${sideBox(1, 'THE HOUSE')}</div></details>
         <div id="rkSub" class="rkn"><span class="muted">Sending your score...</span></div>
         <div id="rkFr"></div>
-        <div class="ch-go">${isPr ? `<a class="btn btn-gold" href="#/daily/practice/${esc(prKey)}/${Date.now()}">PLAY AGAIN</a><a class="btn" href="#/daily/practice">ARCHIVE</a>` : `<a class="btn btn-gold" href="#/daily">SEE THE BOARD</a>${pct == null ? '' : '<button type="button" class="btn" id="dlShare">SHARE YOUR SCORE</button>'}`}</div>`;
+        <div class="ch-go">${isPr ? `<a class="btn btn-gold" href="#/daily/practice/${esc(prKey)}/${Date.now()}">PLAY AGAIN</a><a class="btn" href="#/daily/practice">ARCHIVE</a>` : `<a class="btn btn-gold" href="#/daily">SEE THE BOARD</a>${pct == null ? '' : '<button type="button" class="btn" id="dlShare">SHARE YOUR SCORE</button>'}`}</div>${!isPr && pct != null ? sqKey(five.map(ovrOf)) : ''}`;
       const dsh = UI.$('#dlShare', app);
       const doShare = async btn => { btn.disabled = true; const r = await shareCard({ k: 'DAILY #' + dayNo(day), title: 'OF A PERFECT FIVE', color: '#d4af37', big: pct.toFixed(1) + '%', sub: TH.title, name: UI.profile.account() || '' }, dailyShareText(day, TH.title, five.map(ovrOf), pct), '#/daily'); btn.disabled = false;  };
       if (dsh) dsh.addEventListener('click', () => doShare(dsh));

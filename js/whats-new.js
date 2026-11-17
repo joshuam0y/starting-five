@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 486, t: 'Under Share: your squares with each rating, and what the colors mean.' },
   { v: 482, t: 'The Daily never repeats a theme until all 112 are played, and rookie themes use real rookie ratings (Luka over Bamba).' },
   { v: 478, t: 'Decade themes count each player at his best in that decade: Jordan is back in the 1980s.' },
   { v: 476, t: 'Shorter theme names that fit one line (ALL-TIME SPURS, 2026-27 PELICANS), and the share puts the theme on its own line.' },
