@@ -9,6 +9,12 @@
 .frr-styd[open] > summary::after, .frc-d[open] > summary::after { content: ' -'; }
 .frc-d > summary small { color: #7ed58a; letter-spacing: .08em; margin-left: 6px; }
 .frc-warn { color: #ff8a80; margin-left: 6px; }
+/* trades: each side's draft picks fold up (open when one is in the deal) */
+.ft-picks-d > summary { cursor: pointer; list-style: none; }
+.ft-picks-d > summary::-webkit-details-marker { display: none; }
+.ft-picks-d > summary small { color: var(--muted); margin-left: 4px; }
+.ft-picks-d > summary::after { content: ' +'; color: var(--gold); }
+.ft-picks-d[open] > summary::after { content: ' -'; }
 
 /* franchise sub nav */
 .fr-subnav { display: flex; gap: 0; margin: -6px 0 22px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
