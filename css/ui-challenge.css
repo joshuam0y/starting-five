@@ -1404,3 +1404,8 @@ a.pr-i:hover { border-color: var(--gold); }
 .tour-score b { font-family: var(--display); font-size: 34px; } .tour-score b.g { color: var(--gold); }
 .ch-any-cta { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 12px; padding: 12px 22px; font-size: 18px; }
 .ch-any-cta small { font-family: var(--body); font-size: 12px; letter-spacing: .02em; text-transform: none; opacity: .8; }
+.ch-more { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.ch-more > summary { cursor: pointer; font-family: var(--display); letter-spacing: .14em; font-size: 13px; color: var(--gold); list-style: none; }
+.ch-more > summary::-webkit-details-marker { display: none; }
+.ch-more > summary::after { content: ' +'; } .ch-more[open] > summary::after { content: ' -'; }
+.ch-more[open] > summary { margin-bottom: 10px; }
