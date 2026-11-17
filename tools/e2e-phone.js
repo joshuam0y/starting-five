@@ -46,7 +46,7 @@ const say = (ok, what) => { console.log(ok ? 'ok  ' : 'FAIL', what); if (!ok) ba
     say(state === 'done', 'daily: played to the end (' + turns + ' moves)');
     await w(1500);
     const txt = await p.evaluate(async () => { const x = document.getElementById('dlShare'); if (!x) return ''; x.click(); await new Promise(r => setTimeout(r, 400)); return window.__copied.slice(-1)[0] || ''; });
-    say(/^Starting Five Daily #\d+ \| .+ \u{1F3C0}\n[\u{1F7E5}-\u{1F7EA}]{5}\n\d+\.\d% of a perfect five\n/u.test(txt), 'daily: share text has the theme, five squares and the percent');
+    say(/^Starting Five Daily #\d+ \u{1F3C0}\n.+\n[\u{1F7E5}-\u{1F7EA}]{5}\n\d+\.\d% of a perfect five\n/u.test(txt), 'daily: share text has the theme, five squares and the percent');
     errCheck('daily: no page errors', e0);
 
     // 2. Head to Head, one phone, auction

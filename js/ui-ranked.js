@@ -137,7 +137,7 @@
   const keepRank = (day, t) => { if (t && t.rank && t.played) RANK[day] = { rank: t.rank, played: t.played }; };
   const dailyShareText = (day, title, ovrs, pct) => {
     const r = RANK[day];
-    return 'Starting Five Daily #' + dayNo(day) + (title ? ' | ' + title : '') + ' \u{1F3C0}\n'
+    return 'Starting Five Daily #' + dayNo(day) + ' \u{1F3C0}\n' + (title ? title + '\n' : '')   // the theme on its own line, so the first line always fits a phone
       + (ovrs && ovrs.length ? ovrs.map(sqEmoji).join('') + '\n' : '')
       + pct.toFixed(1) + '% of a perfect five' + (r && r.played >= 25 ? ' | #' + r.rank + ' of ' + r.played : '');   // a rank only once it means something
   };
@@ -586,9 +586,13 @@
   const labelOf = y => (y - 1) + '-' + String(y).slice(2);
   // every theme as plain data, so a day, the archive and the casual picker all name them the same way
   const mk = (kind, title, tag, spec) => ({ kind, title, tag, spec, key: Object.keys(spec).map(k => spec[k]).join(':') });
-  const T_CURRENT = a => mk('CURRENT TEAM', labelOf(2027) + ' ' + UI.teamName(a).toUpperCase(), 'The current roster', { t: 'season', abbr: a, year: 2027 });
-  const T_FAMOUS = f => mk('FAMOUS SEASON', labelOf(f[1]) + ' ' + (FRANCH[f[0]] || UI.teamName(f[0])).toUpperCase(), f[2], { t: 'season', abbr: f[0], year: f[1] });
-  const T_FRANCH = a => mk('ALL-TIME FRANCHISE', 'THE BEST ' + FRANCH[a].toUpperCase() + ' EVER', 'Every season counts', { t: 'franchise', abbr: a });
+  // a season theme is the year and the nickname that season had (one line on a phone): 2026-27 PELICANS, 2015-16 WARRIORS
+  const ERA_NICK = { NOH: y => (y >= 2014 ? 'Pelicans' : 'Hornets'), NOP: () => 'Pelicans', CHA: y => (y >= 2005 && y <= 2014 ? 'Bobcats' : 'Hornets') };
+  const nickIn = (a, y) => (ERA_NICK[a] ? ERA_NICK[a](y) : nick(FRANCH[a] || UI.teamName(a) || a));
+  const T_CURRENT = a => mk('CURRENT TEAM', labelOf(2027) + ' ' + nickIn(a, 2027).toUpperCase(), 'The ' + (FRANCH[a] ? FRANCH[a].replace(/ \S+$/, '') : UI.teamName(a).replace(/ \S+$/, '')) + ' roster right now', { t: 'season', abbr: a, year: 2027 });
+  const T_FAMOUS = f => mk('FAMOUS SEASON', labelOf(f[1]) + ' ' + nickIn(f[0], f[1]).toUpperCase(), f[2], { t: 'season', abbr: f[0], year: f[1] });
+  const nick = full => /Trail Blazers$/.test(full) ? 'Trail Blazers' : full.split(' ').slice(-1)[0];   // short enough for one line on a phone
+  const T_FRANCH = a => mk('ALL-TIME FRANCHISE', 'ALL-TIME ' + nick(FRANCH[a]).toUpperCase(), 'The best ' + FRANCH[a] + ' ever', { t: 'franchise', abbr: a });
   const T_DECADE = d => mk('ERA', 'THE ' + d.toUpperCase(), 'The best of one decade', { t: 'decade', d });
   const T_STYLE = st => mk('STYLE', st[1], st[2], { t: 'style', k: st[0] });
   const T_DRAFT = d => mk('DRAFT CLASS', 'THE CLASS OF ' + d[0], d[1], { t: 'draft', y: d[0] });
