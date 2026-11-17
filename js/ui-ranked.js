@@ -589,7 +589,7 @@
   // a season theme is the year and the nickname that season had (one line on a phone): 2026-27 PELICANS, 2015-16 WARRIORS
   const ERA_NICK = { NOH: y => (y >= 2014 ? 'Pelicans' : 'Hornets'), NOP: () => 'Pelicans', CHA: y => (y >= 2005 && y <= 2014 ? 'Bobcats' : 'Hornets') };
   const nickIn = (a, y) => (ERA_NICK[a] ? ERA_NICK[a](y) : nick(FRANCH[a] || UI.teamName(a) || a));
-  const T_CURRENT = a => mk('CURRENT TEAM', labelOf(2027) + ' ' + nickIn(a, 2027).toUpperCase(), 'The ' + (FRANCH[a] ? FRANCH[a].replace(/ \S+$/, '') : UI.teamName(a).replace(/ \S+$/, '')) + ' roster right now', { t: 'season', abbr: a, year: 2027 });
+  const T_CURRENT = a => mk('CURRENT TEAM', labelOf(2027) + ' ' + nickIn(a, 2027).toUpperCase(), 'The roster right now', { t: 'season', abbr: a, year: 2027 });
   const T_FAMOUS = f => mk('FAMOUS SEASON', labelOf(f[1]) + ' ' + nickIn(f[0], f[1]).toUpperCase(), f[2], { t: 'season', abbr: f[0], year: f[1] });
   const nick = full => /Trail Blazers$/.test(full) ? 'Trail Blazers' : full.split(' ').slice(-1)[0];   // short enough for one line on a phone
   const T_FRANCH = a => mk('ALL-TIME FRANCHISE', 'ALL-TIME ' + nick(FRANCH[a]).toUpperCase(), 'The best ' + FRANCH[a] + ' ever', { t: 'franchise', abbr: a });
@@ -646,7 +646,7 @@
     else {
       await C.load('pool');
       if (sp.t === 'franchise') { const best = {}; C.allTimePool().filter(e => e.from === sp.abbr).forEach(e => { if (!best[e.base] || e.ovr > best[e.base].ovr) best[e.base] = e; }); pool = Object.keys(best).map(k => Object.assign({}, best[k], { id: best[k].key, team: best[k].from })); }
-      else if (sp.t === 'decade') pool = allTime().filter(e => decKey(e.season) === sp.d);
+      else if (sp.t === 'decade') { const best = {}; C.allTimePool().filter(e => decKey(e.season) === sp.d).forEach(e => { if (!best[e.base] || e.ovr > best[e.base].ovr) best[e.base] = e; }); pool = Object.keys(best).map(k => Object.assign({}, best[k], { id: best[k].key, team: best[k].from })); }   // each player's best season inside the decade (his career best can fall outside it: Jordan's 1980s)
       else if (sp.t === 'draft') { const R = (window.DRAFT_RESULTS || {})[sp.y], D = (window.DRAFTS || {})[sp.y], ids = new Set(R ? R.map(r => r[1]) : (D || []).map(r => r.id)); pool = allTime().filter(e => ids.has(e.base)); }
       else if (sp.t === 'ringless') { const names = new Set(RINGLESS); pool = allTime().filter(e => names.has(e.name)); }
       else { const def = STYLES.find(x => x[0] === sp.k); pool = allTime().filter(def[3]).sort((a, b) => def[4](b) - def[4](a)).slice(0, 30); }
