@@ -217,6 +217,19 @@
   // ---------- one season challenge ----------
   // cfg: { mode: 'year', year, team (franchise taken over), name (optional), picks: [ids], seed, injuries }
   // cfg.sides (versus mode): [{ team, picks, name }, { team, picks, name }], two players in the same league
+  // Build any team (cfg.custom): pool keys 'id@season' from any season, repeats allowed (ten Kevin Durants). A key resolves
+  // from that season's full roster when its file is loaded, else from the all-time pool.
+  function customEntry(key) {
+    var at = String(key).lastIndexOf('@'), id = String(key).slice(0, at), y = +String(key).slice(at + 1), E = W.ENGINE, p = null;
+    var d = y && loaded(y) ? seasonData(y) : null;
+    if (d) p = d.players.concat(d.free || []).filter(function (x) { return x.id === id; })[0] || null;
+    if (!p && W.CHALLENGE_POOL) p = W.CHALLENGE_POOL.players.filter(function (x) { return x.id === id && x.season === y; })[0] || null;
+    if (!p) return null;
+    var q = clone(p);
+    q.base = id; q.key = key; q.from = p.team; q.season = y; q.label = (y - 1) + '-' + String(y).slice(2);
+    if (!q.tend && E) { var t = clone(E.tendencyOf(p)), r = E.defRates(p); t.blk = Math.round(r.blk * 100) / 10; t.stl = Math.round(r.stl * 100) / 10; delete t.generated; q.tend = t; }
+    return q;
+  }
   function buildYear(cfg) {
     var d = seasonData(cfg.year);
     if (!d) throw new Error('The ' + cfg.year + ' rosters are not loaded.');
@@ -227,7 +240,23 @@
     var players = {}, pool = [];
     d.players.concat(d.free).forEach(function (p0) { var p = clone(p0); p.injury = null; players[p.id] = p; });
     var picked = {}, moves = [], lost = {};
-    sides.forEach(function (sd) {
+    var custom = cfg.custom && cfg.custom.length ? cfg.custom : null;
+    if (custom) {
+      var count = {}, ids = [];
+      custom.slice(0, 10).forEach(function (key, i) {
+        var e = customEntry(key);
+        if (!e) return;
+        var p = e, n = (count[e.base] = (count[e.base] || 0) + 1);
+        p.id = 'cu' + i + '-' + key; p.injury = null;
+        if (n > 1) p.name = e.name + ' ' + n;   // Kevin Durant, Kevin Durant 2, ...
+        p.realTeam = e.from; p.team = sides[0].team; p.pick = ids.length + 1;
+        if (p.pick > 5) p.customBench = true;
+        players[p.id] = p; picked[p.id] = true; ids.push(p.id);
+      });
+      if (ids.length < 5) throw new Error('Pick at least five players.');
+      cfg.picks = ids.slice(0, 5);   // the starters; picks 6 to 10 show as the bench
+    }
+    if (!custom) sides.forEach(function (sd) {
       var picks = (sd.picks || []).filter(function (id) { return players[id]; });
       if (picks.length !== 5) throw new Error('Pick five players first.');
       picks.forEach(function (id, i) {
@@ -259,7 +288,7 @@
     });
     sides.forEach(function (sd) {
       var user = teams.filter(function (t) { return t.abbr === sd.team; })[0];
-      user.autoStyle = 'challenge'; user.ironman = true;   // just the five: all 48 minutes, never hurt, no bench
+      user.autoStyle = 'challenge'; user.ironman = true;   // just the five: all 48 minutes, never hurt, no bench (a custom bench of 1 to 5 splits 70 minutes, js/engine.js ironMinutes)
       user.orig = { city: user.city, name: user.name };
       if (sd.name) { var nm = splitName(sd.name, user); user.city = nm.city; user.name = nm.name; }
     });
@@ -766,7 +795,7 @@
     // the drafted fives (picks) play where they fit best
     var fits = {};
     teams.forEach(function (t) {
-      var five = Object.keys(players).map(function (id) { return players[id]; }).filter(function (p) { return p.team === t.abbr && p.pick; })
+      var five = Object.keys(players).map(function (id) { return players[id]; }).filter(function (p) { return p.team === t.abbr && p.pick && p.pick <= 5; })
         .sort(function (a, b) { return a.pick - b.pick; });
       if (five.length !== 5) return;
       var f = lineupFit(five);
@@ -928,7 +957,7 @@
       return { id: id, base: p.base || p.id, name: p.name, pos: p.pos, ovr: p.ovr, age: p.age, nbaId: p.nbaId || null, from: p.realTeam || p.from || null, season: p.season || ch.year,
         label: p.label || null, fromTeam: fromTeam(ch, p), line: perGame(s.playerStats[id]), po: perGame(s.playoffStats[id]), real: p.stats || null, tags: tags[id] || [] };
     }).filter(Boolean);
-    var bench = Object.keys(ch.players).filter(function (id) { var p = ch.players[id]; return p.team === u && p.scrub; }).map(function (id) {
+    var bench = Object.keys(ch.players).filter(function (id) { var p = ch.players[id]; return p.team === u && (p.scrub || p.customBench); }).map(function (id) {
       var p = ch.players[id]; return { id: id, name: p.name, pos: p.pos, ovr: p.ovr, line: perGame(s.playerStats[id]) };
     }).sort(function (a, b) { return ((b.line && b.line.mpg) || 0) - ((a.line && a.line.mpg) || 0); });
     // best nights and the game log, from the user's box scores
@@ -991,7 +1020,7 @@
   var API = {
     setCapSlots: setCapSlots, capFor: capFor, price: price, capState: capState, capFits: capFits, CAP_MIN: CAP_MIN,
     SEASONS: SEASONS, ROUNDS: ROUNDS, seasonInfo: seasonInfo, seasonData: seasonData, loaded: loaded, load: load, loadAll: loadAll,
-    allTimePool: allTimePool, poolSeasons: poolSeasons, eraTeam: eraTeam, teamNick: teamNick, buildYear: buildYear, buildAllTime: buildAllTime, newDraft: newDraft, onClock: onClock,
+    allTimePool: allTimePool, poolSeasons: poolSeasons, eraTeam: eraTeam, teamNick: teamNick, buildYear: buildYear, customEntry: customEntry, buildAllTime: buildAllTime, newDraft: newDraft, onClock: onClock,
     draftSlot: draftSlot, draftPick: draftPick, aiPick: aiPick, simToUser: simToUser, autoDraft: autoDraft, available: available,
     teamPicks: teamPicks, lineupFit: lineupFit, posLabel: posLabel, secondPos: secondPos, SLOTS: SLOTS, vsOnClock: vsOnClock, vsPer: vsPer, auctionStart: auctionStart, auctionAct: auctionAct, auctionNStart: auctionNStart, auctionNAct: auctionNAct, auctionNRunAI: auctionNRunAI, aucNMax: aucNMax, aucNCanRaise: aucNCanRaise, aucNAI: aucNAI, aucOpts: aucOpts, aucMax: aucMax, aucCanRaise: aucCanRaise, playVersus: playVersus, VS_ORDER: VS_ORDER, spin: spin, takenKey: takenKey, extendPool: extendPool, franchise: franchise, spinRoster: spinRoster, matchups: matchups, start: start, step: step, runAll: runAll,
     progress: progress, summary: summary, play: play, perGame: perGame, groupOf: groupOf, primaryPos: primaryPos, rng: mulberry32
