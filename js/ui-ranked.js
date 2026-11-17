@@ -601,7 +601,34 @@
   const T_RING = () => mk('RINGLESS', 'NO RING', 'The best never to win it all', { t: 'ringless' });
   const themeCatalog = () => [].concat(MODERN.map(T_CURRENT), FAMOUS.map(T_FAMOUS), Object.keys(FRANCH).map(T_FRANCH), DECS.map(T_DECADE), STYLES.map(T_STYLE), DRAFTYRS.map(T_DRAFT), ROOKIES.map(T_ROOKIE), [T_U25(), T_RING()]);
   // what today is, from the date alone (no data needed): the kind rotates daily, the pick inside it comes from the date
+  // From CYCLE_FROM on, the days walk a shuffled order of the whole catalog, so no theme repeats until every one has
+  // been played (about four months), and two themes of the same kind never fall on back-to-back days. Days before it
+  // keep the old rotation: their boards and answer keys were already written (data/days, data/reach, daily_key).
+  const CYCLE_FROM = '2027-01-17', CYC = {};
+  function cycleOrder(c) {
+    if (CYC[c]) return CYC[c];
+    const list = themeCatalog().slice().sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+    let s = hash('cycle|' + c);
+    const rnd = () => (s = hash('r' + s)) / 4294967296;
+    for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const t = list[i]; list[i] = list[j]; list[j] = t; }
+    // across the seam between cycles: the last GAP themes of the cycle before stay out of the first GAP days of this one
+    const GAP = 40, prev = c > 0 ? cycleOrder(c - 1) : null;
+    const tail = new Set(prev ? prev.slice(-GAP).map(t => t.key) : []);
+    const head = list.filter(t => !tail.has(t.key)).slice(0, GAP), inHead = new Set(head.map(t => t.key));
+    const order = head.concat(list.filter(t => !inHead.has(t.key)));
+    const prevLast = prev ? prev[prev.length - 1] : null;
+    for (let i = 0; i < order.length; i++) {
+      const before = i ? order[i - 1] : prevLast;
+      if (!before || order[i].kind !== before.kind) continue;
+      for (let j = i + 1; j < order.length; j++) if (order[j].kind !== before.kind && (i >= GAP || !tail.has(order[j].key))) { const t = order[i]; order[i] = order[j]; order[j] = t; break; }
+    }
+    return (CYC[c] = order);
+  }
   function dailyThemeInfo(day) {
+    if (day >= CYCLE_FROM) {
+      const n = Math.round((Date.parse(day + 'T00:00:00Z') - Date.parse(CYCLE_FROM + 'T00:00:00Z')) / 86400000), L = themeCatalog().length;
+      return cycleOrder(Math.floor(n / L))[n % L];
+    }
     const idx = Math.floor(Date.parse(day + 'T00:00:00Z') / 86400000), kind = ((idx % 9) + 9) % 9, h = hash(day);
     if (kind === 0) return T_CURRENT(MODERN[h % MODERN.length]);
     if (kind === 1) return T_FAMOUS(FAMOUS[h % FAMOUS.length]);
