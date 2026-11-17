@@ -463,19 +463,11 @@
     stopRefresh();
     const signed = UI.profile.signedIn();
     app.innerHTML = `<section class="ch-hero"><div class="ch-hero-k">RANKED | ${esc(seasonLine())}</div><h1 class="ch-hero-t">THE BOARDS.</h1>
-        <p class="ch-hero-p">Win ranked auctions to climb. Play the daily for a score.</p><p class="muted rk-legal"><a href="#/terms">Fair play and Terms</a> | <a href="#/privacy">Privacy</a></p></section>
-      ${signed ? '<section class="rk-mine" id="rkMine"></section>' : signInBox('PLAY RANKED')}
-      <section class="rk-how"><div class="rk-how-t"><b>PLAY A RANKED MATCH</b><span class="muted">Paired with the closest rating searching now.</span><span class="rk-cnt" id="rkCnt"></span></div>
-        <div class="rk-find"><button type="button" class="btn btn-gold btn-big" id="rkFind"${signed ? '' : ' disabled'}>FIND A MATCH</button><button type="button" class="btn btn-big" id="rkPractice">PRACTICE VS CPU<small>Ranked rules, doesn't count</small></button></div>
-        <div class="rk-notify" id="rkNotify"></div>
-        <button type="button" class="btn btn-small" id="rkTourBtn">TAKE THE TOUR</button>
-        <details class="rk-det"><summary>HOW RANKED WORKS</summary><ol>
-          <li>Every match spins an era (Classic, 80s and 90s, 2000s, 2010s, 2020s or All-Time). The ten players come from that era's eighty best (mostly stars, some solid starters), balanced across guards, forwards and bigs.</li>
-          <li>Bid on those ten hidden players. $20 each, bids start at $1, 24 seconds a bid, five players each. Ratings stay hidden until the series ends.</li>
-          <li>Best of 7. All five play every minute.</li>
-          <li>Win to climb, lose to drop. Beating higher ratings pays more.</li>
-          <li>Both phones must report the same score.</li>
-          <li>Friends? Use Head to Head (casual).</li></ol></details></section>
+        <p class="ch-hero-p">Win auctions. Climb the ladder.</p><p class="muted rk-legal"><a href="#/terms">Fair play and Terms</a> | <a href="#/privacy">Privacy</a></p></section>
+      ${signed ? '<section class="rk-mine" id="rkMine"></section>' : ''}
+      <section class="rk-how"><div class="rk-how-t"><b>PLAY A RANKED MATCH</b><span class="rk-cnt" id="rkCnt"></span></div>
+        <div class="rk-find">${signed ? '<button type="button" class="btn btn-gold btn-big" id="rkFind">FIND A MATCH</button>' : '<button type="button" class="btn btn-gold btn-big" data-pf="open">SIGN IN TO PLAY<small>Free account</small></button>'}<button type="button" class="btn btn-big" id="rkPractice">PRACTICE VS CPU<small>Doesn't count</small></button></div>
+        <div class="rk-mini"><div class="rk-notify" id="rkNotify"></div><button type="button" class="btn btn-small" id="rkTourBtn">HOW IT WORKS</button></div></section>
       <div class="rk-ctl"><label class="field"><span>ERA</span><select id="rkEra">${eraOpts(RK.era)}</select></label>
         <div class="ch-chips rk-scope"><button type="button" class="ch-chip${!RK.mine ? ' on' : ''}" data-scope="0">GLOBAL</button><button type="button" class="ch-chip${RK.mine ? ' on' : ''}" data-scope="1">MY REGION</button></div></div>
       <details class="rk-det rk-ranks"><summary>THE RANKS</summary>
