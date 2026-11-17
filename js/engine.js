@@ -1637,12 +1637,14 @@
   }
 
   // a Draft Challenge five plays every minute
-  // an ironman five plays all 48; a Build any team roster (picks 6 to 10) starts its first five at 34 and the bench splits 70
+  // an ironman five plays all 48; a Build any team roster (picks 6 to 10): the bench splits up to 70 (22 each at most), the starters the rest
   function ironMinutes(list) {
     var m = {}, L = (list || []).slice();
     if (L.length <= 5 || !L.every(function (p) { return p.pick; })) { L.forEach(function (p) { m[p.id] = 48; }); return m; }
     L.sort(function (a, b) { return a.pick - b.pick; });
-    L.forEach(function (p, i) { m[p.id] = i < 5 ? 34 : 70 / (L.length - 5); });
+    // a bench player gets at most 22 (one bench player took all 70 and outplayed the starters); the starters split the rest
+    var nb = L.length - 5, each = Math.min(22, 70 / nb), st = (240 - each * nb) / 5;
+    L.forEach(function (p, i) { m[p.id] = i < 5 ? st : each; });
     return m;
   }
   function teamObj(season, league, by, abbr) {

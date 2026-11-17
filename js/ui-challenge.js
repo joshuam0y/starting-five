@@ -1062,7 +1062,7 @@
     const conf = me.conf;
     const seedTxt = r.confRank ? ord(r.confRank) + ' in the ' + conf : '';
     const line = x => x ? `<div class="ch-line">${[['PTS', pct(x.pts)], ['REB', pct(x.reb)], ['AST', pct(x.ast)], ['STL', pct(x.stl)], ['BLK', pct(x.blk)], ['FG%', pct(x.fgp)], ['3P%', pct(x.tpp)], ['MIN', pct(x.mpg)]].map(([k, v]) => `<span><b>${v}</b><small>${k}</small></span>`).join('')}</div>` : '<div class="muted ch-small">Did not play.</div>';
-    const fiveCards = r.five.map(x => {
+    const card = x => {
       const from = x.from;
       const t = x.fromTeam || teamOf(teams, from);
       return `<article class="ch-card" style="--c1:${esc(((t.colors) || ['#444'])[0])}">
@@ -1072,7 +1072,13 @@
         ${x.po ? `<div class="ch-po"><small>PLAYOFFS</small> ${x.po.pts} pts | ${x.po.reb} reb | ${x.po.ast} ast in ${x.po.g} games</div>` : ''}
 
       </article>`;
-    }).join('');
+    };
+    const fiveCards = r.five.map(card).join('');
+    // a Build Any Team bench (picks 6 to 10): the same cards, then one table with everyone's season
+    const myBench = (r.bench || []).filter(b => b.custom);
+    const benchCards = myBench.map(b => card(Object.assign({ tags: [] }, b))).join('');
+    const statRow = x => { const L = x.line; return `<tr><td class="l">${esc(x.name)} <small class="muted">${x.label ? esc(short(x.season)) + ' ' : ''}${esc(C.primaryPos(x.pos))}</small></td><td>${x.ovr}</td>${L ? `<td>${L.g}</td><td>${pct(L.mpg)}</td><td><b>${pct(L.pts)}</b></td><td>${pct(L.reb)}</td><td>${pct(L.ast)}</td><td>${pct(L.stl)}</td><td>${pct(L.blk)}</td><td>${pct(L.fgp)}</td><td>${pct(L.tpp)}</td>` : '<td colspan="9" class="muted">Did not play</td>'}</tr>`; };
+    const teamTable = `<div class="tscroll"><table class="stats ch-team-t"><thead><tr><th class="l">PLAYER</th><th>OVR</th><th>G</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>FG%</th><th>3P%</th></tr></thead><tbody>${r.five.concat(myBench).map(statRow).join('')}</tbody></table></div>`;
     const series = r.series.map(s => { const t = teamOf(teams, s.opp); return `<li class="${s.won ? 'w' : 'l'}"><small>${esc(s.name.toUpperCase())}</small>${logo(t, 24)}<b>${s.won ? 'W' : 'L'} ${s.w}-${s.l}</b><span>${esc(t.name)}</span></li>`; }).join('');
     const aw = r.awards || {};
     const awardRow = (k, label) => { const a = aw[k]; if (!a) return ''; const t = teamOf(teams, a.team); return `<li class="${a.mine ? 'me' : ''}"><small>${label}</small>${logo(t, 22)}<b>${esc(a.name)}</b>${a.season ? `<span class="muted">${esc(short(a.season))}</span>` : ''}${a.line ? `<span class="muted">${a.line.pts} / ${a.line.reb} / ${a.line.ast}</span>` : ''}</li>`; };
@@ -1092,7 +1098,9 @@
       <button type="button" class="btn sl-copy" id="chCopy">COPY LINK</button>
       <div class="row-btns center ch-acts"><button type="button" class="btn btn-gold" id="chAgain">RUN IT BACK</button><button type="button" class="btn" id="chOdds">SIM 10 MORE SEASONS</button><a class="btn" href="#/challenge">NEW CHALLENGE</a></div>
       <div id="chOddsBox">${oddsHtml(r)}</div>
-      ${UI.header('YOUR FIVE')}${r.fit ? fitHtml(r.fit) : ''}<div class="ch-cards">${fiveCards}</div>
+      ${UI.header(myBench.length ? 'YOUR STARTERS' : 'YOUR FIVE')}${r.fit ? fitHtml(r.fit) : ''}<div class="ch-cards">${fiveCards}</div>
+      ${myBench.length ? `${UI.header('YOUR BENCH')}<div class="ch-cards">${benchCards}</div>` : ''}
+      ${UI.header('TEAM STATS', 'Regular season, per game')}${teamTable}
       ${r.poBest && r.poBest.length ? `${UI.header('PLAYOFF HIGHS', 'Your five in the postseason')}<ol class="ch-best">${r.poBest.map(b => `<li><a href="#/challenge/game/${idx}/${esc(b.gid)}"><b>${b.pts}</b><span><b>${esc(b.name)}</b><small>${b.reb} reb | ${b.ast} ast | vs ${esc(b.opp)}, ${esc(UI.dateLabel ? UI.dateLabel(b.date) : b.date)}</small></span><i class="ch-go-i">BOX</i></a></li>`).join('')}</ol>` : ''}
       ${r.best.length ? `${UI.header('BEST NIGHTS', 'Regular season')}<ol class="ch-best">${r.best.map(b => `<li>${b.gid ? `<a href="#/challenge/game/${idx}/${esc(b.gid)}">` : '<span class="ch-best-a">'}<b>${b.pts}</b><span><b>${esc(b.name)}</b><small>${b.reb} reb | ${b.ast} ast | ${b.playoff ? 'playoffs ' : ''}vs ${esc(b.opp)}, ${esc(UI.dateLabel ? UI.dateLabel(b.date) : b.date)}</small></span>${b.gid ? '<i class="ch-go-i">BOX</i></a>' : '</span>'}</li>`).join('')}</ol>` : ''}
       ${UI.header('AROUND THE LEAGUE')}

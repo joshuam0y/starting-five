@@ -871,6 +871,7 @@
 .vs-det > :last-child { margin-bottom: 14px; }
 .vs-players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .vs-pl { margin: 0; min-width: 0; }
+.ch-setup .vs-players > .ch-step { grid-column: auto; }   /* the two player cards side by side on wide screens (the setup's full-width step rule had stacked them) */
 @media (max-width: 760px) { .vs-players { grid-template-columns: minmax(0, 1fr); } }
 .tc { position: relative; margin-top: 10px; }
 .tc-strip { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x proximity; padding: 8px 34px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
