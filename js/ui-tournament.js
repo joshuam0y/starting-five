@@ -222,6 +222,7 @@
   function go(page) { TN.page = page; if (page !== 'match') TN.watch = null; save(); render(); }
 
   // ---------- setup ----------
+  const TDET = { s2: false, s3: false };   // the season and rules steps start folded and stay as you left them
   function setup(app) {
     const o = TN.opts, n = TN.n;
     const names = Array.from({ length: n }, (_, i) => TN.names[i] || '');
@@ -239,12 +240,12 @@
           <small class="muted">${hum() < n ? (n - hum()) + ' AI team' + (n - hum() > 1 ? 's' : '') + ' fill the rest of the bracket and draft on their own.' : 'Everyone is human. Pick fewer to add AI teams.'}</small>
           <div class="tn-names">${names.slice(0, hum()).map((v, i) => `<label class="field"><span>PLAYER ${i + 1}</span><input data-name="${i}" name="p${i}-${Date.now()}" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="20" placeholder="Player ${i + 1}" value="${esc(v)}" autocomplete="off"></label>`).join('')}</div>
           <div class="ch-go"><button type="button" class="btn btn-small" id="tnResetNames">RESET NAMES</button></div></div>
-        <div class="ch-step"><div class="ch-step-k">2 | THE SEASON</div>
+        <details class="ch-step vs-det tn-det" data-tdet="s2"${TDET.s2 ? ' open' : ''}><summary class="ch-step-k">2 | THE SEASON <em>${esc(!ch.length ? 'NONE PICKED' : ch.length === C.SEASONS.length ? 'EVERY SEASON' : ch.length === 1 ? lbl(ch[0]) : ch.length + ' SEASONS')}</em></summary>
           <div class="row-btns vs-seas-all"><button type="button" class="btn btn-small${!TN.skip.length ? ' on' : ''}" data-seas="all">ALL</button><button type="button" class="btn btn-small" data-seas="none">CLEAR</button>
             ${decs.map(d => `<button type="button" class="btn btn-small${ALL_YEARS.filter(y => decOf(y) === d).every(y => TN.skip.indexOf(y) < 0) ? ' on' : ''}" data-dec="${d}">${d + 1}S</button>`).join('')}</div>
           <div class="vs-seas">${C.SEASONS.map(s => `<button type="button" class="ch-chip${TN.skip.indexOf(s.year) < 0 ? ' on' : ''}" data-yr="${s.year}">${esc(s.label)}</button>`).join('')}</div>
-          <small class="muted">${!ch.length ? 'Pick at least one season.' : ch.length === 1 ? 'One season: the whole ' + esc(lbl(ch[0])) + ' league.' : 'Every spin lands on a team and a season from the ones on. Nobody can be drafted twice, even from different seasons.'}</small></div>
-        <div class="ch-step"><div class="ch-step-k">3 | THE RULES</div>
+          <small class="muted">${!ch.length ? 'Pick at least one season.' : ch.length === 1 ? 'One season: the whole ' + esc(lbl(ch[0])) + ' league.' : 'Every spin lands on a team and a season from the ones on.'}</small></details>
+        <details class="ch-step vs-det tn-det" data-tdet="s3"${TDET.s3 ? ' open' : ''}><summary class="ch-step-k">3 | THE RULES <em>${esc(['BEST OF ' + o.bestOf, o.auction ? 'AUCTION' : o.board ? 'OPEN BOARD' : 'WHEEL', o.bench ? '8-MAN' : 'JUST THE FIVE'].concat(o.cap && !o.auction ? ['$' + o.cap + 'M CAP'] : []).join(' | '))}</em></summary>
           <div class="tn-rules">
             <div><span class="ts-start-k">EACH ROUND</span><div class="ch-chips">${chips([[1, 'BEST OF 1'], [3, 'BEST OF 3'], [5, 'BEST OF 5'], [7, 'BEST OF 7']], o.bestOf, 'bo')}</div></div>
             ${hum() > 1 ? `<div><span class="ts-start-k">DRAFT ORDER</span><div class="ch-chips">${chips([['turns', 'TAKE TURNS'], ['all', 'ALL FIVE AT ONCE']], o.order || 'turns', 'order')}</div></div>` : ''}
@@ -266,10 +267,11 @@
             ${o.bench ? `<div><span class="ts-start-k">IN THE GAMES</span><div class="ch-chips"><button type="button" class="ch-chip${!o.noBench ? ' on' : ''}" data-nb="0">BENCH PLAYS</button><button type="button" class="ch-chip${o.noBench ? ' on' : ''}" data-nb="1">STARTERS ONLY</button></div>
               <small class="muted">${o.noBench ? 'All eight are drafted, but only the five starters play, all 48 minutes.' : 'The bench subs in during the games.'}</small></div>` : ''}
             ${o.auction ? '' : `<div><span class="ts-start-k">SALARY CAP</span><div class="ch-chips">${UI.challengeCap.CAPS.map(v => `<button type="button" class="ch-chip${(o.cap || 0) === v ? ' on' : ''}" data-cap="${v}">${v ? '$' + v + 'M' : 'OFF'}</button>`).join('')}</div></div>`}
-          </div></div>
+          </div></details>
         <div class="ch-go"><button type="button" class="btn btn-gold btn-big" id="tnStart">START THE DRAFT</button><a class="btn" href="#/challenge/tournament/online">PLAY ONLINE</a><a class="btn" href="#/home">HOME</a></div>
       </div>`;
     UI.centerChips(app);
+    app.querySelectorAll('[data-tdet]').forEach(d => d.addEventListener('toggle', () => { TDET[d.dataset.tdet] = d.open; }));
     const readNames = () => { app.querySelectorAll('[data-name]').forEach(inp => { TN.names[+inp.dataset.name] = inp.value.trim().slice(0, 20); }); };
     const redraw = () => { readNames(); save(); setup(app); };
     app.querySelectorAll('[data-n]').forEach(b => b.addEventListener('click', () => { const was = hum() === TN.n; TN.n = +b.dataset.n; TN.humans = was ? TN.n : Math.min(hum(), TN.n); redraw(); }));

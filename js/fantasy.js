@@ -1,5 +1,5 @@
 // Fantasy draft start: window.FANTASY.newFantasyLeague(userTeam, opts) builds a league like
-// LEAGUE.newLeague, then puts every 2012-13 player into a 30-team, 15-round snake draft.
+// LEAGUE.newLeague, then puts every player of its season (the newest by default) into a 30-team, 15-round snake draft.
 // AI teams pick by a blend of overall, age and position need. Players keep their real contracts.
 // The draft screen (#/fantasy, #/fantasy/new) is drawn when the UI is loaded.
 (function (root) {
@@ -165,7 +165,7 @@
 
   // Rebuild a draft in progress from its seed and the picks made so far.
   function restore(meta) {
-    var state = newFantasyLeague(meta.userTeam, { seed: meta.seed });
+    var state = newFantasyLeague(meta.userTeam, meta.start ? { seed: meta.seed, start: meta.start } : { seed: meta.seed });
     (meta.picks || []).forEach(function (id) { pick(state, id); });
     return state;
   }
@@ -194,7 +194,7 @@
   function remember() {
     var c = API.current;
     if (!c) return;
-    lsSet({ userTeam: c.state.userTeam, seed: c.state.fantasy.seed, name: c.name, slot: c.slot, picks: c.state.fantasy.picks.map(function (x) { return x.id; }) });
+    lsSet({ userTeam: c.state.userTeam, seed: c.state.fantasy.seed, start: c.start || null, name: c.name, slot: c.slot, picks: c.state.fantasy.picks.map(function (x) { return x.id; }) });
   }
   function missing(app) {
     if (!(W.LEAGUE && typeof W.LEAGUE.newLeague === 'function')) {
@@ -214,7 +214,8 @@
     if (!API.current) {
       var meta = lsGet();
       if (meta && meta.userTeam) {
-        try { API.current = { state: restore(meta), name: meta.name, slot: meta.slot }; }
+        if (meta.start && !(W.START_LEAGUES && W.START_LEAGUES[meta.start]) && UI.loadStart) { app.innerHTML = '<section class="ch-load"><div class="ch-spin-ring"></div><div>LOADING YOUR DRAFT...</div></section>'; UI.loadStart(meta.start).then(function () { P.fantasy(app, arg); }); return; }
+        try { API.current = { state: restore(meta), name: meta.name, slot: meta.slot, start: meta.start || null }; }
         catch (e) { console.warn('[fantasy] could not restore the draft', e); lsDel(); }
       }
     }
@@ -222,21 +223,31 @@
     drawBoard(app);
   };
   P.fantasy.navLabel = 'Fantasy Draft';
-  P.fantasy.navDesc = 'Every 2012-13 player back in one pool: a 30-team, 15-round snake draft';
+  P.fantasy.navDesc = 'Every current player back in one pool: a 30-team, 15-round snake draft';
 
+  // the draft uses the newest season's players (the 2012-13 league only when that file cannot load)
+  function latestStart() { return UI.START_YEARS ? Math.max.apply(null, UI.START_YEARS.map(function (x) { return x.year; })) : null; }
   function drawSetup(app) {
-    var teams = UI.teams();
+    var Y = latestStart(), S = Y && W.START_LEAGUES && W.START_LEAGUES[Y];
+    if (Y && Y !== 2013 && !S && UI.loadStart && !drawSetup.failed) {
+      app.innerHTML = '<section class="ch-load"><div class="ch-spin-ring"></div><div>LOADING THE PLAYERS...</div></section>';
+      UI.loadStart(Y).then(function () { drawSetup(app); }).catch(function () { drawSetup.failed = true; drawSetup(app); });
+      return;
+    }
+    var useY = S ? Y : null;
+    var teams = S ? S.teams : UI.teams();
+    var lbl = useY ? (useY - 1) + '-' + String(useY).slice(2) : '2012-13';
     var confs = ['East', 'West'];
     var slots = UI.saves && typeof UI.saves.list === 'function' ? UI.saves.list() : [];
     var first = (UI.saves && typeof UI.saves.firstEmpty === 'function' && UI.saves.firstEmpty()) || 1;
     var inProgress = API.current || lsGet();
-    app.innerHTML = UI.header('FANTASY DRAFT', 'Pick your franchise. Every 2012-13 player goes back into one pool for a 30-team, 15-round snake draft. Contracts stay real. The draft order is drawn at random.') +
+    app.innerHTML = UI.header('FANTASY DRAFT', 'Every ' + lbl + ' player in one pool. 30 teams draft 15 rounds. Pick your team.') +
       (inProgress ? '<div class="note">A fantasy draft is already in progress. <a href="#/fantasy">Go back to it</a>, or pick a team below to start over.</div>' : '') +
       confs.map(function (c) {
-        return '<h3 class="conf-label">' + esc(c.toUpperCase()) + 'ERN CONFERENCE</h3><div class="team-grid">' +
+        return '<h3 class="conf-label">' + esc(c.toUpperCase()) + 'ERN CONFERENCE</h3><div class="team-grid fd-grid">' +
           teams.filter(function (t) { return t.conf === c; }).sort(function (a, b) { return a.city.localeCompare(b.city); }).map(function (t) {
             return '<button type="button" class="team-tile" data-team="' + esc(t.abbr) + '" style="--c1:' + esc(t.colors[0]) + '">' + UI.logo(t.abbr, 64) +
-              '<span class="tt-city">' + esc(t.city) + '</span><span class="tt-name">' + esc(t.name) + '</span><span class="tt-meta">EMPTY ROSTER</span></button>';
+              '<span class="tt-city">' + esc(t.city) + '</span><span class="tt-name">' + esc(t.name) + '</span></button>';
           }).join('') + '</div>';
       }).join('') +
       '<div class="confirm" id="fdConfirm" hidden><div class="confirm-inner"><div class="confirm-team" id="fdTeam"></div>' +
@@ -249,8 +260,9 @@
       b.addEventListener('click', function () {
         picked = b.getAttribute('data-team');
         app.querySelectorAll('.team-tile').forEach(function (x) { x.classList.toggle('picked', x === b); });
-        UI.$('#fdTeam').innerHTML = UI.logo(picked, 56) + '<div><div class="ct-k">YOU DRAFT FOR THE</div><div class="ct-t">' + esc(UI.teamName(picked)) + '</div></div>';
-        UI.$('#fdName').value = UI.team(picked).name + ' Fantasy';
+        var tm = teams.filter(function (x) { return x.abbr === picked; })[0] || { city: '', name: picked };
+        UI.$('#fdTeam').innerHTML = UI.logo(picked, 56) + '<div><div class="ct-k">YOU DRAFT FOR THE</div><div class="ct-t">' + esc(tm.city + ' ' + tm.name) + '</div></div>';
+        UI.$('#fdName').value = tm.name + ' Fantasy';
         box.hidden = false;
       });
     });
@@ -261,9 +273,9 @@
       btn.disabled = true; btn.textContent = 'BUILDING THE POOL...';
       setTimeout(function () {
         try {
-          var st = newFantasyLeague(picked, {});
+          var st = newFantasyLeague(picked, useY ? { start: useY } : {});
           var sl = UI.$('#fdSlot');
-          API.current = { state: st, name: (UI.$('#fdName').value || '').trim().slice(0, 40) || UI.team(picked).name + ' Fantasy', slot: sl ? Number(sl.value) : null };
+          API.current = { state: st, name: (UI.$('#fdName').value || '').trim().slice(0, 40) || picked + ' Fantasy', slot: sl ? Number(sl.value) : null, start: useY };
           remember();
           location.hash = '#/fantasy';
         } catch (e) {
