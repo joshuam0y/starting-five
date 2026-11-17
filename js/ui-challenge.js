@@ -64,7 +64,7 @@
     const s = ls.get(KEY_CUR);
     if (!s || !s.cfg) return false;
     if (s.cfg.mode === 'alltime' && !C.loaded(2013)) return false;
-    if (s.cfg.mode !== 'alltime' && !C.loaded(s.cfg.year)) return false;
+    if (s.cfg.mode !== 'alltime' && !needYears(s.cfg).every(y => C.loaded(y))) return false;
     if (s.cfg.mode === 'alltime' && (s.ext || []).some(y => !C.loaded(y))) return false;   // the seasons whose full rosters joined the pool load first
     try {
       CUR = { cfg: s.cfg, used: s.used || [], respins: s.respins != null ? s.respins : 1, spin: s.spin || null, dr: null };
@@ -77,7 +77,7 @@
     } catch (e) { console.warn('[challenge] could not restore', e); CUR = null; ls.del(KEY_CUR); return false; }
   }
 
-  const needYears = cfg => cfg.mode === 'alltime' ? ['pool', 2013] : [cfg.year];
+  const needYears = cfg => cfg.mode === 'alltime' ? ['pool', 2013] : cfg.custom ? [...new Set(['pool', cfg.year].concat(cfg.customYears || []))] : [cfg.year];
   const loadFor = cfg => Promise.all(needYears(cfg).map(y => C.load(y)));
   function ensureData(cfg, app, then, extra) {
     const years = needYears(cfg).concat(extra || []);
@@ -107,6 +107,7 @@
       ensureData(CUR.cfg, app, () => (CUR.cfg.mode === 'alltime' ? drawDraft(app) : drawPick(app)));
       return;
     }
+    if (part[0] === 'any') { drawAny(app); return; }
     if (part[0] === 'sim') { drawSim(app); return; }
     if (part[0] === 'game') { drawGame(app, +part[1] || 0, part[2] || ''); return; }
     if (part[0] === 's') { openShared(app, part.slice(1).join('/')); return; }
@@ -115,6 +116,89 @@
   };
   P.challenge.navLabel = 'Draft Challenge';
   P.challenge.navDesc = 'Pick a starting five from any season and sim it';
+
+  // =====================================================================
+  // Build any team (#/challenge/any): 5 to 10 players from any season, repeats allowed, then sim a season
+  // in a real league. Tap to add, tap again to remove. The first five start.
+  // =====================================================================
+  const KEY_ANY = 'a13-ch-any';
+  let ANY = Object.assign({ keys: [], ext: [], q: '', from: 'pool', year: 0, team: '' }, ls.get(KEY_ANY) || {});
+  const anySave = () => ls.set(KEY_ANY, ANY);
+  const norm = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  let POOLC = null;
+  const poolList = () => POOLC || (POOLC = window.CHALLENGE_POOL.players.map(p => ({ p, key: p.id + '@' + p.season, n: norm(p.name) })).sort((a, b) => b.p.ovr - a.p.ovr));
+  const seasonList = y => { const d = C.seasonData(y); return d ? d.players.map(p => ({ p: Object.assign({ season: y }, p), key: p.id + '@' + y, n: norm(p.name) })).sort((a, b) => b.p.ovr - a.p.ovr) : []; };
+  const ANY_IDEAS = [
+    ['10 KEVIN DURANTS', L => { const kd = L.find(x => x.p.name === 'Kevin Durant'); return kd ? Array(10).fill(kd.key) : []; }],
+    ['5 SHAQS', L => { const x = L.find(e => e.p.name === "Shaquille O'Neal"); return x ? Array(5).fill(x.key) : []; }],
+    ['ALL-TIME TOP 10', L => { const seen = {}; return L.filter(e => !seen[e.p.id] && (seen[e.p.id] = 1)).slice(0, 10).map(e => e.key); }],
+    ['BEST SHOOTERS', L => { const seen = {}; return L.slice().sort((a, b) => ((b.p.attrs || {}).three || 0) - ((a.p.attrs || {}).three || 0)).filter(e => !seen[e.p.id] && (seen[e.p.id] = 1)).slice(0, 10).map(e => e.key); }],
+    ['ALL 7-FOOTERS', L => { const seen = {}; return L.filter(e => (e.p.ht || 0) >= 84 && !seen[e.p.id] && (seen[e.p.id] = 1)).slice(0, 10).map(e => e.key); }],
+    ['ALL GUARDS', L => { const seen = {}; return L.filter(e => /^(PG|SG|G)/.test(String(e.p.pos || '')) && !seen[e.p.id] && (seen[e.p.id] = 1)).slice(0, 10).map(e => e.key); }]
+  ];
+  function drawAny(app) {
+    const ready = SEASONS_READY();
+    const lastY = ready.length ? ready[ready.length - 1].year : 2013;
+    if (!ANY.year || !ready.some(x => x.year === ANY.year)) ANY.year = lastY;
+    const need = ['pool', ANY.year].concat(ANY.from !== 'pool' ? [+ANY.from] : []);
+    if (!need.every(y => C.loaded(y))) {
+      app.innerHTML = '<section class="ch-load"><div class="ch-spin-ring"></div><div>LOADING PLAYERS...</div></section>';
+      Promise.all(need.map(y => C.load(y))).then(() => { if (/^#\/challenge\/any/.test(location.hash)) drawAny(app); })
+        .catch(e => { app.innerHTML = UI.empty('PLAYERS DID NOT LOAD', esc(e && e.message ? e.message : e), '<div class="row-btns"><a class="btn" href="#/challenge/any">TRY AGAIN</a></div>'); });
+      return;
+    }
+    const teams = C.seasonData(ANY.year).teams.slice().sort((a, b) => tName(a).localeCompare(tName(b)));
+    if (!teams.some(t => t.abbr === ANY.team)) ANY.team = teams[0].abbr;
+    const src = ANY.from === 'pool' ? poolList() : seasonList(+ANY.from);
+    const q = norm(ANY.q).trim();
+    const hits = (q ? src.filter(e => e.n.indexOf(q) >= 0) : src).slice(0, 40);
+    const ent = k => { const e = C.customEntry(k); return e; };
+    const lab = y => "'" + String(y - 1).slice(2) + '-' + String(y).slice(2);
+    const slots = Array.from({ length: 10 }, (_, i) => {
+      const k = ANY.keys[i], e = k ? ent(k) : null;
+      return `<li class="any-slot${e ? '' : ' empty'}${i === 5 ? ' any-b1' : ''}">${e ? `<button type="button" data-rm="${i}" aria-label="Remove ${esc(e.name)}"><span class="n">${esc(e.name)}</span><small>${esc(lab(e.season))} ${esc(e.from || '')}</small>${ovrSpan(e.ovr)}<i aria-hidden="true">x</i></button>` : `<span class="muted">${i < 5 ? 'STARTER' : 'BENCH'}</span>`}</li>`;
+    }).join('');
+    const n = ANY.keys.length;
+    const seasonOpts = ['<option value="pool"' + (ANY.from === 'pool' ? ' selected' : '') + '>All-time stars</option>'].concat(ready.slice().reverse().map(x => `<option value="${x.year}"${String(ANY.from) === String(x.year) ? ' selected' : ''}>${esc(x.label)}</option>`)).join('');
+    const leagueOpts = ready.slice().reverse().map(x => `<option value="${x.year}"${ANY.year === x.year ? ' selected' : ''}>${esc(x.label)}</option>`).join('');
+    app.innerHTML = `${UI.header('BUILD ANY TEAM', 'Tap players to add them. Repeats OK. Then sim a season.')}
+      <div class="ch-chips ch-swipe any-ideas">${ANY_IDEAS.map((x, i) => `<button type="button" class="ch-chip" data-idea="${i}">${x[0]}</button>`).join('')}</div>
+      <section class="any-team"><div class="any-k">YOUR TEAM <b>${n}/10</b>${n ? '<button type="button" class="btn btn-small" id="anyClear">CLEAR</button>' : ''}</div><ol class="any-slots">${slots}</ol></section>
+      <div class="any-find"><input id="anyQ" type="search" placeholder="Search any player" value="${esc(ANY.q)}" autocomplete="off"><select id="anyFrom" aria-label="Players from">${seasonOpts}</select></div>
+      <ul class="any-hits">${hits.map(e => `<li><button type="button" data-add="${esc(e.key)}"${n >= 10 ? ' disabled' : ''}><span class="n">${esc(e.p.name)}</span><small>${esc(lab(e.p.season))} ${esc(e.p.team || '')} | ${esc(e.p.pos || '')}</small>${ovrSpan(e.p.ovr)}<b class="any-plus" aria-hidden="true">+</b></button></li>`).join('') || '<li class="muted">Nobody by that name here. Try All-time stars or another season.</li>'}</ul>
+      <div class="any-go">
+        <label><span>PLAY IN</span><select id="anyYear">${leagueOpts}</select></label>
+        <label><span>AS</span><select id="anyTeam">${teams.map(t => `<option value="${esc(t.abbr)}"${t.abbr === ANY.team ? ' selected' : ''}>${esc(tName(t))}</option>`).join('')}</select></label>
+        <button type="button" class="btn btn-gold btn-big" id="anyStart"${n >= 5 ? '' : ' disabled'}>${n >= 5 ? 'SIM THE SEASON' : 'ADD ' + (5 - n) + ' MORE'}</button>
+      </div>`;
+    const redraw = () => { anySave(); drawAny(app); };
+    const qi = UI.$('#anyQ', app);
+    let tm = null;
+    qi.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(() => { ANY.q = qi.value; const pos = qi.selectionStart; redraw(); const q2 = UI.$('#anyQ', app); if (q2) { q2.focus(); try { q2.setSelectionRange(pos, pos); } catch (e) { /* */ } } }, 160); });
+    app.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', () => {
+      if (ANY.keys.length >= 10) return;
+      const k = b.getAttribute('data-add'), y = +k.split('@')[1];
+      ANY.keys.push(k);
+      if (ANY.from !== 'pool' && !poolList().some(e => e.key === k) && ANY.ext.indexOf(y) < 0) ANY.ext.push(y);
+      if (window.SFX) { try { window.SFX.play('tick'); } catch (e) { /* */ } }
+      redraw();
+    }));
+    app.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => { ANY.keys.splice(+b.getAttribute('data-rm'), 1); redraw(); }));
+    app.querySelectorAll('[data-idea]').forEach(b => b.addEventListener('click', () => { ANY.keys = ANY_IDEAS[+b.getAttribute('data-idea')][1](poolList()); redraw(); }));
+    const clr = UI.$('#anyClear', app); if (clr) clr.addEventListener('click', () => { ANY.keys = []; redraw(); });
+    UI.$('#anyFrom', app).addEventListener('change', e => { ANY.from = e.target.value === 'pool' ? 'pool' : +e.target.value; redraw(); });
+    UI.$('#anyYear', app).addEventListener('change', e => { ANY.year = +e.target.value; redraw(); });
+    UI.$('#anyTeam', app).addEventListener('change', e => { ANY.team = e.target.value; anySave(); });
+    UI.$('#anyStart', app).addEventListener('click', () => {
+      if (ANY.keys.length < 5) return;
+      const ys = [...new Set(ANY.keys.map(k => +k.split('@')[1]).filter(y => ANY.ext.indexOf(y) >= 0))];
+      const cfg = { mode: 'year', year: ANY.year, build: 'any', team: ANY.team, name: '', seed: Math.floor(Math.random() * 2147483646) + 1,
+        injuries: true, ratings: true, cap: 0, custom: ANY.keys.slice(0, 10), customYears: ys, picks: [] };
+      CUR = { cfg, used: [], respins: 0, spin: null, dr: null };
+      ensureData(cfg, app, () => startSim(app));
+    });
+  }
+  const SEASONS_READY = () => C.SEASONS.filter(x => x.ready !== false);
 
   function drawSetup(app) {
     const s = SETUP;
@@ -145,6 +229,7 @@
           <div class="ch-seg">
             <button type="button" class="ch-seg-b${!isAll ? ' on' : ''}" data-mode="year"><b>ONE SEASON</b><small>The real league of one year</small></button>
             <button type="button" class="ch-seg-b${isAll ? ' on' : ''}" data-mode="alltime"><b>ALL-TIME</b><small>Vets from every season, 30 teams draft</small></button>
+            <a class="ch-seg-b ch-any-b" href="#/challenge/any"><b>ANY TEAM</b><small>Anyone, any season. Ten KDs? Go.</small></a>
             <a class="ch-seg-b" href="#/challenge/vs"><b>HEAD TO HEAD</b><small>Draft against a friend, online or one phone</small></a>
           </div>
           <small class="ch-hint">${isAll ? 'Seasons: every season you leave on is in one big pool, and nobody can be drafted twice.' : 'Seasons: you draft from the real league of the one season you pick.'}</small>
@@ -349,6 +434,7 @@
   // the five picked so far (players, not ids), for the cap
   function myFive(cfg) {
     if (cfg.mode === 'alltime') return CUR.dr ? C.teamPicks(CUR.dr, cfg.team) : [];
+    if (cfg.custom) return cfg.custom.slice(0, 5).map(k => C.customEntry(k)).filter(Boolean);
     const d = C.seasonData(cfg.year), byId = {};
     d.players.concat(d.free).forEach(p => { byId[p.id] = p; });
     return cfg.picks.map(id => byId[id]).filter(Boolean);
@@ -920,6 +1006,7 @@
     const c = r.cfg, o = { v: 1, m: c.mode === 'alltime' ? 'a' : 'y', y: c.year, b: c.build === 'wheel' ? 'w' : 'f', t: c.team, n: c.name || '', s: c.seed,
       i: c.injuries === false ? 0 : 1, e: c.era || 2013, w: r.w, l: r.l };
     if (c.dupes) o.u = 1;
+    if (c.custom) { o.c = c.custom; o.cy = c.customYears || []; }
     if (c.mode === 'alltime') { const ix = {}; C.allTimePool().forEach((e, k) => { ix[e.key] = k; }); o.d = (r.draft || []).map(x => ix[x.key]); }
     else o.p = c.picks;
     return b64(JSON.stringify(o));
@@ -929,6 +1016,7 @@
     try { o = JSON.parse(unb64(code)); } catch (e) { app.innerHTML = UI.empty('LINK NOT READABLE', 'This challenge link is broken or cut off.', '<div class="row-btns"><a class="btn" href="#/challenge">DRAFT CHALLENGE</a></div>'); return; }
     const cfg = { mode: o.m === 'a' ? 'alltime' : 'year', year: +o.y || 2013, build: o.b === 'w' ? 'wheel' : 'free', team: o.t, name: o.n || '', seed: +o.s,
       injuries: o.i !== 0, era: +o.e || 2013, dupes: o.u ? 1 : 0, picks: o.p || [] };
+    if (Array.isArray(o.c)) { cfg.build = 'any'; cfg.custom = o.c.slice(0, 10).map(String); cfg.customYears = (o.cy || []).map(Number); }
     ensureData(cfg, app, () => {
       try {
         let dr = null;
