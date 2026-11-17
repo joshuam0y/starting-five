@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 490, t: 'Free agency is shorter on phones: smaller cards, 15 at a time.' },
   { v: 488, t: 'Build Any Team searches every player of every season: type Duncan Robinson and pick any of his years.' },
   { v: 486, t: 'Under Share: your squares with each rating, and what the colors mean.' },
   { v: 482, t: 'The Daily never repeats a theme until all 112 are played, and rookie themes use real rookie ratings (Luka over Bamba).' },

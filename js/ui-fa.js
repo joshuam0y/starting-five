@@ -12,7 +12,7 @@
   const esc = UI.esc;
 
   const POS = ['ALL', 'PG', 'SG', 'SF', 'PF', 'C'];
-  const PAGE = 40;
+  const PAGE = 15;   // free agents shown at a time (40 tall cards made the page 7000px on a phone)
   const OPEN_PHASES = { preseason: 1, regular: 1, resign: 1, freeAgency: 1, training: 1 };
   const view = { tab: null, tabPhase: null, pos: 'ALL', sort: 'ovr', shown: PAGE, open: null, afford: false, need: false, q: '', cut: null, auto: null };
   const offers = {};    // playerId -> { amount, years, opt }
