@@ -563,7 +563,7 @@
   function entry(app) {
     const saved = lsHost.get(), room = lsRoom.get(), name = lsName.get() || '';
     app.innerHTML = `
-      <section class="ch-hero"><div class="ch-hero-k">DRAFT CHALLENGE | ONLINE TOURNAMENT</div><h1 class="ch-hero-t">EVERYONE, YOUR OWN PHONE.</h1>
+      <section class="ch-hero"><div class="ch-hero-k">ONLINE TOURNAMENT</div><h1 class="ch-hero-t">EVERYONE, YOUR OWN PHONE.</h1>
         <p class="ch-hero-p">Four or eight teams. One phone hosts and runs the bracket, everyone else joins with a room code. You all draft at the same time on your own phones, then watch every game together.</p></section>
       <div id="tnNet">${netBar()}</div>
       <div class="ch-setup tn-setup">

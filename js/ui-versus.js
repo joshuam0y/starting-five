@@ -619,7 +619,7 @@
       if (me() !== null && me() >= 0 && UI.profile.name() && VS.names[me()] !== UI.profile.name()) { VS.names[me()] = UI.profile.name(); if (NET.role === 'guest') send({ t: 'hello', name: VS.names[me()] }); else { uniqNames(); push(); } }   // online, your name is your account
       const ready = !online() || linked();
       app.innerHTML = `
-        <section class="ch-hero"><div class="ch-hero-k">DRAFT CHALLENGE | TWO PLAYERS</div><h1 class="ch-hero-t">YOU VS ME.</h1>
+        <section class="ch-hero"><div class="ch-hero-k">HEAD TO HEAD</div><h1 class="ch-hero-t">YOU VS ME.</h1>
           <p class="ch-hero-p">Draft five each. Then play a series.</p></section>
         ${netBar()}
         <div class="ch-setup vs-setup">

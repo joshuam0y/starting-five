@@ -22,6 +22,8 @@
 .fr-subnav a { font-family: var(--display); font-weight: 600; font-size: 13px; letter-spacing: .16em; color: var(--muted); padding: 10px 16px 9px; border-bottom: 3px solid transparent; white-space: nowrap; }
 .fr-subnav a:hover { color: #fff; }
 .fr-subnav a.on { color: var(--gold2); border-bottom-color: var(--gold); }
+/* phones: the four tabs share the width instead of the last one hanging off the edge */
+@media (max-width: 560px) { .fr-subnav a { flex: 1 1 auto; text-align: center; padding: 10px 6px 9px; letter-spacing: .08em; font-size: 12px; } }
 .fr-tabs { margin-top: 4px; }
 
 /* still being built */
