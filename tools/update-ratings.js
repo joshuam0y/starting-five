@@ -41,7 +41,7 @@ function load(f, marker, tail) {
   const teamOf = r => { const t = r && r.team ? (MAPT[r.team] || r.team) : null; return t && ours.has(t) ? t : t && ours.has('NOH') && t === 'NOP' ? 'NOH' : null; };
   // ESPN's 30 team rosters come first: they include players who have not played yet (injured, just signed, two-way),
   // who never show up in the stats list. A player on no roster is a free agent, but only when every roster loaded.
-  const onRoster = {};
+  const onRoster = {}, ageOf = {};
   let rostersOk = false;
   try {
     const tl = (await get('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams')).sports[0].leagues[0].teams.map(x => x.team);
@@ -50,6 +50,8 @@ function load(f, marker, tail) {
       const r = await get('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/' + t.id + '/roster');
       const ab = teamOf({ team: t.abbreviation }), names = (r.athletes || []).map(a => a.displayName).filter(Boolean);
       if (ab && names.length >= 10) { good++; names.forEach(n => { onRoster[key(n)] = ab; onRoster['~' + key(n)] = n; }); }
+      // ages from birth dates, counted on Feb 1 of the season like the rest of the site
+      (r.athletes || []).forEach(a => { const d = a.dateOfBirth && new Date(a.dateOfBirth); if (d && !isNaN(d)) { const f = new Date(Date.UTC(2027, 1, 1)); let g = f.getUTCFullYear() - d.getUTCFullYear(); if (f < new Date(Date.UTC(f.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))) g--; ageOf[key(a.displayName)] = g; } });
     }
     rostersOk = tl.length === 30 && good === 30;
     console.log('rosters:', good + ' of ' + tl.length + ' teams loaded');
@@ -66,6 +68,9 @@ function load(f, marker, tail) {
   // ESPN's rosters include two-way players without saying so: a team over 15 regular players marks its lowest rated
   // new arrivals two-way (up to 3 two-way in all), so a new league does not open with a cut
   const fitRosters = moved => {
+    let aged = 0;
+    players.forEach(p => { const g = ageOf[key(p.name)]; if (g && g >= 18 && g <= 45 && p.age !== g) { p.age = g; aged++; cards.forEach(c => { if (c.id === p.id && c.age != null) c.age = g; }); } });
+    console.log('ages set from birth dates:', aged);
     const arrived = new Set(moved.filter(x => x.to !== 'FA').map(x => x.p.id));
     moved.filter(x => x.to === 'FA').forEach(x => { x.p.twoWay = false; });
     [...ours].forEach(t => {

@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 510, t: 'Player ages fixed for 2026-27: 119 players had a wrong age, many shown as 25.' },
   { v: 508, t: 'Rosters match the real NBA: 45 players moved, including injured and two-way players who had not played yet.' },
   { v: 506, t: 'ROSTERS on the main menu: every NBA team as it is right now, with ratings.' },
   { v: 504, t: 'Tournament champion card shows full player names, with stats underneath.' },
