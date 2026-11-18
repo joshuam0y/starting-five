@@ -39,12 +39,51 @@ function load(f, marker, tail) {
   const ours = new Set(st.obj.teams.map(t => t.abbr));
   const MAPT = { GS: 'GSW', NY: 'NYK', SA: 'SAS', NO: 'NOP', NOR: 'NOP', UTAH: 'UTA', WSH: 'WAS', PHO: 'PHX', BRK: 'BKN', CHO: 'CHA' };
   const teamOf = r => { const t = r && r.team ? (MAPT[r.team] || r.team) : null; return t && ours.has(t) ? t : t && ours.has('NOH') && t === 'NOP' ? 'NOH' : null; };
+  // ESPN's 30 team rosters come first: they include players who have not played yet (injured, just signed, two-way),
+  // who never show up in the stats list. A player on no roster is a free agent, but only when every roster loaded.
+  const onRoster = {};
+  let rostersOk = false;
+  try {
+    const tl = (await get('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams')).sports[0].leagues[0].teams.map(x => x.team);
+    let good = 0;
+    for (const t of tl) {
+      const r = await get('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/' + t.id + '/roster');
+      const ab = teamOf({ team: t.abbreviation }), names = (r.athletes || []).map(a => a.displayName).filter(Boolean);
+      if (ab && names.length >= 10) { good++; names.forEach(n => { onRoster[key(n)] = ab; onRoster['~' + key(n)] = n; }); }
+    }
+    rostersOk = tl.length === 30 && good === 30;
+    console.log('rosters:', good + ' of ' + tl.length + ' teams loaded');
+  } catch (e) { console.log('rosters: could not load (' + e.message + '), using game stats only'); }
+  // a name spelled differently (Ron / Ronald Holland II): same last name, one first name starts with the other's first
+  // three letters, and only one roster player fits
+  const split = n => { const w = String(n).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\b(jr|sr|ii|iii|iv)\b\.?/g, '').replace(/[^a-z ]/g, '').trim().split(/\s+/); return { f: w[0] || '', l: w.slice(1).join('') }; };
+  const rosterNames = Object.keys(onRoster).filter(k => k[0] === '~').map(k => onRoster[k]);
+  const nearTeam = name => {
+    const a = split(name); if (!a.l || a.f.length < 3) return null;
+    const hits = rosterNames.filter(n => { const b = split(n); return b.l === a.l && b.f.length >= 3 && (b.f.startsWith(a.f.slice(0, 3)) || a.f.startsWith(b.f.slice(0, 3))); });
+    return hits.length === 1 ? onRoster[key(hits[0])] : null;
+  };
+  // ESPN's rosters include two-way players without saying so: a team over 15 regular players marks its lowest rated
+  // new arrivals two-way (up to 3 two-way in all), so a new league does not open with a cut
+  const fitRosters = moved => {
+    const arrived = new Set(moved.filter(x => x.to !== 'FA').map(x => x.p.id));
+    moved.filter(x => x.to === 'FA').forEach(x => { x.p.twoWay = false; });
+    [...ours].forEach(t => {
+      const on = players.filter(p => p.team === t && !p.retired), std = on.filter(p => !p.twoWay);
+      let two = on.length - std.length;
+      std.filter(p => arrived.has(p.id)).sort((a, b) => a.ovr - b.ovr).forEach(p => { if (std.filter(q => !q.twoWay).length > 15 && two < 3) { p.twoWay = true; two++; } });
+    });
+  };
   const trades = [];
-  players.forEach(p => { const t = teamOf(espn[key(p.name)]); if (t && p.team !== t) trades.push({ p, from: p.team, to: t }); });
+  players.forEach(p => {
+    const t = onRoster[key(p.name)] || teamOf(espn[key(p.name)]) || (rostersOk ? nearTeam(p.name) : null);
+    if (t && p.team !== t) trades.push({ p, from: p.team, to: t });
+    else if (!t && rostersOk && p.team && p.team !== 'FA' && ours.has(p.team) && !p.retired) trades.push({ p, from: p.team, to: 'FA' });
+  });
   console.log('team moves:', trades.length, trades.slice(0, 25).map(x => x.p.name + ' ' + x.from + '>' + x.to).join(', '));
   if (process.argv.includes('--teams-only')) {
     if (!WRITE) { console.log('dry run: nothing written (use --write).'); return; }
-    trades.forEach(x => { x.p.team = x.to; cards.forEach(c => { if (c.id === x.p.id) c.team = x.to; }); });
+    trades.forEach(x => { x.p.team = x.to; cards.forEach(c => { if (c.id === x.p.id) c.team = x.to; }); }); fitRosters(trades);
     fs.writeFileSync('data/start-2027.js', st.s.slice(0, st.a) + JSON.stringify(st.obj) + st.s.slice(st.b + 1));
     fs.writeFileSync('data/challenge-pool.js', pl.s.slice(0, pl.a) + JSON.stringify(pl.obj) + pl.s.slice(pl.b + 1));
     console.log('written:', trades.length, 'team moves'); return;
@@ -71,7 +110,7 @@ function load(f, marker, tail) {
   if (!WRITE) { console.log('dry run: nothing written (use --write).'); return; }
   const set = (p, t) => { if (p.ovr === t) return; if (p.attrs) P.setOvr(p, t, { keepPot: true }); else p.ovr = t; p.ovr = t; };
   let n = 0;
-  trades.forEach(x => { x.p.team = x.to; cards.forEach(c => { if (c.id === x.p.id) c.team = x.to; }); });
+  trades.forEach(x => { x.p.team = x.to; cards.forEach(c => { if (c.id === x.p.id) c.team = x.to; }); }); fitRosters(trades);
   players.forEach(p => { const t = b0(p) + (move[p.id] || 0); if (p.ovr !== t) { set(p, t); n++; } });
   cards.forEach(p => { const t = b0(p) + (move[p.id] || 0); if (p.ovr !== t) { set(p, t); n++; } });
   if (!fs.existsSync(BF)) fs.writeFileSync(BF, JSON.stringify(base));
