@@ -1,1 +1,38 @@
-{ "2023": { "Miles Bridges": "CHA" } }
+{
+  "1992": {
+    "Bernard King": "WAS"
+  },
+  "1994": {
+    "Michael Jordan": "OUT",
+    "Šarūnas Marčiulionis": "GSW"
+  },
+  "1995": {
+    "Gerald Wilkins": "CLE",
+    "Frank Brickowski": "SAC"
+  },
+  "2002": {
+    "Theo Ratliff": "ATL"
+  },
+  "2003": {
+    "Alonzo Mourning": "MIA",
+    "Lamond Murray": "TOR"
+  },
+  "2009": {
+    "Jamaal Tinsley": "IND"
+  },
+  "2018": {
+    "Greg Monroe": "MIL"
+  },
+  "2022": {
+    "Juancho Hernangómez": "BOS",
+    "Jason Preston": "LAC"
+  },
+  "2023": {
+    "Miles Bridges": "CHA",
+    "E.J. Liddell": "NOH"
+  },
+  "2024": {
+    "Jaylen Clark": "MIN",
+    "Danilo Gallinari": "WAS"
+  }
+}
