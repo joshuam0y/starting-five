@@ -556,12 +556,18 @@
       </a>`;
     const fa = UI.roster('FA');
     const mine = user ? UI.teams().find(t => t.abbr === user) : null;
-    app.innerHTML = UI.header('ROSTERS', 'Find any player by name, or open a team.') +
+    // no league: any season's opening-night rosters, the newest first
+    const vy = UI.viewYear || UI.newestYear();
+    const pick = UI.state.game ? '' : `<label class="field ro-yr"><span>SEASON</span><select id="roYear">${UI.START_YEARS.slice().reverse().map(y => `<option value="${y.year}"${y.year === vy ? ' selected' : ''}>${esc(y.label)}${y.year === UI.newestYear() ? ' (NOW)' : ''}</option>`).join('')}</select></label>`;
+    const faN = UI.roster('FA').length;
+    const pickRow = pick ? `<div class="ro-bar">${pick}${faN ? `<a class="btn" href="#/team/FA">FREE AGENTS (${faN})</a>` : ''}</div>` : '';
+    app.innerHTML = UI.header('ROSTERS', UI.state.game ? 'Find any player by name, or open a team.' : 'Opening night rosters and free agents, any season.') + pickRow +
       '<div class="teams-search" id="teamsSearch"></div>' +
       (mine ? `<h3 class="conf-label">YOUR TEAM</h3><div class="team-cards">${card(mine)}${fa.length ? `<a class="team-card" href="#/team/FA" style="--c1:#55555c">${UI.logo('FA', 48)}<span class="tc-name"><span class="tc-city">Unsigned</span><span class="tc-team">Free Agents</span></span><span class="tc-ovr"><b>${fa.length}</b><small>PLAYERS</small></span></a>` : ''}</div>` : '') +
       confs().map(c => `<h3 class="conf-label">${esc(c.toUpperCase())}</h3><div class="team-cards">${UI.teams().filter(t => t.conf === c).sort((a, b) => a.city.localeCompare(b.city)).map(card).join('')}</div>`).join('') +
       (!mine && fa.length ? `<h3 class="conf-label">UNSIGNED</h3><div class="team-cards"><a class="team-card" href="#/team/FA" style="--c1:#55555c">${UI.logo('FA', 48)}<span class="tc-name"><span class="tc-city">Unsigned</span><span class="tc-team">Free Agents</span></span><span class="tc-ovr"><b>${fa.length}</b><small>PLAYERS</small></span></a></div>` : '');
     UI.playerSearch(UI.$('#teamsSearch', app), { placeholder: 'Search any player by name, like Kemba or Durant' });
+    const ry = UI.$('#roYear', app); if (ry) ry.addEventListener('change', () => { location.hash = '#/teams/' + ry.value; });
   };
 
   // Team totals for the regular season from the stored box scores: points, rebounds, assists

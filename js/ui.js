@@ -221,9 +221,12 @@
     if (page === 'continue') { continueLatest(); return; }
     // no league: rosters, teams and players show the newest real season, loaded on first visit
     UI.viewNow = !UI.state.game && ['teams', 'team', 'player'].includes(page);
-    if (UI.viewNow && !(window.START_LEAGUES && window.START_LEAGUES[UI.newestYear()])) {
+    // #/teams/1996 picks a season; it sticks for the team and player pages until another is picked
+    if (UI.viewNow && page === 'teams' && /^\d{4}$/.test(arg)) UI.viewYear = UI.START_YEARS.some(y => y.year === +arg) ? +arg : null;
+    const vy = UI.viewYear || UI.newestYear();
+    if (UI.viewNow && vy !== 2013 && !(window.START_LEAGUES && window.START_LEAGUES[vy])) {
       app.innerHTML = UI.empty('LOADING ROSTERS', '', '');
-      UI.loadStart(UI.newestYear()).then(() => UI.route(), () => { UI.viewNow = false; UI.route(); });
+      UI.loadStart(vy).then(() => UI.route(), () => { UI.viewYear = null; UI.route(); });
       return;
     }
     let decoded = arg;

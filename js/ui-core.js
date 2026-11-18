@@ -112,7 +112,8 @@
   // Without a league, the Rosters, team and player pages show the newest real season (the router sets UI.viewNow);
   // everything else falls back to the 2012-13 base data as before.
   UI.newestYear = () => UI.START_YEARS[UI.START_YEARS.length - 1].year;
-  const baseL = () => (UI.viewNow && window.START_LEAGUES && window.START_LEAGUES[UI.newestYear()]) || UI.state.league;
+  UI.viewYear = null;   // the season the Rosters pages show without a league (null: the newest)
+  const baseL = () => (UI.viewNow && window.START_LEAGUES && window.START_LEAGUES[UI.viewYear || UI.newestYear()]) || UI.state.league;
   UI.teams = function () {
     const g = UI.state.game;
     if (g && g.teams) return Object.keys(g.teams).map(k => g.teams[k]);

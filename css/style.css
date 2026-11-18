@@ -1083,3 +1083,9 @@ body.no-assoc-nav .navmore-list a[data-nav="settings"], body.no-assoc-nav .navmo
 /* main menu: LOAD, TOP 20 and ROSTERS share one row */
 .mm-grid .mm-row3 { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: inherit; }
 .mm-grid .mm-row3 > .mt-half { grid-column: auto; }
+
+/* Rosters: the season picker */
+.ro-yr { display: flex; flex-direction: column; gap: 6px; max-width: 260px; margin: 0 0 14px; }
+.ro-bar { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; }
+.ro-bar .ro-yr { margin: 0; flex: 1 1 150px; max-width: none; }
+.ro-bar > .btn { flex: 0 0 auto; }
