@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 516, t: 'Opening night rosters fixed again: stars and new draft picks keep their spots (Ja Morant, Noa Essengue), and each season\'s free agents are the players really unsigned that night.' },
   { v: 514, t: 'Past seasons: 470 players listed as free agents are back on their opening night teams. This season: G League players join free agency.' },
   { v: 512, t: 'Rosters: pick any season from 1946-47 to now, with that year\'s free agents.' },
   { v: 510, t: 'Player ages fixed for 2026-27: 119 players had a wrong age, many shown as 25.' },
