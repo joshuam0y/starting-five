@@ -71,10 +71,19 @@ const players = y => { const f = 'data/start-' + y + '.js'; return fs.existsSync
     // and plays again (this season per ESPN, or next season's file): unsigned on opening night, signed later or a year on
     const prev = players(y - 1), next = players(y + 1), have = new Set(L.players.map(p => p.id));
     const nextIds = new Set((next || []).map(p => p.id));
-    const cls = (prev || []).filter(p => p.team !== 'DRAFT' && !p.retired && !have.has(p.id) && (nextIds.has(p.id) || played.has(key(p.name))) && p.age + 1 <= 40);
+    // plus anyone 30 or younger who was on a team last season and never came back: at that age it means overseas or the
+    // G League, not retirement
+    const cls = (prev || []).filter(p => p.team !== 'DRAFT' && !p.retired && !have.has(p.id) && (((nextIds.has(p.id) || played.has(key(p.name))) && p.age + 1 <= 40) || (p.team !== 'FA' && p.age + 1 <= 30)));
     cls.forEach(p => { L.players.push({ id: p.id, name: p.name, team: 'FA', pos: p.pos, age: p.age + 1, ht: p.ht, wt: p.wt, attrs: p.attrs, ovr: p.ovr, nbaId: p.nbaId || null, tend: p.tend, stats: null, injury: null, face: null, rated2k13: false, salary: 0 }); have.add(p.id); });
+    // last summer's second-round picks and undrafted rookies who made no opening roster (2013-14 on)
+    const rk = (global.DRAFTS[y - 1] || []).filter(x => !have.has(x.id) && !(x.realPick && x.realPick <= 30));   // first-rounders off a roster were stashed (rights held)
+    rk.forEach(x => { L.players.push(Object.assign({}, x, { team: 'FA', stats: null, injury: null, face: null, rated2k13: false, salary: 0 })); have.add(x.id); });
+    // hand fixes (tools/roster-overrides.json): { "2023": { "Miles Bridges": "CHA" } }
+    const OVR = fs.existsSync('tools/roster-overrides.json') ? JSON.parse(fs.readFileSync('tools/roster-overrides.json', 'utf8')) : {};
+    Object.entries(OVR[y] || {}).forEach(([n, t]) => { const p = L.players.find(q => q.name === n || q.id === n); if (!p) return; p.team = t; p.twoWay = false;
+      const std = L.players.filter(q => q.team === t && !q.retired && !q.twoWay); if (std.length > 15) { const w = std.filter(q => q !== p && !rookie(q)).sort((a, b) => a.ovr - b.ovr)[0]; if (w) w.team = 'FA'; } });
     const fa = L.players.filter(p => p.team === 'FA');
-    console.log(y, '| onto opening teams', placed, bumped.length ? '(bumped ' + bumped.length + ')' : '', '| class added', cls.length, '| free agents', fa.length);
+    console.log(y, '| onto opening teams', placed, bumped.length ? '(bumped ' + bumped.length + ')' : '', '| class added', cls.length + rk.length, '| free agents', fa.length);
     if (WRITE) fs.writeFileSync(st.f, st.s.slice(0, st.a) + JSON.stringify(L) + ';' + st.s.slice(st.end));
   }
 })();
