@@ -1068,3 +1068,14 @@ body.no-assoc-nav .navmore-list a[data-nav="settings"], body.no-assoc-nav .navmo
   .fd-grid .tt-city { display: none; }
   .fd-grid .tt-name { font-size: 13px; }
 }
+
+/* small phones (320 wide): long words fit their boxes, the top bar fits without sliding */
+.tc-team { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mt-l { overflow-wrap: anywhere; }
+@media (max-width: 400px) {
+  .tile-grid .mt-l, .hub-grid .mt-l { font-size: clamp(14px, 4.6vw, 22px); letter-spacing: .04em; }
+}
+@media (max-width: 360px) {
+  .mainnav > a, .navmore summary { padding: 0 7px; font-size: 13px; letter-spacing: .06em; }
+  .tc-team { font-size: 17px; }
+}

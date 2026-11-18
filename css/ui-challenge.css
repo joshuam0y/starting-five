@@ -334,7 +334,7 @@
 .vs-score > i { align-self: center; font-style: normal; font-family: var(--display); font-size: 28px; color: var(--muted); }
 .vs-score-t { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line2); border-top: 3px solid var(--c1, #444); background: var(--bg2); }
 .vs-score-t span { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-.vs-score-t small { font-family: var(--display); font-size: 11px; letter-spacing: .14em; color: var(--gold); }
+.vs-score-t small { font-family: var(--display); font-size: 11px; letter-spacing: .14em; color: var(--gold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vs-score-t b { font-family: var(--display); font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vs-score-t strong { font-family: var(--display); font-size: 44px; line-height: 1; }
 .vs-score-t.won { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
@@ -1445,3 +1445,11 @@ a.pr-i:hover { border-color: var(--gold); }
 .any-open { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
 .any-slots + .any-open { margin-top: 8px; }
 .auc-slots .auc-ov { font-size: 12px; padding: 1px 5px; margin-right: 7px; min-width: 26px; text-align: center; display: inline-block; vertical-align: 1px; }
+
+/* small phones: fold labels stay on one line, the ranked table fits without sliding */
+.vs-det > summary { white-space: nowrap; }
+@media (max-width: 360px) {
+  .vs-det > summary { letter-spacing: .14em; gap: 8px; padding: 12px 10px; }
+  .rk-tbl td, .rk-tbl th { padding-left: 5px; padding-right: 5px; }
+  .rk-tbl th { letter-spacing: .06em; }
+}
