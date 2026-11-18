@@ -68,8 +68,7 @@
           ${cont}
           ${UI.tile('#/challenge/tournament', 'playoffs', 'TOURNAMENT', { cls: 'mt-tn', disabled: !engineOk, sub: '4 OR 8 FRIENDS, ONE PHONE, ONE BRACKET' })}
           ${UI.tile('#/challenge/tournament/online', 'live', 'ONLINE TOURNAMENT', { cls: 'mt-tn', disabled: !engineOk, sub: 'EVERYONE ON THEIR OWN PHONE' })}
-          ${UI.tile('#/saves', 'load', 'LOAD', { cls: 'mt-half' })}
-          ${UI.tile('#/top20', 'awards', 'TOP 20', { cls: 'mt-half' })}
+          <div class="mm-row3">${UI.tile('#/saves', 'load', 'LOAD', { cls: 'mt-half' })}${UI.tile('#/top20', 'awards', 'TOP 20', { cls: 'mt-half' })}${UI.tile('#/teams', 'teams', 'ROSTERS', { cls: 'mt-half' })}</div>
         </div>
         <form class="mm-join" id="mmJoin" autocomplete="off"><label for="mmCode">HAVE A CODE?</label><input id="mmCode" maxlength="5" placeholder="ROOM CODE" autocapitalize="characters" spellcheck="false"><button type="submit" class="btn btn-gold btn-small">JOIN</button></form>
         <nav class="mm-foot" aria-label="About and legal">${UI.infoLinks ? UI.infoLinks() : ''}</nav>

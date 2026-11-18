@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 506, t: 'ROSTERS on the main menu: every NBA team as it is right now, with ratings.' },
   { v: 504, t: 'Tournament champion card shows full player names, with stats underneath.' },
   { v: 502, t: 'Long names no longer run into the series score, and small phones fit the top bar, team names and League tiles.' },
   { v: 500, t: 'Head to Head starts on the auction, and online both phones go to the series together with the same lineup intro.' },

@@ -109,10 +109,14 @@
 
   // ---------- teams ----------
   const FA_TEAM = { abbr: 'FA', city: 'Free', name: 'Agents', conf: '', div: '', colors: ['#3a3a40', '#8a8a90'], logo: null };
+  // Without a league, the Rosters, team and player pages show the newest real season (the router sets UI.viewNow);
+  // everything else falls back to the 2012-13 base data as before.
+  UI.newestYear = () => UI.START_YEARS[UI.START_YEARS.length - 1].year;
+  const baseL = () => (UI.viewNow && window.START_LEAGUES && window.START_LEAGUES[UI.newestYear()]) || UI.state.league;
   UI.teams = function () {
     const g = UI.state.game;
     if (g && g.teams) return Object.keys(g.teams).map(k => g.teams[k]);
-    return (UI.state.league && UI.state.league.teams) || [];
+    return (baseL() && baseL().teams) || [];
   };
   UI.team = abbr => UI.teams().find(t => t.abbr === abbr) || (abbr === 'FA' ? FA_TEAM : { abbr: abbr || '?', city: abbr || '?', name: '', colors: ['#333', '#777'], logo: null });
   UI.teamColor = abbr => {
@@ -372,7 +376,7 @@
   UI.player = function (id) {
     const g = UI.state.game;
     if (g && g.players) return g.players[id] || null;
-    const L = UI.state.league;
+    const L = baseL();
     const base = L && L.players.find(p => p.id === id);
     if (base) return base;
     // Draft prospects before a league exists.
@@ -383,7 +387,7 @@
   UI.allPlayers = function () {
     const g = UI.state.game;
     if (g && g.players) return Object.keys(g.players).map(k => g.players[k]);
-    return (UI.state.league && UI.state.league.players) || [];
+    return (baseL() && baseL().players) || [];
   };
   const active = p => p && !p.retired && p.team !== 'DRAFT';
   UI.roster = function (abbr) {
@@ -397,7 +401,7 @@
     r.forEach((p, i) => { s += (p.ovr || 0) * w[i]; ws += w[i]; });
     return Math.round(s / ws);
   };
-  UI.year = () => (UI.state.game ? UI.state.game.year : (UI.state.league && UI.state.league.season) || 2013);
+  UI.year = () => (UI.state.game ? UI.state.game.year : (baseL() && baseL().season) || 2013);
   // no install or Add to Home Screen buttons in the page; the listener only keeps Chrome's own install bar from popping up
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); });
   UI.installButton = () => '';

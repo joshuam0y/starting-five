@@ -205,7 +205,7 @@
     if (g0 && g0.expansionDraft && !['expansion', 'home', 'saves', 'settings', 'new', 'daily', 'ranked', 'challenge', 'me', 'u'].concat(UI.INFO_ROUTES || []).includes(page) && UI.pages.expansion) { location.replace('#/expansion'); return; }
     const navKey = NAV[page] || page;
     // the top links belong to the Association; the home screen, Season Mode, Head to Head and the info pages are bare
-    document.body.classList.toggle('no-assoc-nav', ['home', 'challenge', 'new', 'saves', 'continue', 'ranked', 'daily', 'me', 'u'].concat(UI.INFO_ROUTES || []).includes(page));
+    document.body.classList.toggle('no-assoc-nav', ['home', 'challenge', 'new', 'saves', 'continue', 'ranked', 'daily', 'me', 'u'].concat(UI.INFO_ROUTES || []).includes(page) || (!UI.state.game && ['teams', 'team', 'player'].includes(page)));
     UI.$$('#mainnav a').forEach(a => a.classList.toggle('on', a.getAttribute('data-nav') === navKey));
     const more = UI.$('#mainnav .navmore');
     if (more) more.classList.toggle('on', !UI.$(`#mainnav > a[data-nav="${navKey}"]`) && !!more.querySelector(`a[data-nav="${navKey}"]`));
@@ -219,6 +219,13 @@
 
     if (!UI.state.league && !(UI.INFO_ROUTES || []).includes(page)) { app.innerHTML = UI.notBuilt('data'); return; }
     if (page === 'continue') { continueLatest(); return; }
+    // no league: rosters, teams and players show the newest real season, loaded on first visit
+    UI.viewNow = !UI.state.game && ['teams', 'team', 'player'].includes(page);
+    if (UI.viewNow && !(window.START_LEAGUES && window.START_LEAGUES[UI.newestYear()])) {
+      app.innerHTML = UI.empty('LOADING ROSTERS', '', '');
+      UI.loadStart(UI.newestYear()).then(() => UI.route(), () => { UI.viewNow = false; UI.route(); });
+      return;
+    }
     let decoded = arg;
     try { decoded = decodeURIComponent(arg); } catch (e) { /* keep raw */ }
     try {
