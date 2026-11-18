@@ -25,6 +25,7 @@ jobs:
         run: |
           set -o pipefail
           if ! node tools/update-ratings.js --write | tee ratings.txt; then echo "ESPN check failed, nothing changed"; exit 0; fi
+          node tools/add-gleague.js --write | tee -a ratings.txt || true   # G League players with NBA history join free agency; overseas players leave
           if git diff --quiet; then echo "no rating changed"; exit 0; fi
           node tools/build-player-index.js   # Build Any Team's search shows this season's new ratings
           eff=$(TZ=America/Los_Angeles date -d 'next wednesday' +%F)
