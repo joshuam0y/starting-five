@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 534, t: 'After the Daily: SEE HOW YOUR SQUAD DID takes you straight to your squad. Long player names no longer get cut off in the auction on phones.' },
   { v: 532, t: 'Squads without an account: type a name and join. Sign in later to keep your squads on any phone.' },
   { v: 530, t: 'Squads: make one, drop the link in your group chat, and get your own Daily board for today and the week.' },
   { v: 528, t: 'Light mode redone: white cards on a soft page, near-black text, brighter gold buttons.' },

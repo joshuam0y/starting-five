@@ -1467,3 +1467,12 @@ a.pr-i:hover { border-color: var(--gold); }
 /* Squads (#/squad): the make-a-squad form */
 .sq-new { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; max-width: 460px; }
 .sq-new .field { flex: 1 1 220px; }
+
+/* Auction team columns: the slot list never grows past its column, and on phones long names wrap instead of running off */
+.auc-slots { grid-template-columns: minmax(0, 1fr); }
+.auc-slots li { min-width: 0; }
+@media (max-width: 560px) {
+  .auc-slots li { align-items: center; }
+  .auc-slots li span { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
+  .auc-slots li span .auc-yr { white-space: nowrap; }
+}

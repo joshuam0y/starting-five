@@ -824,8 +824,8 @@
         ${fiveCards(five)}
         <div class="rk-fsc"><small>LINEUP SCORE</small><b id="fsN">0.0</b></div>
         <div class="rk-fpc"><h2 class="rk-pop-n" id="fpN">0.0%</h2><p class="rk-fof">OF A PERFECT FIVE</p><div class="rk-tier" id="fTier"></div><p class="rk-frk" id="fRank"></p></div>
-        <p class="rk-pop-m" id="popMile"></p><p class="rk-pop-s" id="popStd"></p><div class="rk-tour-go rk-fgo">${isP ? '<a class="btn btn-gold btn-big" id="popShare" href="#/daily/practice/' + esc(prKey) + '/' + Date.now() + '">PLAY AGAIN</a>' : '<button type="button" class="btn btn-gold btn-big" id="popShare">SHARE YOUR SCORE</button>'}<button type="button" class="btn" id="popClose">CLOSE</button></div><button type="button" class="rk-skip" id="fSkip">TAP TO SKIP</button></div>`;
-      document.body.appendChild(ov);
+        <p class="rk-pop-m" id="popMile"></p><p class="rk-pop-s" id="popStd"></p><div class="rk-tour-go rk-fgo">${isP ? '<a class="btn btn-gold btn-big" id="popShare" href="#/daily/practice/' + esc(prKey) + '/' + Date.now() + '">PLAY AGAIN</a>' : '<button type="button" class="btn btn-gold btn-big" id="popShare">SHARE YOUR SCORE</button>' + '<a class="btn" href="#/squad" data-sqbtn>SQUADS</a>'}<button type="button" class="btn" id="popClose">CLOSE</button></div><button type="button" class="rk-skip" id="fSkip">TAP TO SKIP</button></div>`;
+      document.body.appendChild(ov); if (!isP) squadBtns(ov);
       if (!isP) { const n = streakNow().n; if (MILES.includes(n)) ov.querySelector('#popMile').textContent = n + ' DAY STREAK'; }
       const shut = () => { ov.remove(); window.removeEventListener('hashchange', shut); };
       window.addEventListener('hashchange', shut);
@@ -867,7 +867,8 @@
     const five = (sv.names || []).map(n => pool.find(p => p.name === n)).filter(Boolean);   // the five players are looked up in the day's ten
     app.innerHTML = `<div class="ch-top"><div><div class="ch-top-k">DAILY #${dayNo(day)} | ${esc(day)} | ${esc(TH.title)}</div><div class="ch-top-t">YOU ALREADY PLAYED TODAY</div></div><a class="btn btn-small" href="#/daily">BACK</a></div>
       <section class="rk-score">${five.length === 5 ? fiveCards(five, true) : ''}<small>YOUR LINEUP SCORE</small><b>${Number(sv.score).toFixed(1)}</b>${pct == null ? '' : `<div class="rk-pct"><b>${pct.toFixed(1)}%</b> OF A PERFECT FIVE</div>`}<div class="rk-streak" id="rkStreak"></div><div class="rk-tier on rk-tier-pg" id="rkTierPg"></div><div class="rk-std" id="rkReach"></div><div class="rk-std" id="rkStd"></div>${five.length === 5 ? '' : '<span class="muted">' + (sv.names ? esc(sv.names.join(', ')) : 'Played on another device.') + '</span>'}</section>
-      <div class="ch-go"><a class="btn btn-gold" href="#/daily">SEE THE BOARD</a>${pct == null ? '' : '<button type="button" class="btn" id="dlShare">SHARE YOUR SCORE</button>'}</div>${pct == null ? '' : sqKey(sv.ovrs)}`;
+      <div class="ch-go"><a class="btn btn-gold" href="#/daily">SEE THE BOARD</a>${pct == null ? '' : '<button type="button" class="btn" id="dlShare">SHARE YOUR SCORE</button>'}<a class="btn" href="#/squad" data-sqbtn>SQUADS</a></div>${pct == null ? '' : sqKey(sv.ovrs)}`;
+    squadBtns(app);
     const sk = streakNow(), el = UI.$('#rkStreak', app); if (el && sk.n) el.innerHTML = '<b>' + sk.n + '</b> DAY DAILY STREAK';
     const doShare = async btn => { if (btn) btn.disabled = true; await shareCard({}, dailyShareText(day, TH.title, sv.ovrs, pct), '#/daily'); if (btn) btn.disabled = false; };
     const sh = UI.$('#dlShare', app); if (sh) sh.addEventListener('click', () => doShare(sh));
@@ -941,10 +942,11 @@
         <details class="rk-det rk-house"><summary>WHAT EACH PLAYER COST, AND THE HOUSE'S FIVE</summary><div class="vs-sides vs-compact">${sideBox(0, 'YOU')}${sideBox(1, 'THE HOUSE')}</div></details>
         <div id="rkSub" class="rkn"><span class="muted">Sending your score...</span></div>
         <div id="rkFr"></div>
-        <div class="ch-go">${isPr ? `<a class="btn btn-gold" href="#/daily/practice/${esc(prKey)}/${Date.now()}">PLAY AGAIN</a><a class="btn" href="#/daily/practice">ARCHIVE</a>` : `<a class="btn btn-gold" href="#/daily">SEE THE BOARD</a>${pct == null ? '' : '<button type="button" class="btn" id="dlShare">SHARE YOUR SCORE</button>'}<a class="btn" href="#/squad">SQUADS</a>`}</div>${!isPr && pct != null ? sqKey(five.map(ovrOf)) : ''}`;
+        <div class="ch-go">${isPr ? `<a class="btn btn-gold" href="#/daily/practice/${esc(prKey)}/${Date.now()}">PLAY AGAIN</a><a class="btn" href="#/daily/practice">ARCHIVE</a>` : `<a class="btn btn-gold" href="#/daily">SEE THE BOARD</a>${pct == null ? '' : '<button type="button" class="btn" id="dlShare">SHARE YOUR SCORE</button>'}<a class="btn" href="#/squad" data-sqbtn>SQUADS</a>`}</div>${!isPr && pct != null ? sqKey(five.map(ovrOf)) : ''}`;
       const dsh = UI.$('#dlShare', app);
       const doShare = async btn => { btn.disabled = true; const r = await shareCard({ k: 'DAILY #' + dayNo(day), title: 'OF A PERFECT FIVE', color: '#d4af37', big: pct.toFixed(1) + '%', sub: TH.title, name: UI.profile.account() || '' }, dailyShareText(day, TH.title, five.map(ovrOf), pct), '#/daily'); btn.disabled = false;  };
       if (dsh) dsh.addEventListener('click', () => doShare(dsh));
+      squadBtns(app);
       if (pct != null) resultPop({ app, era, day, TH, five, score, pct, byId, doShare });   // the result pops up with the share button every time this screen opens
       const paintStreak = () => { const sk = UI.$('#rkStreak', app), n = streakNow(); if (sk && n.n) sk.innerHTML = '<b>' + n.n + '</b> DAY DAILY STREAK' + (n.best > n.n ? ' | BEST ' + n.best : ''); };
       paintStreak();
@@ -1529,6 +1531,17 @@
   const sqMark = () => { try { if (!UI.profile.signedIn()) localStorage.setItem('a13-gsq', '1'); } catch (e) { /* private mode */ } };
   async function sqClaim() {   // signed in now: squads joined as a guest on this device move to the account
     try { if (!UI.profile.signedIn() || !localStorage.getItem('a13-gsq')) return; await UI.profile.rpc('claim_guest_squads', { p_gid: guestId() }); localStorage.removeItem('a13-gsq'); } catch (e) { /* try again next time */ }
+  }
+  // after a daily: the squad button says where to look (one squad: straight to its board)
+  async function squadBtns(root) {
+    const bs = [].slice.call(root.querySelectorAll('[data-sqbtn]')); if (!bs.length) return;
+    let mine = null; try { await sqClaim(); mine = (await UI.profile.rpc('my_squads', sqArgs({}))) || []; } catch (e) { return; }
+    bs.forEach(b => {
+      if (!mine.length) { b.textContent = 'MAKE A SQUAD'; return; }
+      b.textContent = mine.length === 1 ? 'SEE HOW YOUR SQUAD DID' : 'SEE HOW YOUR SQUADS DID';
+      if (mine.length === 1) b.setAttribute('href', '#/squad/' + mine[0].code);
+      b.classList.add('btn-gold');
+    });
   }
   const sqName = (x, me) => x.guest ? `<b>${esc(x.username)}</b>${me && x.username === me && !UI.profile.signedIn() ? ' <span class="rk-tag">YOU</span>' : ' <small class="muted">GUEST</small>'}` : nameCell(x, UI.profile.account());
   function squadWire(app, again) {
