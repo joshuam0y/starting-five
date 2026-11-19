@@ -22,7 +22,7 @@ a.pk-team:hover { color: var(--gold2); }
 .pk-name { margin: 10px 0 16px; font-family: var(--display); font-weight: 700; font-size: clamp(34px, 4.6vw, 62px); line-height: .92; text-transform: uppercase; letter-spacing: .02em; overflow-wrap: anywhere; }
 .pk-name span { display: block; font-size: .44em; font-weight: 500; color: var(--gold2); letter-spacing: .12em; margin-bottom: 4px; }
 
-.pk-cells { display: grid; grid-template-columns: repeat(5, minmax(0, auto)) minmax(0, 1.6fr); gap: 0; border: 1px solid var(--line); background: rgba(0, 0, 0, .35); max-width: 760px; }
+.pk-cells { display: grid; grid-template-columns: repeat(5, minmax(0, auto)) minmax(0, 1.6fr); gap: 0; border: 1px solid var(--line); background: rgba(var(--lo), .35); max-width: 760px; }
 .pk-cell { display: flex; flex-direction: column; justify-content: center; padding: 8px 14px; border-right: 1px solid var(--line); min-width: 0; }
 .pk-cell:last-child { border-right: 0; }
 .pk-cell small { font-family: var(--display); font-size: 10.5px; letter-spacing: .18em; color: var(--muted); white-space: nowrap; }
@@ -46,7 +46,7 @@ a.pk-team:hover { color: var(--gold2); }
 .pk-badge.top { background: linear-gradient(180deg, var(--gold2), var(--gold)); color: var(--n24211a); border-color: var(--gold); }
 .pk-badge.top b { color: var(--n24211a); }
 
-.pk-ovr { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(180deg, rgba(0, 0, 0, .3), rgba(0, 0, 0, .7)); border-left: 1px solid var(--line); }
+.pk-ovr { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(180deg, rgba(var(--lo), .3), rgba(0, 0, 0, .7)); border-left: 1px solid var(--line); }
 .pk-ovr b { font-family: var(--display); font-weight: 700; font-size: 104px; line-height: .9; background: linear-gradient(180deg, #fff6c8, var(--gold2) 40%, var(--gold) 75%, #9c7c1c); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 2px 10px rgba(212, 175, 55, .25)); }
 .pk-ovr small { font-family: var(--display); font-size: 12px; letter-spacing: .3em; color: var(--gold); margin-top: 8px; }
 

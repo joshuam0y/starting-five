@@ -87,7 +87,7 @@
 .tn-pips u { width: 12px; height: 6px; background: var(--n57544d); border-radius: 2px; }
 .tn-pips u.on { background: var(--gold, var(--gold)); }
 
-.tn-pill { position: fixed; left: 8px; bottom: 56px; z-index: 40; display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: rgba(0,0,0,.88); border: 1px solid var(--gold-dim, #7a6a2a); border-radius: 8px; font-size: 11px; letter-spacing: .08em; max-width: calc(100vw - 16px); flex-wrap: wrap; }
+.tn-pill { position: fixed; left: 8px; bottom: 56px; z-index: 40; display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: rgba(0, 0, 0, .88); border: 1px solid var(--gold-dim, #7a6a2a); border-radius: 8px; font-size: 11px; letter-spacing: .08em; max-width: calc(100vw - 16px); flex-wrap: wrap; }
 .tn-pill select { background: var(--n24211a); color: inherit; border: 1px solid var(--n57544d); border-radius: 4px; padding: 3px; font: inherit; }
 
 /* sign in card */
@@ -96,7 +96,7 @@
 .pf-who { flex: 1; font-weight: 800; font-size: 1.15rem; letter-spacing: .02em; }
 
 /* the champion's MVP card and per-player lines */
-.tn-mvp { display: grid; gap: 4px; justify-items: center; margin: 14px auto 6px; padding: 14px 18px; max-width: 420px; border: 1px solid var(--gold); background: linear-gradient(120deg, rgba(212,175,55,.14), rgba(0,0,0,.4)); }
+.tn-mvp { display: grid; gap: 4px; justify-items: center; margin: 14px auto 6px; padding: 14px 18px; max-width: 420px; border: 1px solid var(--gold); background: linear-gradient(120deg, rgba(212,175,55,.14), rgba(var(--lo),.4)); }
 .tn-mvp small { font-family: var(--display); letter-spacing: .2em; font-size: 12px; color: var(--gold2); }
 .tn-mvp b { font-family: var(--display); font-size: clamp(24px, 4vw, 34px); color: var(--nf2ead8); letter-spacing: .03em; }
 .tn-mvp span { font-family: var(--display); letter-spacing: .08em; font-size: 14px; color: var(--text2); }
