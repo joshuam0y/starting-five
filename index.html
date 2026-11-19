@@ -30,7 +30,7 @@
   <script>
   (function () {
     var KEY = 'sf-theme', root = document.documentElement;
-    function meta(t) { var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', t === 'light' ? '#f4efe3' : '#16140f'); }
+    function meta(t) { var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', t === 'light' ? '#ece8dc' : '#16140f'); }
     function get() { var t = ''; try { t = localStorage.getItem(KEY) || ''; } catch (e) {} return t === 'light' ? 'light' : 'dark'; }
     function apply(t) { if (t === 'light') root.dataset.theme = 'light'; else delete root.dataset.theme; meta(t); }
     window.THEME = {
@@ -38,7 +38,6 @@
       set: function (t) { t = t === 'light' ? 'light' : 'dark'; try { localStorage.setItem(KEY, t); } catch (e) {} apply(t); }
     };
     apply(get());
-    document.addEventListener('DOMContentLoaded', function () { meta(get()); });
   })();
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -135,6 +134,7 @@
   <script src="js/ui-select.js"></script>
   <script src="js/ui-saves.js"></script>
   <script src="js/whats-new.js"></script>
+  <script src="js/intro-card.js"></script>
   <script src="js/ui-hub.js"></script>
   <script src="js/ui-season.js"></script>
   <script src="js/ui-sim.js"></script>

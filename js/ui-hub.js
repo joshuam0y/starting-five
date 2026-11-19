@@ -72,7 +72,7 @@
         </div>
         <form class="mm-join" id="mmJoin" autocomplete="off"><label for="mmCode">HAVE A CODE?</label><input id="mmCode" maxlength="5" placeholder="ROOM CODE" autocapitalize="characters" spellcheck="false"><button type="submit" class="btn btn-gold btn-small">JOIN</button></form>
         <nav class="mm-foot" aria-label="About and legal">${UI.infoLinks ? UI.infoLinks() : ''}</nav>
-        ${window.SFX ? `<div class="mm-sfx"><button type="button" class="btn btn-small" id="mmSfx">SOUND EFFECTS: ${window.SFX.on ? 'ON' : 'OFF'}</button></div>` : ''}
+        ${window.SFX || window.THEME ? `<div class="mm-sfx">${window.SFX ? `<button type="button" class="btn btn-small" id="mmSfx">SOUND EFFECTS: ${window.SFX.on ? 'ON' : 'OFF'}</button>` : ''}${window.THEME ? `<button type="button" class="btn btn-small" id="mmTheme">LIGHT MODE: ${window.THEME.get() === 'light' ? 'ON' : 'OFF'}</button>` : ''}</div>` : ''}
       </section>`;
     // one place to join any online room: a tournament code starts with T, anything else is Head to Head
     const jf = UI.$('#mmJoin', app);
@@ -83,6 +83,19 @@
       location.hash = c[0] === 'T' ? '#/challenge/tournament/join/' + c : '#/challenge/vs/join/' + c;
     });
     const sfxB = UI.$('#mmSfx', app); if (sfxB) sfxB.addEventListener('click', () => { window.SFX.set(!window.SFX.on); sfxB.textContent = 'SOUND EFFECTS: ' + (window.SFX.on ? 'ON' : 'OFF'); });
+    const thB = UI.$('#mmTheme', app);
+    const thLabel = () => { if (thB) thB.textContent = 'LIGHT MODE: ' + (window.THEME.get() === 'light' ? 'ON' : 'OFF'); };
+    if (thB) thB.addEventListener('click', () => { window.THEME.set(window.THEME.get() === 'light' ? 'dark' : 'light'); thLabel(); });
+    // one-time card for the light mode launch (skipped when already in light mode)
+    if (thB && UI.introCard && window.THEME.get() !== 'light') {
+      const tile = (l, gold) => `<span class="ic-tile${gold ? ' hot' : ''}"><b>${l}</b></span>`;
+      UI.introCard({
+        key: 'light-mode', kicker: 'NEW', title: 'LIGHT MODE',
+        text: 'A cream page with dark ink. Easier to read in the sun. Switch any time at the bottom of the menu.',
+        preview: `<div class="ic-mock" data-theme="light">${tile('DAILY', true)}${tile('RANKED')}${tile('HEAD TO HEAD')}</div>`,
+        primary: { label: 'TRY LIGHT MODE', fn: () => { window.THEME.set('light'); thLabel(); } }
+      });
+    }
   };
 
 
