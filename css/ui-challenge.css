@@ -1476,3 +1476,11 @@ a.pr-i:hover { border-color: var(--gold); }
   .auc-slots li span { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
   .auc-slots li span .auc-yr { white-space: nowrap; }
 }
+/* the finish card with a squad button: SHARE, the squad, then CLOSE, each a full row */
+.rk-fgo { flex-wrap: wrap; }
+.rk-fgo:has([data-sqbtn]) > * { flex: 1 1 100%; }
+.rk-fgo [data-sqbtn] { order: 2; }
+.rk-fgo #popClose { order: 3; }
+/* what each player cost: the lists stay inside their column (they wrap on phones) */
+.vs-auc-won { grid-template-columns: minmax(0, 1fr); }
+.vs-auc-won li, .vs-compact .vs-auc-won li { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
