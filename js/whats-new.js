@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 526, t: 'Light mode: a cream page with dark ink. Turn it on at the bottom of the menu.' },
   { v: 524, t: 'A warmer look: softer colors, calmer menu tiles, medals for the top three on the boards, and a clearer How to Play for the Daily and Ranked.' },
   { v: 520, t: 'Free agents checked season by season: players out hurt are back on their teams (Yao, Mourning, Hardaway), and players who had died or retired are gone.' },
   { v: 518, t: 'Bigger free agent classes every season (50 to 80 most years): players who went overseas or to the G League, and unsigned rookies. Miles Bridges is on the 2022-23 Hornets.' },
