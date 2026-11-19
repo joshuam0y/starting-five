@@ -253,7 +253,9 @@ create table if not exists public.daily_guests (
   primary key (day, gid)
 );
 alter table public.daily_guests enable row level security;
-create or replace function public.submit_daily_guest(p_day date, p_gid text, p_score numeric, p_pct numeric default null) returns boolean
+alter table public.daily_guests add column if not exists lineup jsonb;   -- a guest's five, for squad boards
+drop function if exists public.submit_daily_guest(date, text, numeric, numeric);
+create or replace function public.submit_daily_guest(p_day date, p_gid text, p_score numeric, p_pct numeric default null, p_lineup jsonb default null) returns boolean
 language plpgsql security definer set search_path = public as $$
 declare n int;
 begin
@@ -261,7 +263,8 @@ begin
   if p_pct is not null and (p_pct < 0 or p_pct > 100) then p_pct := null; end if;
   if abs(p_day - (now() at time zone 'America/Los_Angeles')::date) > 1 then return false; end if;
   if exists (select 1 from public.daily_key k where k.day = p_day and p_score > k.best + 1) then return false; end if;
-  insert into public.daily_guests (day, gid, score, pct) values (p_day, p_gid, p_score, p_pct) on conflict do nothing;
+  if p_lineup is not null and length(p_lineup::text) > 4000 then p_lineup := null; end if;
+  insert into public.daily_guests (day, gid, score, pct, lineup) values (p_day, p_gid, p_score, p_pct, p_lineup) on conflict do nothing;
   get diagnostics n = row_count;
   return n > 0;
 end $$;
@@ -270,7 +273,7 @@ create or replace function public.claim_guest_daily(p_day date, p_gid text) retu
 language sql security definer set search_path = public as $$
   delete from public.daily_guests where day = p_day and gid = p_gid and auth.uid() is not null
 $$;
-grant execute on function public.submit_daily_guest(date, text, numeric, numeric) to anon, authenticated;
+grant execute on function public.submit_daily_guest(date, text, numeric, numeric, jsonb) to anon, authenticated;
 grant execute on function public.claim_guest_daily(date, text) to authenticated;
 -- everything played on a day, named or not
 create or replace function public.daily_pool(p_day date) returns table (score numeric, pct numeric)
@@ -580,100 +583,162 @@ end $$;
 grant execute on function public.count_play(text, text, text) to anon, authenticated;
 
 -- ---------- squads: a private group for the Daily, joined by a link (#/squad/CODE) ----------
--- No read policies: only these functions see the tables. A member sees the squad's board; scores show once you have played that day.
+-- No read policies: only these functions see the tables. Accounts and guests both join: a guest is a device id (p_gid) and a name.
+-- A member sees the squad's board; scores show once you have played that day.
 create table if not exists public.squads (
-  code text primary key, name text not null, owner uuid not null references auth.users (id) on delete cascade,
+  code text primary key, name text not null, owner uuid references auth.users (id) on delete cascade,
   created_at timestamptz not null default now()
 );
+alter table public.squads alter column owner drop not null;
+alter table public.squads add column if not exists owner_gid text;
 create table if not exists public.squad_members (
   code text not null references public.squads (code) on delete cascade, uid uuid not null references auth.users (id) on delete cascade,
   joined_at timestamptz not null default now(), primary key (code, uid)
 );
+create table if not exists public.squad_guests (
+  code text not null references public.squads (code) on delete cascade, gid text not null, name text not null,
+  joined_at timestamptz not null default now(), primary key (code, gid)
+);
 alter table public.squads enable row level security;
 alter table public.squad_members enable row level security;
+alter table public.squad_guests enable row level security;
 
--- make a squad: returns its code ('' when not signed in, the name is bad, or you already made 10)
-create or replace function public.create_squad(p_name text) returns text
+
+-- are you in it: your account, or (signed out) this device
+create or replace function public.squad_is_in(p_code text, p_gid text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.squad_members where code = p_code and uid = auth.uid())
+    or (auth.uid() is null and p_gid is not null and exists (select 1 from public.squad_guests where code = p_code and gid = p_gid))
+$$;
+revoke execute on function public.squad_is_in(text, text) from public, anon, authenticated;
+
+create or replace function public.squad_gid_ok(p_gid text) returns boolean
+language sql immutable as $$ select p_gid is not null and length(p_gid) between 8 and 64 $$;
+create or replace function public.squad_name_ok(p_name text) returns boolean
+language sql immutable as $$ select p_name is not null and length(btrim(p_name)) between 2 and 24 $$;
+
+-- make a squad: returns its code ('' when the name is bad or you already made 10)
+drop function if exists public.create_squad(text);
+create or replace function public.create_squad(p_name text, p_gid text default null, p_guest text default null) returns text
 language plpgsql security definer set search_path = public as $$
 declare me uuid := auth.uid(); n text := btrim(coalesce(p_name, '')); c text; i int;
 begin
-  if me is null or length(n) < 2 or length(n) > 24 then return ''; end if;
-  if (select count(*) from public.squads where owner = me) >= 10 then return ''; end if;
+  if not public.squad_name_ok(n) then return ''; end if;
+  if me is null and (not public.squad_gid_ok(p_gid) or not public.squad_name_ok(p_guest)) then return ''; end if;
+  if (select count(*) from public.squads where (me is not null and owner = me) or (me is null and owner_gid = p_gid)) >= 10 then return ''; end if;
   loop
     c := '';
     for i in 1..6 loop c := c || substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', 1 + floor(random() * 31)::int, 1); end loop;
     exit when not exists (select 1 from public.squads where code = c);
   end loop;
-  insert into public.squads (code, name, owner) values (c, n, me);
-  insert into public.squad_members (code, uid) values (c, me);
+  insert into public.squads (code, name, owner, owner_gid) values (c, n, me, case when me is null then p_gid end);
+  if me is not null then insert into public.squad_members (code, uid) values (c, me);
+  else insert into public.squad_guests (code, gid, name) values (c, p_gid, btrim(p_guest)); end if;
   return c;
 end $$;
-grant execute on function public.create_squad(text) to authenticated;
+grant execute on function public.create_squad(text, text, text) to authenticated, anon;
 
 -- the name and size of a squad, for the join screen (anyone with the link)
-create or replace function public.squad_info(p_code text) returns table (name text, members int, joined boolean)
+drop function if exists public.squad_info(text);
+create or replace function public.squad_info(p_code text, p_gid text default null) returns table (name text, members int, joined boolean)
 language sql security definer set search_path = public as $$
-  select s.name, (select count(*)::int from public.squad_members m where m.code = s.code),
-    exists (select 1 from public.squad_members m where m.code = s.code and m.uid = auth.uid())
+  select s.name, (select count(*)::int from public.squad_members m where m.code = s.code) + (select count(*)::int from public.squad_guests g where g.code = s.code),
+    public.squad_is_in(s.code, p_gid)
   from public.squads s where s.code = upper(btrim(p_code))
 $$;
-grant execute on function public.squad_info(text) to authenticated, anon;
+grant execute on function public.squad_info(text, text) to authenticated, anon;
 
--- join by code: true when you are in it (a squad holds up to 100)
-create or replace function public.join_squad(p_code text) returns boolean
+-- join by code: true when you are in it (a squad holds up to 100; you can be in 20)
+drop function if exists public.join_squad(text);
+create or replace function public.join_squad(p_code text, p_gid text default null, p_guest text default null) returns boolean
 language plpgsql security definer set search_path = public as $$
 declare me uuid := auth.uid(); c text := upper(btrim(coalesce(p_code, '')));
 begin
-  if me is null or not exists (select 1 from public.squads where code = c) then return false; end if;
-  if exists (select 1 from public.squad_members where code = c and uid = me) then return true; end if;
-  if (select count(*) from public.squad_members where code = c) >= 100 then return false; end if;
-  if (select count(*) from public.squad_members where uid = me) >= 20 then return false; end if;
-  insert into public.squad_members (code, uid) values (c, me);
+  if not exists (select 1 from public.squads where code = c) then return false; end if;
+  if public.squad_is_in(c, p_gid) then return true; end if;
+  if (select count(*) from public.squad_members where code = c) + (select count(*) from public.squad_guests where code = c) >= 100 then return false; end if;
+  if me is not null then
+    if (select count(*) from public.squad_members where uid = me) >= 20 then return false; end if;
+    insert into public.squad_members (code, uid) values (c, me);
+  else
+    if not public.squad_gid_ok(p_gid) or not public.squad_name_ok(p_guest) then return false; end if;
+    if (select count(*) from public.squad_guests where gid = p_gid) >= 20 then return false; end if;
+    insert into public.squad_guests (code, gid, name) values (c, p_gid, btrim(p_guest));
+  end if;
   return true;
 end $$;
-grant execute on function public.join_squad(text) to authenticated;
+grant execute on function public.join_squad(text, text, text) to authenticated, anon;
 
 -- leave: the last one out closes the squad
-create or replace function public.leave_squad(p_code text) returns void
+drop function if exists public.leave_squad(text);
+create or replace function public.leave_squad(p_code text, p_gid text default null) returns void
 language plpgsql security definer set search_path = public as $$
 declare c text := upper(btrim(coalesce(p_code, '')));
 begin
   delete from public.squad_members where code = c and uid = auth.uid();
-  delete from public.squads s where s.code = c and not exists (select 1 from public.squad_members m where m.code = c);
+  if auth.uid() is null and p_gid is not null then delete from public.squad_guests where code = c and gid = p_gid; end if;
+  delete from public.squads s where s.code = c and not exists (select 1 from public.squad_members m where m.code = c)
+    and not exists (select 1 from public.squad_guests g where g.code = c);
 end $$;
-grant execute on function public.leave_squad(text) to authenticated;
+grant execute on function public.leave_squad(text, text) to authenticated, anon;
 
-create or replace function public.my_squads() returns table (code text, name text, members int)
+-- a guest who signs in: their squads move to the account
+create or replace function public.claim_guest_squads(p_gid text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null or p_gid is null then return; end if;
+  insert into public.squad_members (code, uid) select code, auth.uid() from public.squad_guests where gid = p_gid on conflict do nothing;
+  delete from public.squad_guests where gid = p_gid;
+  update public.squads set owner = auth.uid(), owner_gid = null where owner_gid = p_gid;
+end $$;
+grant execute on function public.claim_guest_squads(text) to authenticated;
+
+drop function if exists public.my_squads();
+create or replace function public.my_squads(p_gid text default null) returns table (code text, name text, members int)
 language sql security definer set search_path = public as $$
-  select s.code, s.name, (select count(*)::int from public.squad_members x where x.code = s.code)
-  from public.squads s join public.squad_members m on m.code = s.code and m.uid = auth.uid()
-  order by m.joined_at
+  select s.code, s.name, (select count(*)::int from public.squad_members x where x.code = s.code) + (select count(*)::int from public.squad_guests y where y.code = s.code)
+  from public.squads s where public.squad_is_in(s.code, p_gid)
+  order by s.created_at
 $$;
-grant execute on function public.my_squads() to authenticated;
+grant execute on function public.my_squads(text) to authenticated, anon;
 
--- today's board (Pacific day): every member who played. Scores and fives stay hidden until you have played today yourself.
-create or replace function public.squad_today(p_code text) returns table (username text, played boolean, score numeric, pct numeric, lineup jsonb)
+-- today's board (Pacific day): every member who played, accounts and guests. Scores and fives stay hidden until you have played today.
+drop function if exists public.squad_today(text);
+create or replace function public.squad_today(p_code text, p_gid text default null) returns table (username text, guest boolean, score numeric, pct numeric, lineup jsonb)
 language sql security definer set search_path = public as $$
   with d as (select (now() at time zone 'America/Los_Angeles')::date as day),
-  mine as (select exists (select 1 from public.daily_scores x, d where x.day = d.day and x.era = 'ALL' and x.user_id = auth.uid()) as ok)
-  select p.username, true,
-    case when mine.ok then s.score end, case when mine.ok then s.pct end, case when mine.ok then s.lineup end
-  from public.squad_members m join public.profiles p on p.id = m.uid
-    join public.daily_scores s on s.user_id = m.uid and s.era = 'ALL', d, mine
-  where m.code = upper(btrim(p_code)) and s.day = d.day
-    and exists (select 1 from public.squad_members y where y.code = m.code and y.uid = auth.uid())
-  order by case when mine.ok then s.score end desc nulls last, p.username   -- hidden scores leave no order to read
+  c as (select upper(btrim(p_code)) as code),
+  mine as (select exists (select 1 from public.daily_scores x, d where x.day = d.day and x.era = 'ALL' and x.user_id = auth.uid())
+    or (auth.uid() is null and exists (select 1 from public.daily_guests g, d where g.day = d.day and g.gid = p_gid)) as ok),
+  r0 as (
+    select p.username, false as guest, s.score, s.pct, s.lineup
+    from c join public.squad_members m on m.code = c.code join public.profiles p on p.id = m.uid
+      join public.daily_scores s on s.user_id = m.uid and s.era = 'ALL' join d on s.day = d.day
+    union all
+    select q.name, true, g.score, g.pct, g.lineup
+    from c join public.squad_guests q on q.code = c.code join public.daily_guests g on g.gid = q.gid join d on g.day = d.day
+  )
+  select r.username, r.guest, case when mine.ok then r.score end, case when mine.ok then r.pct end, case when mine.ok then r.lineup end
+  from r0 r, mine, c where public.squad_is_in(c.code, p_gid)
+  order by case when mine.ok then r.score end desc nulls last, r.username   -- hidden scores leave no order to read
 $$;
-grant execute on function public.squad_today(text) to authenticated;
+grant execute on function public.squad_today(text, text) to authenticated, anon;
 
 -- this week (Monday to Sunday, Pacific): every daily percentage added up, members only
-create or replace function public.squad_week(p_code text) returns table (username text, days int, avg_pct numeric, total numeric)
+drop function if exists public.squad_week(text);
+create or replace function public.squad_week(p_code text, p_gid text default null) returns table (username text, guest boolean, days int, avg_pct numeric, total numeric)
 language sql security definer set search_path = public as $$
-  select p.username, count(*)::int, round(avg(d.pct), 1), round(sum(d.pct), 1)
-  from public.squad_members m join public.profiles p on p.id = m.uid
-    join public.daily_scores d on d.user_id = m.uid and d.era = 'ALL' and d.pct is not null
-      and d.day >= date_trunc('week', now() at time zone 'America/Los_Angeles')::date
-  where m.code = upper(btrim(p_code)) and exists (select 1 from public.squad_members y where y.code = m.code and y.uid = auth.uid())
-  group by p.username order by sum(d.pct) desc, count(*) asc, p.username
+  with c as (select upper(btrim(p_code)) as code), w as (select date_trunc('week', now() at time zone 'America/Los_Angeles')::date as day),
+  r0 as (
+    select p.username, false as guest, d.pct
+    from c join public.squad_members m on m.code = c.code join public.profiles p on p.id = m.uid
+      join public.daily_scores d on d.user_id = m.uid and d.era = 'ALL' and d.pct is not null join w on d.day >= w.day
+    union all
+    select q.name || chr(1) || q.gid, true, g.pct
+    from c join public.squad_guests q on q.code = c.code join public.daily_guests g on g.gid = q.gid and g.pct is not null join w on g.day >= w.day
+  )
+  select split_part(r.username, chr(1), 1), r.guest, count(*)::int, round(avg(r.pct), 1), round(sum(r.pct), 1)
+  from r0 r, c where public.squad_is_in(c.code, p_gid)
+  group by r.username, r.guest order by sum(r.pct) desc, count(*) asc, 1
 $$;
-grant execute on function public.squad_week(text) to authenticated;
+grant execute on function public.squad_week(text, text) to authenticated, anon;
