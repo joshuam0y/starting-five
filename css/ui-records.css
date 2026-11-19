@@ -8,7 +8,7 @@
 .rc-card { display: flex; flex-direction: column; min-height: 44px; padding: 10px; border: 1px solid var(--line); background: var(--bg2); color: var(--text2); min-width: 0; }
 .rc-card.on { border-color: var(--gold); }
 .rc-card small { font-family: var(--display); font-size: 11px; letter-spacing: .12em; color: var(--gold); }
-.rc-card b { font-family: var(--display); font-size: 28px; color: #f2ead8; line-height: 1.1; }
+.rc-card b { font-family: var(--display); font-size: 28px; color: var(--nf2ead8); line-height: 1.1; }
 .rc-card span { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rc-list { list-style: none; margin: 0 0 14px; padding: 0; border: 1px solid var(--line); background: var(--bg2); }
 .rc-list li { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 12px; border-top: 1px solid var(--line); }
@@ -19,7 +19,7 @@
 .rc-n { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-wrap: anywhere; }
 .rc-n small, .rc-list b small { font-size: 11px; color: var(--text2); font-weight: 400; }
 .rc-n a { min-height: 24px; }
-.rc-list b { font-family: var(--display); font-size: 18px; color: #f2ead8; text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
+.rc-list b { font-family: var(--display); font-size: 18px; color: var(--nf2ead8); text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
 .rc-act { color: var(--gold) !important; }
 .rc-leads { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .rc-lead .rc-list { border: 0; margin: 0; }

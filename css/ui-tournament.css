@@ -1,7 +1,7 @@
 /* Tournament (#/challenge/tournament): setup, pass-the-phone curtain, bracket, champion. Classes: tn-* */
 .tn-names { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-top: 12px; }
 .tn-rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
-.tn-pass { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 28px 16px; margin: 12px 0; border: 1px solid var(--gold-dim); background: radial-gradient(420px 260px at 50% 0%, color-mix(in srgb, var(--c1, #d4af37) 30%, transparent), transparent 70%), var(--bg2); }
+.tn-pass { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 28px 16px; margin: 12px 0; border: 1px solid var(--gold-dim); background: radial-gradient(420px 260px at 50% 0%, color-mix(in srgb, var(--c1, var(--gold)) 30%, transparent), transparent 70%), var(--bg2); }
 .tn-pass-k { font-family: var(--display); letter-spacing: .24em; font-size: 13px; color: var(--gold); }
 .tn-pass-n { margin: 0; font-family: var(--display); font-size: clamp(36px, 10vw, 64px); letter-spacing: .04em; color: var(--gold2); overflow-wrap: anywhere; }
 .tn-pass .btn-big { max-width: 100%; white-space: normal; }
@@ -39,7 +39,7 @@
 .tn-roster ul { list-style: none; margin: 0; padding: 0 12px 10px; display: grid; gap: 2px; }
 .tn-roster li { display: flex; gap: 8px; align-items: baseline; }
 .tn-roster li b { margin-left: auto; }
-.tn-champ { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 28px 14px; margin: 10px 0; border: 1px solid var(--gold); background: radial-gradient(520px 320px at 50% 0%, color-mix(in srgb, var(--c1, #d4af37) 35%, transparent), transparent 70%), var(--bg2); }
+.tn-champ { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 28px 14px; margin: 10px 0; border: 1px solid var(--gold); background: radial-gradient(520px 320px at 50% 0%, color-mix(in srgb, var(--c1, var(--gold)) 35%, transparent), transparent 70%), var(--bg2); }
 .tn-champ-k { font-family: var(--display); letter-spacing: .4em; color: var(--gold); font-size: 16px; }
 .tn-champ-n { margin: 0; font-family: var(--display); font-size: clamp(40px, 12vw, 86px); letter-spacing: .04em; color: var(--gold2); overflow-wrap: anywhere; line-height: 1; }
 .tn-champ-five { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; width: min(100%, 460px); }
@@ -69,26 +69,26 @@
 .tn-dotsa i:nth-child(3) { animation-delay: .4s; }
 @keyframes tn-blink { 0%, 60%, 100% { opacity: .2; } 30% { opacity: 1; } }
 .tn-cpu-l { list-style: none; padding: 0; margin: 0; width: 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; text-align: left; }
-.tn-cpu-c { padding: 10px; border: 1px solid var(--gold-dim); border-left: 4px solid var(--c1, #d4af37); background: var(--bg2); opacity: 0; animation: tn-cpuin .4s ease forwards; animation-delay: var(--d, 0s); }
+.tn-cpu-c { padding: 10px; border: 1px solid var(--gold-dim); border-left: 4px solid var(--c1, var(--gold)); background: var(--bg2); opacity: 0; animation: tn-cpuin .4s ease forwards; animation-delay: var(--d, 0s); }
 @keyframes tn-cpuin { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .tn-cpu-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .tn-cpu-c ol { margin: 8px 0 0; padding-left: 18px; font-size: 13px; }
 .tn-cpu-c ol li { margin: 3px 0; }
 
 .tn-seats { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
-.tn-seat { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--line, #46433c); border-radius: 6px; }
-.tn-seat.on { background: rgba(255,255,255,.04); }
-.tn-seat.me { border-color: var(--gold, #d4af37); }
+.tn-seat { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--line, var(--n46433c)); border-radius: 6px; }
+.tn-seat.on { background: rgba(var(--hi),.04); }
+.tn-seat.me { border-color: var(--gold, var(--gold)); }
 .tn-seat b { flex: 1; }
-.tn-seat small { color: var(--gold, #d4af37); letter-spacing: .1em; font-size: 10px; }
+.tn-seat small { color: var(--gold, var(--gold)); letter-spacing: .1em; font-size: 10px; }
 .tn-live { width: 8px; height: 8px; border-radius: 50%; background: #3ddc84; flex: none; }
-.tn-live.off { background: #8c8a80; }
+.tn-live.off { background: var(--n8c8a80); }
 .tn-pips { display: inline-flex; gap: 3px; }
-.tn-pips u { width: 12px; height: 6px; background: #57544d; border-radius: 2px; }
-.tn-pips u.on { background: var(--gold, #d4af37); }
+.tn-pips u { width: 12px; height: 6px; background: var(--n57544d); border-radius: 2px; }
+.tn-pips u.on { background: var(--gold, var(--gold)); }
 
 .tn-pill { position: fixed; left: 8px; bottom: 56px; z-index: 40; display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: rgba(0,0,0,.88); border: 1px solid var(--gold-dim, #7a6a2a); border-radius: 8px; font-size: 11px; letter-spacing: .08em; max-width: calc(100vw - 16px); flex-wrap: wrap; }
-.tn-pill select { background: #24211a; color: inherit; border: 1px solid #57544d; border-radius: 4px; padding: 3px; font: inherit; }
+.tn-pill select { background: var(--n24211a); color: inherit; border: 1px solid var(--n57544d); border-radius: 4px; padding: 3px; font: inherit; }
 
 /* sign in card */
 .pf-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
@@ -98,10 +98,10 @@
 /* the champion's MVP card and per-player lines */
 .tn-mvp { display: grid; gap: 4px; justify-items: center; margin: 14px auto 6px; padding: 14px 18px; max-width: 420px; border: 1px solid var(--gold); background: linear-gradient(120deg, rgba(212,175,55,.14), rgba(0,0,0,.4)); }
 .tn-mvp small { font-family: var(--display); letter-spacing: .2em; font-size: 12px; color: var(--gold2); }
-.tn-mvp b { font-family: var(--display); font-size: clamp(24px, 4vw, 34px); color: #f2ead8; letter-spacing: .03em; }
+.tn-mvp b { font-family: var(--display); font-size: clamp(24px, 4vw, 34px); color: var(--nf2ead8); letter-spacing: .03em; }
 .tn-mvp span { font-family: var(--display); letter-spacing: .08em; font-size: 14px; color: var(--text2); }
 .tn-mvp em { font-style: normal; font-size: 13px; color: var(--muted); }
-.tn-mvp-tag { font-style: normal; font-family: var(--display); font-size: 11px; letter-spacing: .1em; padding: 1px 5px; background: var(--gold); color: #24211a; border-radius: 2px; vertical-align: 2px; }
+.tn-mvp-tag { font-style: normal; font-family: var(--display); font-size: 11px; letter-spacing: .1em; padding: 1px 5px; background: var(--gold); color: var(--n24211a); border-radius: 2px; vertical-align: 2px; }
 
 /* champion five: name on top, stats under it, rating on the right (the stats used to squeeze names to "To...") */
 .tn-champ-five li { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; row-gap: 2px; }
