@@ -541,7 +541,9 @@
   }
   const nameCell = (r, me) => `<b>${UI.userLink(r.username)}</b>${me && r.username === me ? ' <span class="rk-tag">YOU</span>' : ''}${r.region ? ` <small class="muted">${esc(regionName(r.region))}</small>` : ''}`;
   function table(head, rows, raw) {
-    return `<div class="rk-tbl-w"><table class="rk-tbl"><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map((c, i) => `<td${i === 0 && !raw ? ' class="n"' : ''}>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    // boards ('#' first): gold, silver and bronze circles for the top three, and your own row marked
+    const medal = (c, i) => head[0] === '#' && i === 0 && /^[123]$/.test(String(c)) ? `<span class="rk-md rk-md${c}">${c}</span>` : c;
+    return `<div class="rk-tbl-w"><table class="rk-tbl"><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr${r.some(c => String(c).indexOf('rk-tag">YOU') >= 0) ? ' class="me"' : ''}>${r.map((c, i) => `<td${i === 0 && !raw ? ' class="n"' : ''}>${medal(c, i)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   }
 
   // ---------- #/ranked/daily/ERA: today's auction against the house ----------

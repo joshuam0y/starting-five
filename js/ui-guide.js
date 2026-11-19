@@ -255,8 +255,12 @@
           <dt>SALARY CAP</dt><dd>Every player has a price. Stay under the cap for all five.</dd>
         </dl>`;
   const RANKED_HELP = `<p>Ranked is a ladder for the auction draft. You need an account.</p>
-        <h3>FIND A MATCH</h3>
-        <p>You get the closest rating searching now. Press ready in the lobby, then bid on ten hidden players: $20 each, bids start at $1, 24 seconds a bid, five each. Then a best of 7.</p>
+        <h3>A MATCH IN THREE STEPS</h3>
+        <ol class="gd-steps">
+          <li><b>Find a match.</b> You get the closest rating searching now. Press ready in the lobby.</li>
+          <li><b>Bid.</b> Ten hidden players, $20 each, bids start at $1, 24 seconds a bid, five each.</li>
+          <li><b>Play it out.</b> A best of 7 decides who climbs.</li>
+        </ol>
         <h3>THE LADDER</h3>
         <p>Start at 1200, the bottom of Silver. Win to climb, lose to drop. Open THE RANKS for every range.</p>
         <h3>LEAVING</h3>
@@ -264,10 +268,19 @@
         <h3>FRIENDS</h3>
         <p>Tap a name to see a profile and add a friend. Play friends in Head to Head: it is casual.</p>`;
   const DAILY_HELP = `<p>A solo auction against the house, with a new theme every day. No account needed.</p>
-        <h3>THE DAILY</h3>
-        <p>One theme a day: a current team, a famous season, a franchise, a decade, a draft class, a rookie year, a type of player, the best under 25, or the best never to win a ring. All ten players come from it. $20, bids start at $1, 24 seconds a bid, five each. One try a day.</p>
-        <h3>SCORE</h3>
-        <p>Your five is scored as a percentage of the best five in the pool. An account puts that score on today's board. Your streak counts days in a row on this device.</p>
+        <h3>A DAILY IN FOUR STEPS</h3>
+        <ol class="gd-steps">
+          <li><b>Read the theme.</b> A team, a season, a franchise, a decade, a draft class and more. All ten players come from it.</li>
+          <li><b>Bid.</b> You and the house get $20 each. Bids start at $1, 24 seconds a bid, five players each.</li>
+          <li><b>See your score.</b> Your five as a percentage of the best five in the pool. An account puts it on today's board.</li>
+          <li><b>Come back tomorrow.</b> One try a day. Your streak counts days in a row on this device.</li>
+        </ol>
+        <h3>TIPS</h3>
+        <ul class="gd-tips">
+          <li>The best player is not always the best buy. Watch what is left in the pool.</li>
+          <li>Save a few dollars for your last picks.</li>
+          <li>Bid on a player you don't need to make the house pay more for him.</li>
+        </ul>
         <h3>PRACTICE</h3>
         <p>Replay any past theme any time. It never touches the board or your streak. Today's theme opens tomorrow.</p>`;
   const HOME_HELP = `<p>Tap a tile on the main menu to start.</p>
