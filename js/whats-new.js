@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 530, t: 'Squads: make one, drop the link in your group chat, and get your own Daily board for today and the week.' },
   { v: 528, t: 'Light mode redone: white cards on a soft page, near-black text, brighter gold buttons.' },
   { v: 526, t: 'Light mode: a cream page with dark ink. Turn it on at the bottom of the menu.' },
   { v: 524, t: 'A warmer look: softer colors, calmer menu tiles, medals for the top three on the boards, and a clearer How to Play for the Daily and Ranked.' },

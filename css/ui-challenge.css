@@ -1463,3 +1463,7 @@ a.pr-i:hover { border-color: var(--gold); }
 .rk-tbl tr.me td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
 .fr-five.me { border-left: 3px solid var(--gold); }
 .dy-k { color: var(--gold); }
+
+/* Squads (#/squad): the make-a-squad form */
+.sq-new { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; max-width: 460px; }
+.sq-new .field { flex: 1 1 220px; }

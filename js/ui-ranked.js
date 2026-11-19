@@ -941,7 +941,7 @@
         <details class="rk-det rk-house"><summary>WHAT EACH PLAYER COST, AND THE HOUSE'S FIVE</summary><div class="vs-sides vs-compact">${sideBox(0, 'YOU')}${sideBox(1, 'THE HOUSE')}</div></details>
         <div id="rkSub" class="rkn"><span class="muted">Sending your score...</span></div>
         <div id="rkFr"></div>
-        <div class="ch-go">${isPr ? `<a class="btn btn-gold" href="#/daily/practice/${esc(prKey)}/${Date.now()}">PLAY AGAIN</a><a class="btn" href="#/daily/practice">ARCHIVE</a>` : `<a class="btn btn-gold" href="#/daily">SEE THE BOARD</a>${pct == null ? '' : '<button type="button" class="btn" id="dlShare">SHARE YOUR SCORE</button>'}`}</div>${!isPr && pct != null ? sqKey(five.map(ovrOf)) : ''}`;
+        <div class="ch-go">${isPr ? `<a class="btn btn-gold" href="#/daily/practice/${esc(prKey)}/${Date.now()}">PLAY AGAIN</a><a class="btn" href="#/daily/practice">ARCHIVE</a>` : `<a class="btn btn-gold" href="#/daily">SEE THE BOARD</a>${pct == null ? '' : '<button type="button" class="btn" id="dlShare">SHARE YOUR SCORE</button>'}<a class="btn" href="#/squad">SQUADS</a>`}</div>${!isPr && pct != null ? sqKey(five.map(ovrOf)) : ''}`;
       const dsh = UI.$('#dlShare', app);
       const doShare = async btn => { btn.disabled = true; const r = await shareCard({ k: 'DAILY #' + dayNo(day), title: 'OF A PERFECT FIVE', color: '#d4af37', big: pct.toFixed(1) + '%', sub: TH.title, name: UI.profile.account() || '' }, dailyShareText(day, TH.title, five.map(ovrOf), pct), '#/daily'); btn.disabled = false;  };
       if (dsh) dsh.addEventListener('click', () => doShare(dsh));
@@ -1443,7 +1443,7 @@
         <div class="rk-bt" id="dyTabs"><button type="button" class="btn btn-small btn-gold" data-bt="today">TODAY</button><button type="button" class="btn btn-small" data-bt="friends">FRIENDS</button><button type="button" class="btn btn-small" data-bt="week">THIS WEEK</button></div>
         <div id="dyBoard"></div>
         ${signed ? '' : '<p class="muted rk-sub">No account needed to play. Sign in to put your score on the board.</p>'}
-        <div class="ch-go dy-more">${(() => { const past = themePast(); return past.length ? `<label class="dy-past"><span class="sr-only">Play a past day</span><select id="dyPast"><option value="">PLAY A PAST DAY</option>${past.map(t => `<option value="${esc(t.key)}">#${dayNo(t.day)} | ${esc(t.title)}</option>`).join('')}</select></label>` : ''; })()}<a class="btn" href="#/daily/practice">ARCHIVE</a><a class="btn" href="#/ranked">RANKED</a></div>`;
+        <div class="ch-go dy-more">${(() => { const past = themePast(); return past.length ? `<label class="dy-past"><span class="sr-only">Play a past day</span><select id="dyPast"><option value="">PLAY A PAST DAY</option>${past.map(t => `<option value="${esc(t.key)}">#${dayNo(t.day)} | ${esc(t.title)}</option>`).join('')}</select></label>` : ''; })()}<a class="btn" href="#/daily/practice">ARCHIVE</a><a class="btn" href="#/squad">SQUADS</a><a class="btn" href="#/ranked">RANKED</a></div>`;
       const pastSel = UI.$('#dyPast', app); if (pastSel) pastSel.addEventListener('change', () => { if (pastSel.value) location.hash = '#/daily/practice/' + encodeURIComponent(pastSel.value) + '/' + Date.now(); });
       const board = UI.$('#dyBoard', app), msg = t => '<p class="muted">' + t + '</p>';
       const todayTbl = list => list && list.length ? table(perf > 0 ? ['#', 'PLAYER', 'SCORE', 'OF PERFECT FIVE'] : ['#', 'PLAYER', 'SCORE'], list.map((x, i) => [i + 1, nameCell(x, me), '<b>' + Number(x.score).toFixed(1) + '</b>'].concat(perf > 0 ? [pctOf(x.score)] : []))) : '';
@@ -1512,5 +1512,95 @@
     return rankedPage(app);
   };
   P.me = function (app) { return mePage(app); };
+
+  // ---------- #/squad and #/squad/CODE: a private Daily board for a group, joined by a link ----------
+  const squadMsg = t => '<p class="muted">' + t + '</p>';
+  const squadIn = () => `<div class="ch-go"><button type="button" class="btn btn-gold btn-big" data-sq="in">SIGN IN</button></div>`;
+  let squadOn = null;
+  function squadWire(app, again) {
+    const b = app.querySelector('[data-sq="in"]'); if (b) b.addEventListener('click', () => UI.profile.open());
+    if (squadOn) window.removeEventListener('a13-profile', squadOn);
+    squadOn = () => { window.removeEventListener('a13-profile', squadOn); squadOn = null; if (/^#\/squad/.test(location.hash)) again(); };
+    window.addEventListener('a13-profile', squadOn);   // signing in redraws the page (only while it is still open)
+  }
+  async function squadList(app) {
+    const signed = UI.profile.signedIn();
+    app.innerHTML = `<section class="ch-hero"><div class="ch-hero-k">SQUADS</div><h1 class="ch-hero-t">PLAY THE DAILY WITH YOUR GROUP CHAT.</h1>
+      <p class="ch-hero-p">Make a squad, drop the link in the chat, and see who builds the best five each day.</p></section>
+      <div id="sqBody">${signed ? squadMsg('Loading...') : squadMsg('Sign in to make or join a squad. It takes a few seconds.') + squadIn()}</div>`;
+    squadWire(app, () => squadList(app));
+    if (!signed) return;
+    const body = UI.$('#sqBody', app);
+    let mine = null; try { mine = (await UI.profile.rpc('my_squads')) || []; } catch (e) { mine = null; }
+    if (!body.isConnected) return;
+    if (!mine) { body.innerHTML = squadMsg('Squads arrive with the latest SQL.'); return; }
+    body.innerHTML = `${mine.length ? `<h2 class="dy-h">YOUR SQUADS</h2><div class="pr-list">${mine.map(s => `<a class="pr-i" href="#/squad/${esc(s.code)}"><b>${esc(s.name)}</b><small>${s.members} ${s.members === 1 ? 'MEMBER' : 'MEMBERS'}</small></a>`).join('')}</div>` : ''}
+      <h2 class="dy-h">MAKE A SQUAD</h2>
+      <form class="sq-new" id="sqNew"><label class="field"><span>SQUAD NAME</span><input id="sqName" maxlength="24" placeholder="Certified Chuckers" autocomplete="off"></label><button type="submit" class="btn btn-gold">MAKE IT</button></form>`;
+    UI.$('#sqNew', app).addEventListener('submit', async e => {
+      e.preventDefault();
+      const name = UI.$('#sqName', app).value.trim();
+      if (name.length < 2) { UI.toast('Give it a name, 2 to 24 letters.', 'error'); return; }
+      let code = ''; try { code = await UI.profile.rpc('create_squad', { p_name: name }); } catch (x) { code = ''; }
+      if (!code) { UI.toast('Could not make it. You can make up to 10.', 'error'); return; }
+      location.hash = '#/squad/' + code;
+    });
+  }
+  async function squadPage(app, code) {
+    code = String(code).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+    app.innerHTML = squadMsg('Loading...');
+    let info = null; try { info = ((await UI.profile.rpc('squad_info', { p_code: code })) || [])[0] || null; } catch (e) { info = undefined; }
+    if (!app.isConnected) return;
+    if (info === undefined) { app.innerHTML = squadMsg('Squads arrive with the latest SQL.'); return; }
+    if (!info) { app.innerHTML = `<section class="ch-hero"><div class="ch-hero-k">SQUADS</div><h1 class="ch-hero-t">THAT LINK DOESN'T WORK.</h1><p class="ch-hero-p">The squad may have closed. Ask for a new link, or make your own.</p></section><div class="ch-go"><a class="btn btn-gold" href="#/squad">SQUADS</a></div>`; return; }
+    const signed = UI.profile.signedIn(), head = sub => `<section class="ch-hero"><div class="ch-hero-k">SQUAD | ${info.members} ${info.members === 1 ? 'MEMBER' : 'MEMBERS'}</div><h1 class="ch-hero-t">${esc(info.name)}</h1>${sub}</section>`;
+    if (!info.joined) {
+      app.innerHTML = head(`<p class="ch-hero-p">You're invited. Join to see this squad's Daily board.</p>`) + (signed ? `<div class="ch-go"><button type="button" class="btn btn-gold btn-big" id="sqJoin">JOIN SQUAD</button></div>` : squadMsg('Sign in first, then you are in.') + squadIn());
+      squadWire(app, () => squadPage(app, code));
+      const j = UI.$('#sqJoin', app);
+      if (j) j.addEventListener('click', async () => {
+        j.disabled = true;
+        let ok = false; try { ok = await UI.profile.rpc('join_squad', { p_code: code }); } catch (e) { ok = false; }
+        if (!ok) { j.disabled = false; UI.toast('Could not join. The squad may be full.', 'error'); return; }
+        squadPage(app, code);
+      });
+      return;
+    }
+    const me = UI.profile.account();
+    app.innerHTML = head(`<div class="ch-go"><button type="button" class="btn btn-gold" id="sqInv">INVITE FRIENDS</button></div>`) + `
+      <div class="rk-bt" id="sqTabs"><button type="button" class="btn btn-small btn-gold" data-bt="today">TODAY</button><button type="button" class="btn btn-small" data-bt="week">THIS WEEK</button></div>
+      <div id="sqBoard">${squadMsg('Loading...')}</div>
+      <div class="ch-go dy-more"><a class="btn" href="#/squad">ALL SQUADS</a><button type="button" class="btn btn-small" id="sqLeave">LEAVE</button></div>`;
+    UI.$('#sqInv', app).addEventListener('click', e => shareCard({}, 'Join my Starting Five squad: ' + info.name, '#/squad/' + code));
+    UI.$('#sqLeave', app).addEventListener('click', async () => {
+      if (!confirm('Leave ' + info.name + '?')) return;
+      try { await UI.profile.rpc('leave_squad', { p_code: code }); } catch (e) { /* try again later */ }
+      location.hash = '#/squad';
+    });
+    const board = UI.$('#sqBoard', app);
+    const show = async kind => {
+      app.querySelectorAll('#sqTabs [data-bt]').forEach(b => b.classList.toggle('btn-gold', b.dataset.bt === kind));
+      board.innerHTML = squadMsg('Loading...');
+      if (kind === 'week') {
+        let wk = null; try { wk = (await UI.profile.rpc('squad_week', { p_code: code })) || []; } catch (e) { wk = null; }
+        if (!board.isConnected) return;
+        board.innerHTML = !wk ? squadMsg('Could not load the board.') : wk.length ? table(['#', 'PLAYER', 'DAYS', 'AVERAGE', 'POINTS'], wk.map((x, i) => [i + 1, nameCell(x, me), x.days, f1(x.avg_pct) + '%', '<b>' + f1(x.total) + '</b>'])) + '<p class="muted rk-sub">Every daily percentage added up, Monday to Sunday. Resets Monday.</p>' : squadMsg('Nobody has played this week yet.');
+        return;
+      }
+      let rows = null; try { rows = (await UI.profile.rpc('squad_today', { p_code: code })) || []; } catch (e) { rows = null; }
+      if (!board.isConnected) return;
+      if (!rows) { board.innerHTML = squadMsg('Could not load the board.'); return; }
+      const hidden = rows.length && rows.every(r => r.pct == null && r.score == null);
+      const play = `<div class="ch-go"><a class="btn btn-gold" href="#/daily">PLAY TODAY'S DAILY</a></div>`;
+      if (!rows.length) { board.innerHTML = squadMsg('Nobody in the squad has played today. Be the first.') + play; return; }
+      if (hidden) { board.innerHTML = squadMsg(`<b>${rows.length}</b> played today: ${rows.map(r => esc(r.username)).join(', ')}. Play to see their scores.`) + play; return; }
+      board.innerHTML = table(['#', 'PLAYER', 'OF PERFECT FIVE'], rows.map((x, i) => [i + 1, nameCell(x, me), '<b>' + (x.pct != null ? f1(x.pct) + '%' : f1(x.score)) + '</b>']))
+        + '<h3 class="dy-h3">THEIR FIVES</h3>' + fivesHtml(rows.map(x => Object.assign({}, x, { lineup: Object.assign({}, x.lineup || {}, x.pct != null ? { pct: x.pct } : {}) })), 0, me);
+    };
+    app.querySelectorAll('#sqTabs [data-bt]').forEach(b => b.addEventListener('click', () => show(b.dataset.bt)));
+    show('today');
+  }
+  P.squad = function (app, arg) { const c = String(arg || '').split('/')[0]; return c ? squadPage(app, c) : squadList(app); };
+
   window.addEventListener('hashchange', () => { if (!/^#\/(ranked|daily)/.test(location.hash)) { stopRefresh(); stopFind(); } });
 })();

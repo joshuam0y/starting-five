@@ -578,3 +578,102 @@ begin
   on conflict (theme, kind) do update set n = theme_plays.n + 1, last_at = now(), title = coalesce(excluded.title, theme_plays.title);
 end $$;
 grant execute on function public.count_play(text, text, text) to anon, authenticated;
+
+-- ---------- squads: a private group for the Daily, joined by a link (#/squad/CODE) ----------
+-- No read policies: only these functions see the tables. A member sees the squad's board; scores show once you have played that day.
+create table if not exists public.squads (
+  code text primary key, name text not null, owner uuid not null references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+create table if not exists public.squad_members (
+  code text not null references public.squads (code) on delete cascade, uid uuid not null references auth.users (id) on delete cascade,
+  joined_at timestamptz not null default now(), primary key (code, uid)
+);
+alter table public.squads enable row level security;
+alter table public.squad_members enable row level security;
+
+-- make a squad: returns its code ('' when not signed in, the name is bad, or you already made 10)
+create or replace function public.create_squad(p_name text) returns text
+language plpgsql security definer set search_path = public as $$
+declare me uuid := auth.uid(); n text := btrim(coalesce(p_name, '')); c text; i int;
+begin
+  if me is null or length(n) < 2 or length(n) > 24 then return ''; end if;
+  if (select count(*) from public.squads where owner = me) >= 10 then return ''; end if;
+  loop
+    c := '';
+    for i in 1..6 loop c := c || substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', 1 + floor(random() * 31)::int, 1); end loop;
+    exit when not exists (select 1 from public.squads where code = c);
+  end loop;
+  insert into public.squads (code, name, owner) values (c, n, me);
+  insert into public.squad_members (code, uid) values (c, me);
+  return c;
+end $$;
+grant execute on function public.create_squad(text) to authenticated;
+
+-- the name and size of a squad, for the join screen (anyone with the link)
+create or replace function public.squad_info(p_code text) returns table (name text, members int, joined boolean)
+language sql security definer set search_path = public as $$
+  select s.name, (select count(*)::int from public.squad_members m where m.code = s.code),
+    exists (select 1 from public.squad_members m where m.code = s.code and m.uid = auth.uid())
+  from public.squads s where s.code = upper(btrim(p_code))
+$$;
+grant execute on function public.squad_info(text) to authenticated, anon;
+
+-- join by code: true when you are in it (a squad holds up to 100)
+create or replace function public.join_squad(p_code text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare me uuid := auth.uid(); c text := upper(btrim(coalesce(p_code, '')));
+begin
+  if me is null or not exists (select 1 from public.squads where code = c) then return false; end if;
+  if exists (select 1 from public.squad_members where code = c and uid = me) then return true; end if;
+  if (select count(*) from public.squad_members where code = c) >= 100 then return false; end if;
+  if (select count(*) from public.squad_members where uid = me) >= 20 then return false; end if;
+  insert into public.squad_members (code, uid) values (c, me);
+  return true;
+end $$;
+grant execute on function public.join_squad(text) to authenticated;
+
+-- leave: the last one out closes the squad
+create or replace function public.leave_squad(p_code text) returns void
+language plpgsql security definer set search_path = public as $$
+declare c text := upper(btrim(coalesce(p_code, '')));
+begin
+  delete from public.squad_members where code = c and uid = auth.uid();
+  delete from public.squads s where s.code = c and not exists (select 1 from public.squad_members m where m.code = c);
+end $$;
+grant execute on function public.leave_squad(text) to authenticated;
+
+create or replace function public.my_squads() returns table (code text, name text, members int)
+language sql security definer set search_path = public as $$
+  select s.code, s.name, (select count(*)::int from public.squad_members x where x.code = s.code)
+  from public.squads s join public.squad_members m on m.code = s.code and m.uid = auth.uid()
+  order by m.joined_at
+$$;
+grant execute on function public.my_squads() to authenticated;
+
+-- today's board (Pacific day): every member who played. Scores and fives stay hidden until you have played today yourself.
+create or replace function public.squad_today(p_code text) returns table (username text, played boolean, score numeric, pct numeric, lineup jsonb)
+language sql security definer set search_path = public as $$
+  with d as (select (now() at time zone 'America/Los_Angeles')::date as day),
+  mine as (select exists (select 1 from public.daily_scores x, d where x.day = d.day and x.era = 'ALL' and x.user_id = auth.uid()) as ok)
+  select p.username, true,
+    case when mine.ok then s.score end, case when mine.ok then s.pct end, case when mine.ok then s.lineup end
+  from public.squad_members m join public.profiles p on p.id = m.uid
+    join public.daily_scores s on s.user_id = m.uid and s.era = 'ALL', d, mine
+  where m.code = upper(btrim(p_code)) and s.day = d.day
+    and exists (select 1 from public.squad_members y where y.code = m.code and y.uid = auth.uid())
+  order by case when mine.ok then s.score end desc nulls last, p.username   -- hidden scores leave no order to read
+$$;
+grant execute on function public.squad_today(text) to authenticated;
+
+-- this week (Monday to Sunday, Pacific): every daily percentage added up, members only
+create or replace function public.squad_week(p_code text) returns table (username text, days int, avg_pct numeric, total numeric)
+language sql security definer set search_path = public as $$
+  select p.username, count(*)::int, round(avg(d.pct), 1), round(sum(d.pct), 1)
+  from public.squad_members m join public.profiles p on p.id = m.uid
+    join public.daily_scores d on d.user_id = m.uid and d.era = 'ALL' and d.pct is not null
+      and d.day >= date_trunc('week', now() at time zone 'America/Los_Angeles')::date
+  where m.code = upper(btrim(p_code)) and exists (select 1 from public.squad_members y where y.code = m.code and y.uid = auth.uid())
+  group by p.username order by sum(d.pct) desc, count(*) asc, p.username
+$$;
+grant execute on function public.squad_week(text) to authenticated;

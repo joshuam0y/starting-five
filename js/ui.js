@@ -46,7 +46,7 @@
     ['SEASON', [['season', 'Schedule'], ['standings', 'Standings'], ['stats', 'Stats'], ['leaders', 'Leaders'], ['playoffs', 'Playoffs'], ['allstar', 'All-Star'], ['live', 'Watch Live'], ['share', 'Share Season']]],
     ['LEAGUE', [['league', 'League Home'], ['news', 'News'], ['news/transactions', 'Transactions'], ['awards', 'Awards'], ['awardshow', 'Awards Show'],
       ['history', 'History'], ['records', 'Records'], ['retirements', 'Retirements'], ['classes', 'Draft Classes'], ['top20', 'Top 20 Players'], ['teams', 'All Teams']]],
-    ['MODES', [['daily', 'Daily'], ['ranked', 'Ranked'], ['challenge/vs', 'Head to Head'], ['challenge', 'Season Mode'], ['new', 'New League'], ['challenge/tournament', 'Tournament'], ['challenge/tournament/online', 'Online Tournament'], ['fantasy', 'Fantasy Draft']]],
+    ['MODES', [['daily', 'Daily'], ['squad', 'Squads'], ['ranked', 'Ranked'], ['challenge/vs', 'Head to Head'], ['challenge', 'Season Mode'], ['new', 'New League'], ['challenge/tournament', 'Tournament'], ['challenge/tournament/online', 'Online Tournament'], ['fantasy', 'Fantasy Draft']]],
     ['GAME', [['home', 'Main Menu'], ['me', 'My Profile'], ['saves', 'Saves'], ['settings', 'Settings'], ['commish', 'Commissioner']]],
     ['INFO', [['about', 'About'], ['faq', 'FAQ'], ['contact', 'Contact'], ['privacy', 'Privacy'], ['terms', 'Terms'], ['disclaimer', 'Disclaimer']]]
   ];
@@ -202,10 +202,10 @@
     if (page !== 'continue' && typeof (UI.pages || {})[page] !== 'function') page = 'home';
     // Expansion mode: until the expansion draft is done the league has no season for the new team, so its pages wait
     const g0 = UI.state && UI.state.game;
-    if (g0 && g0.expansionDraft && !['expansion', 'home', 'saves', 'settings', 'new', 'daily', 'ranked', 'challenge', 'me', 'u'].concat(UI.INFO_ROUTES || []).includes(page) && UI.pages.expansion) { location.replace('#/expansion'); return; }
+    if (g0 && g0.expansionDraft && !['expansion', 'home', 'saves', 'settings', 'new', 'daily', 'ranked', 'challenge', 'me', 'u', 'squad'].concat(UI.INFO_ROUTES || []).includes(page) && UI.pages.expansion) { location.replace('#/expansion'); return; }
     const navKey = NAV[page] || page;
     // the top links belong to the Association; the home screen, Season Mode, Head to Head and the info pages are bare
-    document.body.classList.toggle('no-assoc-nav', ['home', 'challenge', 'new', 'saves', 'continue', 'ranked', 'daily', 'me', 'u'].concat(UI.INFO_ROUTES || []).includes(page) || (!UI.state.game && ['teams', 'team', 'player'].includes(page)));
+    document.body.classList.toggle('no-assoc-nav', ['home', 'challenge', 'new', 'saves', 'continue', 'ranked', 'daily', 'me', 'u', 'squad'].concat(UI.INFO_ROUTES || []).includes(page) || (!UI.state.game && ['teams', 'team', 'player'].includes(page)));
     UI.$$('#mainnav a').forEach(a => a.classList.toggle('on', a.getAttribute('data-nav') === navKey));
     const more = UI.$('#mainnav .navmore');
     if (more) more.classList.toggle('on', !UI.$(`#mainnav > a[data-nav="${navKey}"]`) && !!more.querySelector(`a[data-nav="${navKey}"]`));
