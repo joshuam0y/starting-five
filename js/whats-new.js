@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 542, t: 'The Daily finish card scrolls on short screens, so CLOSE is always in reach.' },
   { v: 540, t: 'Tapping STARTING FIVE on the Squads screen always takes you home, even while the squad is still loading.' },
   { v: 538, t: 'Squads: making one takes you straight to it, and signing in keeps your guest squads under your account name on every device.' },
   { v: 536, t: 'Daily fixes on phones: the finish card buttons stack neatly, and long names in what each player cost no longer get cut off.' },

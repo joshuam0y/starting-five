@@ -1088,6 +1088,8 @@
 .rk-offline { position: fixed; left: 0; right: 0; top: env(safe-area-inset-top, 0px); z-index: 480; padding: 10px 16px; background: #b3261e; color: var(--nf2ead8); text-align: center; font-family: var(--display); letter-spacing: .06em; font-size: 14px; }
 .is-offline .rk-rejoin { top: calc(env(safe-area-inset-top, 0px) + 40px); }
 .rk-tour { position: fixed; inset: 0; z-index: 470; background: rgba(0, 0, 0, .88); display: grid; place-items: center; padding: 20px; }
+.rk-tour { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }   /* a card taller than the window scrolls (CLOSE stays reachable) */
+.rk-tour > * { margin: auto 0; }   /* centered when it fits, starts at the top when it does not */
 .rk-tour-b { width: min(480px, 100%); display: grid; gap: 12px; justify-items: center; text-align: center; border: 1px solid var(--gold); background: var(--bg2); padding: 24px 20px; }
 .rk-tour-b small { font-family: var(--display); letter-spacing: .2em; font-size: 12px; color: var(--gold2); }
 .rk-tour-b h2 { margin: 0; font-family: var(--display); font-size: 30px; }
