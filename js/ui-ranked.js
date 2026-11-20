@@ -387,6 +387,21 @@
     LOB = { code: info.code, t: setInterval(up, 30000) };
   }
 
+  // the SOLD card: after a sale, the player spins in big with who got him and the price (tap or wait to go on)
+  UI.aucSold = function (o) {
+    const p = o.p || {}, me = o.e.side === 0, col = (p.colors || ['#d4af37'])[0], ov = o.ovr ? o.ovr(p) : p.ovr;
+    const el = document.createElement('div'); el.className = 'auc-sold' + (me ? ' me' : ''); el.setAttribute('role', 'status');
+    el.innerHTML = `<div class="auc-sold-b" style="--c1:${esc(col)}"><small class="auc-sold-k">SOLD</small><div class="auc-face">${UI.faceImg(p, col)}</div>
+      <div class="auc-nm"><b class="ch-ovr auc-ovr ${UI.ovrClass(ov)}">${esc(ov)}</b><h2>${esc(p.name || '')}</h2></div>
+      <p class="auc-sold-to">${me ? 'YOU GOT HIM' : 'THE HOUSE GOT HIM'}</p><b class="auc-sold-p">${o.e.price ? '$' + esc(o.e.price) : 'FREE'}</b></div>`;
+    let done = false;
+    const close = () => { if (done) return; done = true; clearTimeout(t); window.removeEventListener('hashchange', close); el.classList.add('out'); setTimeout(() => { el.remove(); o.onDone && o.onDone(); }, 220); };
+    const t = setTimeout(close, 2000);
+    el.addEventListener('click', close); window.addEventListener('hashchange', close);
+    document.body.appendChild(el);
+    if (window.SFX) { try { window.SFX.play('chime'); } catch (e) { /* no sound */ } }
+  };
+
   // the auto-draft reveal: when a side has its five (or no money left), the rest of the pool goes to the other side as face-down cards that flip one by one
   UI.aucReveal = function (app, o) {
     const es = o.entries, name = o.name, money = n => (n ? '$' + n : 'FREE');
@@ -1014,6 +1029,14 @@
       const after = () => {
         house(); st.until = Date.now() + DAILY_CLOCK * 1000; save(st.done); stopClock();
         if (!/^#\/daily/.test(location.hash)) return;   // you left while the house was thinking
+        const sold = st.log.slice(before).filter(x => !x.auto);
+        if (sold.length && !st.soldShown) {   // a big SOLD card first: who got him, for how much
+          st.soldShown = true; stopClock();
+          return UI.aucSold({ e: sold[sold.length - 1], p: byId[sold[sold.length - 1].id], who: i => (i === 0 ? 'YOU' : 'THE HOUSE'), ovr: ovrOf, onDone: () => { st.soldShown = false; if (!/^#\/daily/.test(location.hash)) return; st.until = Date.now() + DAILY_CLOCK * 1000; rest(); } });
+        }
+        rest();
+      };
+      const rest = () => {
         const autos = st.log.slice(before).filter(x => x.auto);
         if (autos.length) { stopClock(); UI.aucReveal(app, { entries: autos, byId, name: i => (i === 0 ? 'YOU' : 'THE HOUSE'), onDone: () => { st.until = Date.now() + DAILY_CLOCK * 1000; draw(app, era, day, st, byId, key, house, save); } }); return; }
         draw(app, era, day, st, byId, key, house, save);
