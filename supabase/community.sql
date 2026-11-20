@@ -608,7 +608,7 @@ alter table public.squad_guests enable row level security;
 create or replace function public.squad_is_in(p_code text, p_gid text) returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.squad_members where code = p_code and uid = auth.uid())
-    or (auth.uid() is null and p_gid is not null and exists (select 1 from public.squad_guests where code = p_code and gid = p_gid))
+    or (p_gid is not null and exists (select 1 from public.squad_guests where code = p_code and gid = p_gid))   -- signed in, this device's guest spot still counts until it moves to the account
 $$;
 revoke execute on function public.squad_is_in(text, text) from public, anon, authenticated;
 
@@ -676,20 +676,25 @@ language plpgsql security definer set search_path = public as $$
 declare c text := upper(btrim(coalesce(p_code, '')));
 begin
   delete from public.squad_members where code = c and uid = auth.uid();
-  if auth.uid() is null and p_gid is not null then delete from public.squad_guests where code = c and gid = p_gid; end if;
+  if p_gid is not null then delete from public.squad_guests where code = c and gid = p_gid; end if;
   delete from public.squads s where s.code = c and not exists (select 1 from public.squad_members m where m.code = c)
     and not exists (select 1 from public.squad_guests g where g.code = c);
 end $$;
 grant execute on function public.leave_squad(text, text) to authenticated, anon;
 
 -- a guest who signs in: their squads move to the account
-create or replace function public.claim_guest_squads(p_gid text) returns void
+-- (returns null when not signed in yet, so the page tries again; the squad then shows the account name, on any device)
+drop function if exists public.claim_guest_squads(text);
+create or replace function public.claim_guest_squads(p_gid text) returns int
 language plpgsql security definer set search_path = public as $$
+declare n int;
 begin
-  if auth.uid() is null or p_gid is null then return; end if;
+  if auth.uid() is null or p_gid is null then return null; end if;
   insert into public.squad_members (code, uid) select code, auth.uid() from public.squad_guests where gid = p_gid on conflict do nothing;
   delete from public.squad_guests where gid = p_gid;
+  get diagnostics n = row_count;
   update public.squads set owner = auth.uid(), owner_gid = null where owner_gid = p_gid;
+  return n;
 end $$;
 grant execute on function public.claim_guest_squads(text) to authenticated;
 

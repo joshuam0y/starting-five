@@ -1520,7 +1520,8 @@
   // No account needed: a guest joins with a name, and this device is their place in the squad. Signing in later moves it to the account.
   const squadMsg = t => '<p class="muted">' + t + '</p>';
   let squadOn = null;
-  const sqArgs = o => UI.profile.signedIn() ? o : Object.assign({ p_gid: guestId() }, o);
+  const sqArgs = o => Object.assign({ p_gid: guestId() }, o);   // signed in too: this device's guest spot counts until it moves to the account
+  let sqGen = 0;   // each squad screen draw; a slower older one stops instead of drawing over it
   const sqWho = () => UI.profile.signedIn() ? {} : { p_guest: UI.profile.name() };
   const sqNameField = () => UI.profile.signedIn() || UI.profile.name() ? '' : `<label class="field"><span>YOUR NAME</span><input id="sqMe" maxlength="16" placeholder="Name your squad sees" autocomplete="off"></label>`;
   const sqTakeName = app => {   // a guest with no name yet types one; '' when it is fine
@@ -1529,9 +1530,15 @@
     const bad = UI.profile.setGuest(f.value); if (bad) { UI.toast(bad, 'error'); return bad; } return '';
   };
   const sqMark = () => { try { if (!UI.profile.signedIn()) localStorage.setItem('a13-gsq', '1'); } catch (e) { /* private mode */ } };
-  async function sqClaim() {   // signed in now: squads joined as a guest on this device move to the account
-    try { if (!UI.profile.signedIn() || !localStorage.getItem('a13-gsq')) return; await UI.profile.rpc('claim_guest_squads', { p_gid: guestId() }); localStorage.removeItem('a13-gsq'); } catch (e) { /* try again next time */ }
+  let sqClaimed = '';   // the account this page already moved this device's guest squads to
+  async function sqClaim() {   // signed in now: squads joined as a guest on this device move to the account (its name, any device)
+    try {
+      if (!UI.profile.signedIn() || sqClaimed === UI.profile.account()) return;
+      const n = await UI.profile.rpc('claim_guest_squads', { p_gid: guestId() });
+      if (n !== null && n !== undefined) sqClaimed = UI.profile.account();   // null: the sign in was not ready, try again next time
+    } catch (e) { /* try again next time */ }
   }
+  window.addEventListener('a13-profile', () => { sqClaim(); });   // signing in on any screen hands the squads over
   // after a daily: the squad button says where to look (one squad: straight to its board)
   async function squadBtns(root) {
     const bs = [].slice.call(root.querySelectorAll('[data-sqbtn]')); if (!bs.length) return;
@@ -1547,17 +1554,18 @@
   function squadWire(app, again) {
     const b = app.querySelector('[data-sq="in"]'); if (b) b.addEventListener('click', () => UI.profile.open());
     if (squadOn) window.removeEventListener('a13-profile', squadOn);
-    squadOn = () => { window.removeEventListener('a13-profile', squadOn); squadOn = null; if (/^#\/squad/.test(location.hash)) again(); };
+    squadOn = () => { window.removeEventListener('a13-profile', squadOn); squadOn = null; const m = location.hash.match(/^#\/squad(?:\/([^/?]*))?/); if (m) P.squad(app, m[1] || ''); };   // redraw whatever squad screen is open now
     window.addEventListener('a13-profile', squadOn);   // signing in redraws the page (only while it is still open)
   }
   const sqSignIn = () => UI.profile.signedIn() ? '' : `<p class="muted rk-sub">Playing as a guest on this device. <button type="button" class="btn btn-small" data-sq="in">SIGN IN</button> to keep your squads on any phone.</p>`;
   async function squadList(app) {
+    const gen = ++sqGen;
     app.innerHTML = `<section class="ch-hero"><div class="ch-hero-k">SQUADS</div><h1 class="ch-hero-t">PLAY THE DAILY WITH YOUR GROUP CHAT.</h1>
       <p class="ch-hero-p">Make a squad, drop the link in the chat, and see who builds the best five each day.</p></section><div id="sqBody">${squadMsg('Loading...')}</div>`;
     await sqClaim();
     const body = UI.$('#sqBody', app);
     let mine = null; try { mine = (await UI.profile.rpc('my_squads', sqArgs({}))) || []; } catch (e) { mine = null; }
-    if (!body.isConnected) return;
+    if (!body.isConnected || gen !== sqGen) return;
     if (!mine) { body.innerHTML = squadMsg('Could not load squads. Try again in a minute.'); return; }
     body.innerHTML = `${mine.length ? `<h2 class="dy-h">YOUR SQUADS</h2><div class="pr-list">${mine.map(s => `<a class="pr-i" href="#/squad/${esc(s.code)}"><b>${esc(s.name)}</b><small>${s.members} ${s.members === 1 ? 'MEMBER' : 'MEMBERS'}</small></a>`).join('')}</div>` : ''}
       <h2 class="dy-h">MAKE A SQUAD</h2>
@@ -1570,15 +1578,17 @@
       if (name.length < 2) { UI.toast('Give it a name, 2 to 24 letters.', 'error'); return; }
       let code = ''; try { code = await UI.profile.rpc('create_squad', sqArgs(Object.assign({ p_name: name }, sqWho()))); } catch (x) { code = ''; }
       if (!code) { UI.toast('Could not make it. You can make up to 10.', 'error'); return; }
-      sqMark(); location.hash = '#/squad/' + code;
+      sqMark(); history.pushState(null, '', location.pathname + location.search + '#/squad/' + code); squadPage(app, code);   // straight to the new squad
     });
   }
   async function squadPage(app, code) {
     code = String(code).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+    const gen = ++sqGen;
+    if (squadOn) { window.removeEventListener('a13-profile', squadOn); squadOn = null; }
     app.innerHTML = squadMsg('Loading...');
     await sqClaim();
     let info = null; try { info = ((await UI.profile.rpc('squad_info', sqArgs({ p_code: code }))) || [])[0] || null; } catch (e) { info = undefined; }
-    if (!app.isConnected) return;
+    if (!app.isConnected || gen !== sqGen) return;
     if (info === undefined) { app.innerHTML = squadMsg('Could not load the squad. Try again in a minute.'); return; }
     if (!info) { app.innerHTML = `<section class="ch-hero"><div class="ch-hero-k">SQUADS</div><h1 class="ch-hero-t">THAT LINK DOESN'T WORK.</h1><p class="ch-hero-p">The squad may have closed. Ask for a new link, or make your own.</p></section><div class="ch-go"><a class="btn btn-gold" href="#/squad">SQUADS</a></div>`; return; }
     const head = sub => `<section class="ch-hero"><div class="ch-hero-k">SQUAD | ${info.members} ${info.members === 1 ? 'MEMBER' : 'MEMBERS'}</div><h1 class="ch-hero-t">${esc(info.name)}</h1>${sub}</section>`;
