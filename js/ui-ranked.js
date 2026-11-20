@@ -1522,6 +1522,7 @@
   let squadOn = null;
   const sqArgs = o => Object.assign({ p_gid: guestId() }, o);   // signed in too: this device's guest spot counts until it moves to the account
   let sqGen = 0;   // each squad screen draw; a slower older one stops instead of drawing over it
+  window.addEventListener('hashchange', () => { sqGen++; });   // leaving (the logo, the MENU) also stops a squad screen still loading
   const sqWho = () => UI.profile.signedIn() ? {} : { p_guest: UI.profile.name() };
   const sqNameField = () => UI.profile.signedIn() || UI.profile.name() ? '' : `<label class="field"><span>YOUR NAME</span><input id="sqMe" maxlength="16" placeholder="Name your squad sees" autocomplete="off"></label>`;
   const sqTakeName = app => {   // a guest with no name yet types one; '' when it is fine
@@ -1578,7 +1579,8 @@
       if (name.length < 2) { UI.toast('Give it a name, 2 to 24 letters.', 'error'); return; }
       let code = ''; try { code = await UI.profile.rpc('create_squad', sqArgs(Object.assign({ p_name: name }, sqWho()))); } catch (x) { code = ''; }
       if (!code) { UI.toast('Could not make it. You can make up to 10.', 'error'); return; }
-      sqMark(); history.pushState(null, '', location.pathname + location.search + '#/squad/' + code); squadPage(app, code);   // straight to the new squad
+      sqMark(); if (location.hash !== '#/squad') return;   // left while it was being made
+      history.pushState(null, '', location.pathname + location.search + '#/squad/' + code); squadPage(app, code);   // straight to the new squad
     });
   }
   async function squadPage(app, code) {
@@ -1601,7 +1603,7 @@
         const j = UI.$('#sqJoin', app); j.disabled = true;
         let ok = false; try { ok = await UI.profile.rpc('join_squad', sqArgs(Object.assign({ p_code: code }, sqWho()))); } catch (x) { ok = false; }
         if (!ok) { j.disabled = false; UI.toast('Could not join. The squad may be full.', 'error'); return; }
-        sqMark(); squadPage(app, code);
+        sqMark(); if (/^#\/squad\//.test(location.hash)) squadPage(app, code);
       });
       return;
     }

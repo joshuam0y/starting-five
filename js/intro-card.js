@@ -21,6 +21,7 @@
     function close() {
       try { localStorage.setItem(K(o.key), '1'); } catch (e) { /* private mode */ }
       document.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('hashchange', close);
       el.remove();
       if (prev && prev.focus) { try { prev.focus(); } catch (e) { /* gone */ } }
     }
@@ -37,6 +38,7 @@
     el.querySelector('#icPrimary').addEventListener('click', () => { try { if (o.primary.fn) o.primary.fn(); } finally { close(); } });
     el.querySelector('#icSecondary').addEventListener('click', close);
     document.addEventListener('keydown', onKey, true);
+    window.addEventListener('hashchange', close);   // it belongs to the screen it opened on
     document.body.appendChild(el);
     el.querySelector('#icPrimary').focus();
   };
