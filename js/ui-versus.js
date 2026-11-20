@@ -1049,17 +1049,21 @@
   let REV = false;   // the auto-draft reveal is on screen   // the amount picked on this phone for the player who is up
   // the auction's sounds (as in tournaments): a tick per bid, a chime per sale, a thump when he is yours
   let ASND = null;
-  function aucSound(st) {
-    const S = window.SFX; if (!S || !st || !st.log) return;
+  function aucSound(st, B, blind) {
+    const S = window.SFX; if (!st || !st.log) return;
     if (!ASND || ASND.st !== st) { ASND = { st, i: st.i, price: st.price, n: st.log.length }; return; }
-    if (st.log.length > ASND.n) { const last = st.log[st.log.length - 1], mine = me(); S.play(last && mine != null && last.side === mine ? 'land' : 'chime'); }
-    else if (st.i === ASND.i && st.price > ASND.price) S.play('tick');
+    if (st.log.length > ASND.n) {
+      const fresh = st.log.slice(ASND.n), sale = fresh.filter(x => !x.auto).pop(), last = st.log[st.log.length - 1], mine = me() != null ? me() : (VS.cfg && VS.cfg.cpu ? 0 : null);   // vs the CPU you are side 0
+      if (sale && UI.aucSold && B) { const p = B.byId[sale.id] || {}; UI.aucSold({ e: sale, p, name: who(sale.side), me: mine != null && sale.side === mine, blind, color: (B.teamFor(p.team, p.season).colors || ['#555'])[0] }); }   // the SOLD card (it also plays the sound)
+      else if (S) S.play(last && mine != null && last.side === mine ? 'land' : 'chime');
+    }
+    else if (S && st.i === ASND.i && st.price > ASND.price) S.play('tick');
     ASND.i = st.i; ASND.price = st.price; ASND.n = st.log.length;
   }
   function auctionPage(app, cfg, B) {
     rkStart(cfg);
     stopTick();
-    aucSound(VS.auc);
+    aucSound(VS.auc, B, !!cfg.blind);
     const st = VS.auc, A = st.o, per = st.per, byId = B.byId, blind = !!cfg.blind;
     const wk = st.ids.slice(0, 3).join(',') + '|' + (cfg.first ? 1 : 0);   // the wheel spins once per auction, before the first player goes up
     const bk = cfg.bucket && UI.ranked && UI.ranked.bucketByKey ? UI.ranked.bucketByKey(cfg.bucket) : null;
@@ -1173,11 +1177,12 @@
       if (cfg.auction && VS.auc) {
         if (REV) return;   // a reveal is playing: its end redraws the page
         if (AB.key !== cfg.seed) { AB.key = cfg.seed; AB.seen = VS.auc.log.length; }   // arrived late or reloaded: no replay of old sales
+        if (VS.auc.done) aucSound(VS.auc, B, blind);   // the sale that ends the auction gets its SOLD card too
         const autos = VS.auc.log.slice(AB.seen).filter(x => x.auto);
         AB.seen = VS.auc.log.length;
         if (autos.length && UI.aucReveal) {
           REV = true; stopTick(); window.scrollTo(0, 0);
-          UI.aucReveal(app, { entries: autos, byId, blind, name: i => who(i), color: p => (B.teamFor(p.team, p.season).colors || ['#555'])[0], onDone: () => { REV = false; if (VS.auc && VS.auc.until && cfg.timer) VS.auc.until = Date.now() + cfg.timer * 1000; if (/^#\/challenge\/vs/.test(location.hash)) route(); } });
+          UI.aucReveal(app, { entries: autos, byId, blind, me: me() != null ? me() : (cfg.cpu ? 0 : -1), name: i => who(i), color: p => (B.teamFor(p.team, p.season).colors || ['#555'])[0], onDone: () => { REV = false; if (VS.auc && VS.auc.until && cfg.timer) VS.auc.until = Date.now() + cfg.timer * 1000; if (/^#\/challenge\/vs/.test(location.hash)) route(); } });
           return;
         }
       }

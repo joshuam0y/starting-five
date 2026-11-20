@@ -404,7 +404,7 @@
     const autos = aucPending(o.st); TA.seen = o.st.log.length;
     if (!autos.length || !UI.aucReveal || TA.rev) return false;
     TA.rev = true; window.scrollTo(0, 0);
-    UI.aucReveal(app, { entries: autos, byId: o.B.byId, blind: false, name: i => (o.t.names && o.t.names[i]) || '', color: p => (((o.B.teamFor ? o.B.teamFor(p.team, p.season) : null) || {}).colors || ['#555'])[0], onDone: () => { TA.rev = false; then(); } });
+    UI.aucReveal(app, { entries: autos, byId: o.B.byId, blind: o.t && o.t.opts && o.t.opts.ratings === false, me: o.w, name: i => (o.t.names && o.t.names[i]) || '', color: p => (((o.B.teamFor ? o.B.teamFor(p.team, p.season) : null) || {}).colors || ['#555'])[0], onDone: () => { TA.rev = false; then(); } });
     return true;
   }
   // the auction's sounds: a tick on every new bid, a chime when a player is sold (a thump when he is yours)
@@ -413,8 +413,9 @@
     const k = TA.snd, nm = i => ((o && o.t && o.t.names && o.t.names[i]) || '').toUpperCase(), pop = text => { TA.pop = { text, until: Date.now() + 1700 }; };
     if (!k || k.st !== st) { TA.snd = { st, i: st.i, price: st.price, n: st.log.length, turn: st.turn }; return; }
     if (st.log.length > k.n) {
-      const last = st.log[st.log.length - 1], p = last && o && o.B ? o.B.byId[last.id] : null;
-      if (S) S.play(last && last.side === w && w >= 0 ? 'land' : 'chime');
+      const last = st.log[st.log.length - 1], p = last && o && o.B ? o.B.byId[last.id] : null, sale = st.log.slice(k.n).filter(x => !x.auto).pop(), sp = sale && o && o.B ? o.B.byId[sale.id] : null;
+      if (sale && UI.aucSold && sp) UI.aucSold({ e: sale, p: sp, name: nm(sale.side), me: w >= 0 && sale.side === w, blind: o.t && o.t.opts && o.t.opts.ratings === false, color: ((o.B.teamFor ? o.B.teamFor(sp.team, sp.season) : null) || {}).colors ? o.B.teamFor(sp.team, sp.season).colors[0] : null });   // the SOLD card (it also plays the sound)
+      else if (S) S.play(last && last.side === w && w >= 0 ? 'land' : 'chime');
       if (last) pop('SOLD: ' + (p ? p.name.toUpperCase() : 'HIM') + ' TO ' + nm(last.side) + ' FOR $' + last.price);
     } else if (st.i === k.i && st.price > k.price) { if (S) S.play('tick'); pop(nm(st.holder) + ' BIDS $' + st.price); }
     else if (st.i === k.i && st.turn !== k.turn && k.turn >= 0 && k.turn !== w) pop(nm(k.turn) + ' PASSES');

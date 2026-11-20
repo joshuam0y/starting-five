@@ -389,39 +389,30 @@
 
   // the SOLD card: after a sale, the player spins in big with who got him and the price (tap or wait to go on)
   UI.aucSold = function (o) {
-    const p = o.p || {}, me = o.e.side === 0, col = (p.colors || ['#d4af37'])[0], ov = o.ovr ? o.ovr(p) : p.ovr;
+    const p = o.p || {}, me = o.me != null ? o.me : o.e.side === 0, col = o.color || (p.colors || ['#d4af37'])[0], ov = o.ovr ? o.ovr(p) : p.ovr;
+    const nm = String(o.name != null ? o.name : (o.who ? o.who(o.e.side) : '')).toUpperCase();
+    const old = document.querySelector('.auc-sold'); if (old) old.remove();   // a newer sale replaces one still showing
     const el = document.createElement('div'); el.className = 'auc-sold' + (me ? ' me' : ''); el.setAttribute('role', 'status');
-    el.innerHTML = `<div class="auc-sold-b" style="--c1:${esc(col)}"><small class="auc-sold-k">SOLD</small><div class="auc-face">${UI.faceImg(p, col)}</div>
-      <div class="auc-nm"><b class="ch-ovr auc-ovr ${UI.ovrClass(ov)}">${esc(ov)}</b><h2>${esc(p.name || '')}</h2></div>
-      <p class="auc-sold-to">${me ? 'YOU GOT HIM' : 'THE HOUSE GOT HIM'}</p><b class="auc-sold-p">${o.e.price ? '$' + esc(o.e.price) : 'FREE'}</b></div>`;
+    el.innerHTML = `<div class="auc-sold-b" style="--c1:${esc(col)}"><small class="auc-sold-k">${o.e.auto ? (o.e.price ? 'NO ONE LEFT TO BID' : 'AUTO-DRAFTED') : 'SOLD'}</small><div class="auc-face">${UI.faceImg(p, col)}</div>
+      <div class="auc-nm">${o.blind || ov == null ? '' : `<b class="ch-ovr auc-ovr ${UI.ovrClass(ov)}">${esc(ov)}</b>`}<h2>${esc(p.name || '')}</h2></div>
+      <p class="auc-sold-to">${me ? 'YOU GOT HIM' : esc(nm) + ' GOT HIM'}</p><b class="auc-sold-p">${o.e.price ? '$' + esc(o.e.price) : 'FREE'}</b></div>`;
     let done = false;
     const close = () => { if (done) return; done = true; clearTimeout(t); window.removeEventListener('hashchange', close); el.classList.add('out'); setTimeout(() => { el.remove(); o.onDone && o.onDone(); }, 220); };
-    const t = setTimeout(close, 2000);
+    const t = setTimeout(close, o.ms || 2000);
     el.addEventListener('click', close); window.addEventListener('hashchange', close);
     document.body.appendChild(el);
-    if (window.SFX) { try { window.SFX.play('chime'); } catch (e) { /* no sound */ } }
+    if (window.SFX && o.sound !== false) { try { window.SFX.play(me ? 'land' : 'chime'); } catch (e) { /* no sound */ } }
   };
 
   // the auto-draft reveal: when a side has its five (or no money left), the rest of the pool goes to the other side as face-down cards that flip one by one
   UI.aucReveal = function (app, o) {
-    const es = o.entries, name = o.name, money = n => (n ? '$' + n : 'FREE');
-    const card = (e, k) => {
-      const p = o.byId[e.id], col = (o.color && o.color(p)) || '#555';
-      return `<div class="rv-card" data-k="${k}" style="--c1:${esc(col)}"><div class="rv-in"><div class="rv-back"><span>?</span></div>
-        <div class="rv-front"><div class="auc-face">${UI.faceImg(p, col)}</div><b class="rv-n">${esc(p.name)}</b><small>${esc(C.posLabel(p))}${p.season ? ' | ' + esc("'" + String(p.season - 1).slice(2) + "-'" + String(p.season).slice(2)) : ''}${p.ovr && !o.blind ? ' | ' + esc(p.ovr) + ' OVR' : ''}</small><div class="rv-to${e.side === 0 ? ' a' : ' b'}"><i>${esc(name(e.side))}</i><em>${money(e.price)}</em></div></div></div></div>`;
+    const es = o.entries.slice(), mine = o.me != null ? o.me : 0;
+    const next = () => {
+      const e = es.shift(); if (!e) { if (o.onDone) o.onDone(); return; }
+      const p = o.byId[e.id] || {};
+      UI.aucSold({ e, p, name: o.name(e.side), me: mine >= 0 && e.side === mine, blind: o.blind, color: (o.color && o.color(p)) || null, ovr: o.ovr, ms: 1500, onDone: next });
     };
-    const to = es[0] ? name(es[0].side) : '';
-    const free = es.every(e => e.auto === 'free');
-    app.innerHTML = `<section class="rv"><small class="rv-k">${free ? 'ROSTER FULL' : 'NO ONE LEFT TO BID'}</small><h2>${free ? esc(name(1 - es[0].side).toUpperCase()) + ' IS DONE. THE REST ARE AUTO-DRAFTED.' : 'THEY CAN NOT TOP IT.'}</h2>
-      <p class="muted">${esc(to)} takes ${es.length === 1 ? 'the last player' : 'the last ' + es.length + ' players'}${free ? ' for free' : ''}.</p>
-      <div class="rv-grid n${es.length}">${es.map(card).join('')}</div>
-      <div class="ch-go"><button type="button" class="btn btn-gold" id="rvGo">SKIP</button></div></section>`;
-    let finished = false, timers = [];
-    const finish = () => { if (finished) return; finished = true; timers.forEach(clearTimeout); app.querySelectorAll('.rv-card').forEach(c => c.classList.add('flip')); setTimeout(() => o.onDone && o.onDone(), 350); };
-    es.forEach((e, k) => timers.push(setTimeout(() => { const c = app.querySelector('.rv-card[data-k="' + k + '"]'); if (c) c.classList.add('flip', 'pop'); if (window.SFX) window.SFX.play('chime'); }, 600 + k * 850)));
-    timers.push(setTimeout(() => { const b = UI.$('#rvGo', app); if (b) b.textContent = 'CONTINUE'; }, 600 + es.length * 850));
-    timers.push(setTimeout(finish, 600 + es.length * 850 + 2600));
-    UI.$('#rvGo', app).addEventListener('click', finish);
+    next();
   };
 
   // a wheel that decides who opens the bidding: it always lands on o.winner (the result is already set, so everyone sees the same spin)
@@ -473,6 +464,13 @@
 
   // ---------- #/ranked ----------
   const RK = { open: ls.get('a13-rk-open', 'all'), era: ls.get('a13-rk-era', 'ALL'), mine: !!ls.get('a13-rk-mine', false) };
+  function liveLine(el) {
+    const set = (t, busy) => { if (!el || !el.isConnected) return; el.classList.toggle('busy', !!busy); el.querySelector('span').textContent = t; };
+    set('LIVE | CHECKS EVERY 10 SECONDS');
+    let t0 = 0;
+    return { busy: () => { t0 = Date.now(); set('LOOKING FOR NEW SCORES...', true); },
+      done: n => setTimeout(() => set(n == null ? 'LIVE | TRYING AGAIN SOON' : n > 0 ? n + ' NEW ' + (n === 1 ? 'SCORE' : 'SCORES') + ' | LIVE' : 'UP TO DATE | LIVE'), Math.max(0, 1300 - (Date.now() - t0))) };   // long enough to read
+  }
   let REFRESH = null;
   let CNT = null;
   function stopRefresh() { if (REFRESH) { clearInterval(REFRESH); REFRESH = null; } if (CNT) { clearInterval(CNT); CNT = null; } }
@@ -1038,7 +1036,7 @@
       };
       const rest = () => {
         const autos = st.log.slice(before).filter(x => x.auto);
-        if (autos.length) { stopClock(); UI.aucReveal(app, { entries: autos, byId, name: i => (i === 0 ? 'YOU' : 'THE HOUSE'), onDone: () => { st.until = Date.now() + DAILY_CLOCK * 1000; draw(app, era, day, st, byId, key, house, save); } }); return; }
+        if (autos.length) { stopClock(); UI.aucReveal(app, { entries: autos, byId, ovr: ovrOf, name: i => (i === 0 ? 'YOU' : 'THE HOUSE'), onDone: () => { st.until = Date.now() + DAILY_CLOCK * 1000; draw(app, era, day, st, byId, key, house, save); } }); return; }
         draw(app, era, day, st, byId, key, house, save);
       };
       if (!st.done && st.turn === 1) {   // the house takes a moment to answer, a little different every time
@@ -1467,20 +1465,21 @@
       body.innerHTML = `<h2 class="dy-h">TODAY'S BOARD</h2>
         ${statHtml(st)}
         <div class="rk-bt" id="dyTabs"><button type="button" class="btn btn-small btn-gold" data-bt="today">TODAY</button><button type="button" class="btn btn-small" data-bt="friends">FRIENDS</button><button type="button" class="btn btn-small" data-bt="week">THIS WEEK</button></div>
-        <div id="dyBoard"></div>
+        <p class="dy-live" id="dyLive"><i></i><span>LIVE</span></p><div id="dyBoard"></div>
         ${signed ? '' : '<p class="muted rk-sub">No account needed to play. Sign in to put your score on the board.</p>'}
         <div class="ch-go dy-more">${(() => { const past = themePast(); return past.length ? `<label class="dy-past"><span class="sr-only">Play a past day</span><select id="dyPast"><option value="">PLAY A PAST DAY</option>${past.map(t => `<option value="${esc(t.key)}">#${dayNo(t.day)} | ${esc(t.title)}</option>`).join('')}</select></label>` : ''; })()}<a class="btn" href="#/daily/practice">ARCHIVE</a><a class="btn" href="#/squad">SQUADS</a><a class="btn" href="#/ranked">RANKED</a></div>`;
       const pastSel = UI.$('#dyPast', app); if (pastSel) pastSel.addEventListener('change', () => { if (pastSel.value) location.hash = '#/daily/practice/' + encodeURIComponent(pastSel.value) + '/' + Date.now(); });
       const board = UI.$('#dyBoard', app), msg = t => '<p class="muted">' + t + '</p>';
       const todayTbl = list => list && list.length ? table(perf > 0 ? ['#', 'PLAYER', 'SCORE', 'OF PERFECT FIVE'] : ['#', 'PLAYER', 'SCORE'], list.map((x, i) => [i + 1, nameCell(x, me), '<b>' + Number(x.score).toFixed(1) + '</b>'].concat(perf > 0 ? [pctOf(x.score)] : []))) : '';
       let curTab = 'today';
-      const show = async kind => {
+      const put = h => { if (board.innerHTML !== h) board.innerHTML = h; };   // a refresh with nothing new leaves the board alone
+      const show = async (kind, quiet) => {
         curTab = kind;
         app.querySelectorAll('#dyTabs [data-bt]').forEach(b => b.classList.toggle('btn-gold', b.dataset.bt === kind));
-        if (kind === 'today') { board.innerHTML = todayTbl(rows) || msg('No scores yet today.'); return; }
+        if (kind === 'today') { put(todayTbl(rows) || msg('No scores yet today.')); return; }
         if (kind === 'friends') {
           if (!signed) { board.innerHTML = msg('Sign in to see how your friends did.'); return; }
-          board.innerHTML = msg('Loading...');
+          if (!quiet) board.innerHTML = msg('Loading...');
           let fr = null; try { fr = ((await UI.profile.rpc('my_friends')) || []).map(x => x.username); } catch (e) { fr = null; }
           if (!board.isConnected) return;
           if (!fr) { board.innerHTML = msg('Friends boards arrive with the latest SQL.'); return; }
@@ -1491,28 +1490,34 @@
           catch (e) { try { wk = ((await UI.profile.rpc('lb_daily_week', { p_limit: 100 })) || []).filter(r => set.has(r.username)); } catch (x) { wk = null; } }
           if (!board.isConnected) return;
           const league = wk && wk.length && fr.length ? '<h3 class="dy-h3">FRIENDS LEAGUE | THIS WEEK</h3>' + table(['#', 'PLAYER', 'DAYS', 'AVERAGE', 'POINTS'], wk.map((x, i) => [i + 1, nameCell(x, me), x.days, f1(x.avg_pct) + '%', '<b>' + f1(x.total) + '</b>'])) + '<p class="muted rk-sub">Every daily percentage added up, Monday to Sunday. Resets Monday.</p>' : '';
-          if (!list.length) { board.innerHTML = league + msg(fr.length ? 'None of your friends have played today.' : 'No friends yet. Add some from their profiles.'); return; }
-          board.innerHTML = league + '<h3 class="dy-h3">TODAY</h3>' + (mine && mine.fin ? fivesHtml(list, perf, me) : todayTbl(list) + msg("Play today's auction to see the fives your friends built."));
+          if (!list.length) { put(league + msg(fr.length ? 'None of your friends have played today.' : 'No friends yet. Add some from their profiles.')); return; }
+          put(league + '<h3 class="dy-h3">TODAY</h3>' + (mine && mine.fin ? fivesHtml(list, perf, me) : todayTbl(list) + msg("Play today's auction to see the fives your friends built.")));
           return;
         }
-        board.innerHTML = msg('Loading...');
+        if (!quiet) board.innerHTML = msg('Loading...');
         let wk = null; try { wk = (await UI.profile.rpc('lb_daily_week', { p_limit: 50 })) || []; } catch (e) { wk = null; }
         if (!board.isConnected) return;
-        board.innerHTML = !wk ? msg('The weekly board arrives with the latest SQL.') : wk.length ? table(['#', 'PLAYER', 'DAYS', 'AVERAGE', 'TOTAL POINTS'], wk.map((x, i) => [i + 1, nameCell(x, me), x.days, f1(x.avg_pct) + '%', '<b>' + f1(x.total) + '</b>'])) + '<p class="muted rk-sub">Monday to Sunday, Pacific. Ranked by total points: every daily percentage added up, so playing every day climbs the board.</p>' : msg('No scores this week yet.');
+        put(!wk ? msg('The weekly board arrives with the latest SQL.') : wk.length ? table(['#', 'PLAYER', 'DAYS', 'AVERAGE', 'TOTAL POINTS'], wk.map((x, i) => [i + 1, nameCell(x, me), x.days, f1(x.avg_pct) + '%', '<b>' + f1(x.total) + '</b>'])) + '<p class="muted rk-sub">Monday to Sunday, Pacific. Ranked by total points: every daily percentage added up, so playing every day climbs the board.</p>' : msg('No scores this week yet.'));
       };
       app.querySelectorAll('#dyTabs [data-bt]').forEach(b => b.addEventListener('click', () => show(b.dataset.bt)));
       show('today');
-      // the numbers stay current while the page is open: every 30 seconds the played count, average and best, and the board when it is on Today
+      // the numbers stay current while the page is open: every 10 seconds the played count, average and best, and whichever board tab is open
       stopRefresh();
+      const live = liveLine(UI.$('#dyLive', app));
       REFRESH = setInterval(async () => {
         if (!body.isConnected || location.hash !== '#/daily') { stopRefresh(); return; }
+        if (document.hidden) return;   // no checking while the phone is in a pocket
+        live.busy();
         let n = null, r = null;
         try { n = await UI.profile.rpc('daily_stats', { p_day: day }); } catch (e) { /* try again next time */ }
         try { r = await UI.profile.rpc('lb_daily', { p_day: day, p_era: 'ALL', p_region: null, p_limit: 100 }); } catch (e) { /* try again next time */ }
         if (!body.isConnected) return;
         if (n && n.played) { const el = body.querySelector('.rk-stat'); if (el) el.outerHTML = statHtml(n); }
-        if (r && curTab === 'today') { rows = r; board.innerHTML = todayTbl(rows) || msg('No scores yet today.'); }
-      }, 30000);
+        const fresh = r ? Math.max(0, r.length - (rows || []).length) : 0;
+        if (r) rows = r;
+        await show(curTab, true);
+        live.done(r ? fresh : null);
+      }, 10000);
     } catch (e) { body.innerHTML = '<p class="rk-err">' + esc(failMsg(e)) + '</p>'; }
   }
   P.daily = function (app, arg) {
@@ -1542,6 +1547,7 @@
   // ---------- #/squad and #/squad/CODE: a private Daily board for a group, joined by a link ----------
   // No account needed: a guest joins with a name, and this device is their place in the squad. Signing in later moves it to the account.
   const squadMsg = t => '<p class="muted">' + t + '</p>';
+  // the LIVE line over a board that refreshes itself: LOOKING FOR NEW SCORES while it checks, then what it found
   let squadOn = null;
   const sqArgs = o => Object.assign({ p_gid: guestId() }, o);   // signed in too: this device's guest spot counts until it moves to the account
   let sqGen = 0;   // each squad screen draw; a slower older one stops instead of drawing over it
@@ -1633,7 +1639,7 @@
     const me = UI.profile.name();
     app.innerHTML = head(`<div class="ch-go"><button type="button" class="btn btn-gold" id="sqInv">INVITE FRIENDS</button></div>`) + `
       <div class="rk-bt" id="sqTabs"><button type="button" class="btn btn-small btn-gold" data-bt="today">TODAY</button><button type="button" class="btn btn-small" data-bt="week">THIS WEEK</button></div>
-      <div id="sqBoard">${squadMsg('Loading...')}</div>
+      <p class="dy-live" id="sqLive"><i></i><span>LIVE</span></p><div id="sqBoard">${squadMsg('Loading...')}</div>
       <div class="ch-go dy-more"><a class="btn" href="#/squad">ALL SQUADS</a><button type="button" class="btn btn-small" id="sqLeave">LEAVE</button></div>${sqSignIn()}`;
     squadWire(app, () => squadPage(app, code));
     UI.$('#sqInv', app).addEventListener('click', () => shareCard({}, 'Join my Starting Five squad: ' + info.name, '#/squad/' + code));
@@ -1643,27 +1649,36 @@
       location.hash = '#/squad';
     });
     const board = UI.$('#sqBoard', app);
-    const show = async kind => {
+    let sqTab = 'today';
+    const put = h => { if (board.innerHTML !== h) board.innerHTML = h; };
+    const show = async (kind, quiet) => {
+      sqTab = kind;
       app.querySelectorAll('#sqTabs [data-bt]').forEach(b => b.classList.toggle('btn-gold', b.dataset.bt === kind));
-      board.innerHTML = squadMsg('Loading...');
+      if (!quiet) board.innerHTML = squadMsg('Loading...');
       if (kind === 'week') {
         let wk = null; try { wk = (await UI.profile.rpc('squad_week', sqArgs({ p_code: code }))) || []; } catch (e) { wk = null; }
         if (!board.isConnected) return;
-        board.innerHTML = !wk ? squadMsg('Could not load the board.') : wk.length ? table(['#', 'PLAYER', 'DAYS', 'AVERAGE', 'POINTS'], wk.map((x, i) => [i + 1, sqName(x, me), x.days, f1(x.avg_pct) + '%', '<b>' + f1(x.total) + '</b>'])) + '<p class="muted rk-sub">Every daily percentage added up, Monday to Sunday. Resets Monday.</p>' : squadMsg('Nobody has played this week yet.');
+        put(!wk ? squadMsg('Could not load the board.') : wk.length ? table(['#', 'PLAYER', 'DAYS', 'AVERAGE', 'POINTS'], wk.map((x, i) => [i + 1, sqName(x, me), x.days, f1(x.avg_pct) + '%', '<b>' + f1(x.total) + '</b>'])) + '<p class="muted rk-sub">Every daily percentage added up, Monday to Sunday. Resets Monday.</p>' : squadMsg('Nobody has played this week yet.'));
         return;
       }
       let rows = null; try { rows = (await UI.profile.rpc('squad_today', sqArgs({ p_code: code }))) || []; } catch (e) { rows = null; }
       if (!board.isConnected) return;
-      if (!rows) { board.innerHTML = squadMsg('Could not load the board.'); return; }
+      if (!rows) { if (!quiet) board.innerHTML = squadMsg('Could not load the board.'); return; }
       const hidden = rows.length && rows.every(r => r.pct == null && r.score == null);
       const play = `<div class="ch-go"><a class="btn btn-gold" href="#/daily">PLAY TODAY'S DAILY</a></div>`;
-      if (!rows.length) { board.innerHTML = squadMsg('Nobody in the squad has played today. Be the first.') + play; return; }
-      if (hidden) { board.innerHTML = squadMsg(`<b>${rows.length}</b> played today: ${rows.map(r => esc(r.username)).join(', ')}. Play to see their scores.`) + play; return; }
-      board.innerHTML = table(['#', 'PLAYER', 'OF PERFECT FIVE'], rows.map((x, i) => [i + 1, sqName(x, me), '<b>' + (x.pct != null ? f1(x.pct) + '%' : f1(x.score)) + '</b>']))
-        + '<h3 class="dy-h3">THEIR FIVES</h3>' + fivesHtml(rows.filter(x => x.lineup).map(x => Object.assign({}, x, { lineup: Object.assign({}, x.lineup, x.pct != null ? { pct: x.pct } : {}) })), 0, me);
+      if (!rows.length) { put(squadMsg('Nobody in the squad has played today. Be the first.') + play); return; }
+      if (hidden) { put(squadMsg(`<b>${rows.length}</b> played today: ${rows.map(r => esc(r.username)).join(', ')}. Play to see their scores.`) + play); return; }
+      put(table(['#', 'PLAYER', 'OF PERFECT FIVE'], rows.map((x, i) => [i + 1, sqName(x, me), '<b>' + (x.pct != null ? f1(x.pct) + '%' : f1(x.score)) + '</b>']))
+        + '<h3 class="dy-h3">THEIR FIVES</h3>' + fivesHtml(rows.filter(x => x.lineup).map(x => Object.assign({}, x, { lineup: Object.assign({}, x.lineup, x.pct != null ? { pct: x.pct } : {}) })), 0, me));
     };
     app.querySelectorAll('#sqTabs [data-bt]').forEach(b => b.addEventListener('click', () => show(b.dataset.bt)));
     show('today');
+    const live = liveLine(UI.$('#sqLive', app));
+    const tick = setInterval(async () => {
+      if (!board.isConnected) { clearInterval(tick); return; }
+      if (document.hidden) return;
+      live.busy(); await show(sqTab, true); live.done(0);
+    }, 10000);
   }
   P.squad = function (app, arg) { const c = String(arg || '').split('/')[0]; return c ? squadPage(app, c) : squadList(app); };
 

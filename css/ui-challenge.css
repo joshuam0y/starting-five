@@ -1507,3 +1507,11 @@ a.pr-i:hover { border-color: var(--gold); }
 /* finish card ratings: the same box and size as in the auction */
 .rk-fc i.ch-ovr { font-size: clamp(22px, 5.6vw, 30px); min-width: 1.9em; padding: 3px 4px; line-height: 1.1; margin-top: 3px; box-sizing: border-box; max-width: 100%; }
 .rk-fstat .rk-fc i.ch-ovr { font-size: clamp(22px, 5.6vw, 30px); }
+
+/* LIVE line over boards that refresh themselves */
+.dy-live { display: flex; align-items: center; gap: 8px; margin: 6px 0 8px; font-family: var(--display); font-size: 11px; letter-spacing: .14em; color: var(--muted); }
+.dy-live i { width: 8px; height: 8px; border-radius: 50%; background: var(--win, #5fbf6a); box-shadow: 0 0 0 0 currentColor; animation: dyLive 2s infinite; flex: none; }
+.dy-live.busy { color: var(--gold2); }
+.dy-live.busy i { background: var(--gold); animation-duration: .7s; }
+@keyframes dyLive { 0% { opacity: 1; } 50% { opacity: .35; } 100% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .dy-live i { animation: none; } }
