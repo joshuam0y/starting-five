@@ -80,7 +80,7 @@ fs.readdirSync("data").filter(f => /^start-\d{4}\.js$/.test(f)).forEach(f => {
   const D = window.START_LEAGUES[Y];
   let s = null, err = null;
   try { s = L.newLeague(D.teams[0].abbr, { seed: Y, start: Y }); for (let d = 0; d < 7; d++) { s.events.forEach(e => (e.resolved = true)); L.clearResolved(s); L.advance(s, { days: 1 }); } } catch (e) { err = e; }
-  const sizes = s ? Object.keys(s.teams).map(a => Object.values(s.players).filter(p => p.team === a && !(p.stashedUntil > s.year)).length) : [];
+  const sizes = s ? Object.keys(s.teams).map(a => Object.values(s.players).filter(p => p.team === a && !(p.stashedUntil > s.year) && !p.twoWay && !(p.contract && p.contract.twoWay)).length) : [];   // standard contracts (two-way slots, 2017-18 on, are on top)
   const games = s ? Object.values(s.season.standings).reduce((n, x) => n + x.w + x.l, 0) / 2 : 0;
   ok(!err && sizes.every(n => n >= (Y < 1977 ? 8 : 10) && n <= 16) && games > (D.teams.length < 20 ? 5 : 20), D.label + ": " + (err ? "ERROR " + err.message : sizes.length + " teams, " + Math.min.apply(null, sizes) + " to " + Math.max.apply(null, sizes) + " players, " + games + " games in the first week"));
 });
@@ -96,7 +96,7 @@ fs.readdirSync("data").filter(f => /^start-\d{4}\.js$/.test(f)).forEach(f => {
   const P = id => s.players[id];
   const n = Object.values(s.season.days).reduce((t, d) => t + d.games.filter(g => g.home === "NYK" || g.away === "NYK").length, 0);
   ok(s.year === 2027 && s.season.realSchedule && n === 82 && s.season.days[0].date === "2026-10-20", "2026-27: the real schedule from October 20, 2026 (" + n + " games)");
-  ok(P("wembavi01").age === 22 && P("flaggco01").age === 19 && P("curryst01").age === 38, "real ages (Wembanyama 22, Flagg 19, Curry 38)");
+  ok(P("wembavi01").age === 23 && P("flaggco01").age === 20 && P("curryst01").age === 38, "real ages, as of February 1 like Basketball-Reference (Wembanyama 23, Flagg 20, Curry 38)");
   ok(P("gilgesh01").contract.salaries.length >= 4, "SGA's extension signed before the season is part of his contract (through " + P("gilgesh01").contract.salaries.slice(-1)[0].year + ")");
   ok(window.HISTORY_PRIOR.champions.some(c => c.year === 2026 && c.abbr === "NYK"), "the Knicks are the defending champions");
   ok(window.COACH.of(s, "NYK").name === "Mike Brown" && window.COACH.of(s, "NYK").titles === 1 && window.COACH.of(s, "DAL").name === "Dusty May", "the 2026-27 coaches (Mike Brown with his ring, Dusty May in Dallas)");
@@ -114,7 +114,7 @@ fs.readdirSync("data").filter(f => /^start-\d{4}\.js$/.test(f)).forEach(f => {
   ok(s.season.days[s.season.day].date >= T.date && Object.keys(real).every(a => st[a].w === real[a][0] && st[a].l === real[a][1]), "start today (" + T.date + "): " + T.results.length + " real results in the standings (BOS " + st.BOS.w + "-" + st.BOS.l + ")");
   const sga = s.season.playerStats.gilgesh01;
   ok(sga && sga.g === T.totals.gilgesh01[0] && sga.pts === T.totals.gilgesh01[3], "real totals so far (SGA " + (sga && sga.g) + " games, " + (sga && sga.pts) + " points)");
-  const sizes = Object.keys(s.teams).map(a => Object.values(s.players).filter(p => p.team === a && !p.retired && !(p.stashedUntil > s.year)).length);
+  const sizes = Object.keys(s.teams).map(a => Object.values(s.players).filter(p => p.team === a && !p.retired && !(p.stashedUntil > s.year) && !p.twoWay && !(p.contract && p.contract.twoWay)).length);
   ok(Math.max.apply(null, sizes) <= 15 && Math.min.apply(null, sizes) >= 11, "today's rosters, 11 to 15 a team (" + Math.min.apply(null, sizes) + " to " + Math.max.apply(null, sizes) + ")");
   let r, g = 0;
   do { s.events.forEach(e => (e.resolved = true)); L.clearResolved(s); r = L.advance(s, "endPlayoffs"); } while (r.stopped !== "seasonOver" && ++g < 400);

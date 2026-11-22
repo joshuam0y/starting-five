@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 558, t: 'Draft night starts use the real playoff field for the lottery (2007: New Orleans in it, Denver out), and every player signed when a league opens gets a jersey number.' },
   { v: 556, t: 'Past-season payrolls fixed: 653 players hurt or added to opening rosters now carry their real salary (Paul George $17M in 2014-15, not a rookie deal).' },
   { v: 554, t: 'Real lost seasons in every era: Bird 1988-89, Walton 1978-79, Robinson 1996-97, Yao 2009-10 and 74 more sit out the season they really missed, on the team that held them.' },
   { v: 552, t: 'Light mode: ranked tier names (Silver, Gold, Bronze) and tier colored scores are readable now.' },

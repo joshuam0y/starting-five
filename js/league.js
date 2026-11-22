@@ -224,6 +224,7 @@
     // a league opening in season: every team at the league's roster size (the season files miss some end-of-bench players,
     // and two-way deals do not count), filled from the free agents at the minimum; a summer start fills them in free agency
     if (state.phase === "regular") { try { enforceRosters(state); } catch (e) { console.warn("[league] rosters", e); } }
+    if (mod("JERSEY")) safe("jerseys", function () { W.JERSEY.assign(state); });   // the players just signed to fill rosters get numbers too
     news(state, "Welcome to the " + (state.year - 1) + "-" + String(state.year).slice(2) + " season",
       "You are now running the " + state.teams[userTeam].city + " " + state.teams[userTeam].name + "." +
       (today ? " The season is already under way: every game before " + today.date + " counts with its real score." : ""), []);
@@ -248,6 +249,14 @@
     if (state.phase !== "regular" && state.phase !== "playoffs") throw new Error("The season ended before its real results went in");
     var s = state.season, real = base.real || {};
     Object.keys(real).forEach(function (a) { if (s.standings[a]) { s.standings[a].w = real[a].w; s.standings[a].l = real[a].l; } });
+    // the playoff field from the real records too (the simulated one decides the lottery: New Orleans, not Denver, in 2006-07)
+    if (Object.keys(real).length && s.playoffs && s.playoffs.seeds) Object.keys(s.playoffs.seeds).forEach(function (c) {
+      var n = (s.playoffs.seeds[c] || []).length, str = function (a) { return typeof a === "string" ? a : a.abbr; };
+      var inConf = Object.keys(state.teams).filter(function (a) { return (state.teams[a].conf || "East") === c && s.standings[a]; });
+      inConf.sort(function (x, y) { var X = s.standings[x], Y = s.standings[y]; return (Y.w / (Y.w + Y.l || 1)) - (X.w / (X.w + X.l || 1)); });
+      var top = inConf.slice(0, n), was = (s.playoffs.seeds[c] || []).map(str);
+      if (top.slice().sort().join() !== was.slice().sort().join()) s.playoffs.seeds[c] = top;
+    });
     var E = mod("ENGINE"), lines = base.seasonStats || {};
     if (E && E.emptyLine) Object.keys(lines).forEach(function (id) {
       if (!state.players[id]) return;
