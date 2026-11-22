@@ -256,3 +256,10 @@
 :root[data-theme="light"] .mtile, :root[data-theme="light"] .fr-five, :root[data-theme="light"] .rk-card { box-shadow: 0 1px 2px rgba(70, 50, 20, .07), 0 4px 14px rgba(70, 50, 20, .05); }
 :root[data-theme="light"] .mtile.disabled { opacity: .55; }
 :root[data-theme="light"] body { background-image: radial-gradient(1400px 420px at 50% -120px, rgba(212, 175, 55, .14), transparent 70%), repeating-linear-gradient(90deg, transparent 0 55px, rgba(120, 90, 40, .035) 55px 56px); }
+
+/* light mode: tier and tag colors are made for a dark page; on a light one their text takes a darker shade of the same color */
+:root[data-theme="light"] .tier, :root[data-theme="light"] .rk-fb[data-t] .rk-pop-n, :root[data-theme="light"] .rk-score[data-t] .rk-pct b { color: color-mix(in srgb, var(--tc) 48%, #000); }
+:root[data-theme="light"] .rk-fb[data-t] .rk-pop-n { text-shadow: none; }
+:root[data-theme="light"] .ts-tag.tier-rising { color: #2f6b45; }
+:root[data-theme="light"] .ts-tag.tier-declining { color: #8a4f2a; }
+:root[data-theme="light"] .ts-tag.tier-young, :root[data-theme="light"] .ts-tag.tier-building { color: #2b5f70; }

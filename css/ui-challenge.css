@@ -1114,7 +1114,7 @@
 .pr-i { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line2); background: var(--bg2); color: var(--text); text-decoration: none; }
 .pr-i b { font-family: var(--display); letter-spacing: .04em; font-size: 15px; }
 .pr-i small { color: var(--muted); font-size: 12px; }
-.pr-i.lock { opacity: .45; }
+.pr-i.lock { opacity: .7; border-style: dashed; }   /* locked, but still readable */
 a.pr-i:hover { border-color: var(--gold); }
 
 .vs-theme { width: 100%; padding: 10px; background: var(--bg2); border: 1px solid var(--line2); color: var(--text); font-family: var(--display); letter-spacing: .06em; }
@@ -1514,3 +1514,4 @@ a.pr-i:hover { border-color: var(--gold); }
 .dy-live.busy i { background: var(--gold); animation-duration: .7s; }
 @keyframes dyLive { 0% { opacity: 1; } 50% { opacity: .35; } 100% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .dy-live i { animation: none; } }
+.pr-i.lock small { color: var(--text2); }
