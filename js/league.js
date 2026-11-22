@@ -470,6 +470,11 @@
       var op = state.players[oid];
       var otg = mod("PROG") && W.PROG.targetsOf ? W.PROG.targetsOf(state, oid) : (W.TARGETS && W.TARGETS[oid]);
       if (newYear && op && op.injury && op.injury.type !== "Playing overseas" && op.injury.season !== state.year) op.injury = null;
+      // Before 2012-13: every real season lost to injury in history (data/injury-history.js: Bird 1988-89, Walton 1978-79,
+      // Robinson 1996-97...). He sits out the year he really did, unless this save took him off his real path.
+      var lostYrs = state.year < 2013 && W.INJURY_HISTORY && W.INJURY_HISTORY[oid];
+      if (op && !op.retired && lostYrs && lostYrs.indexOf(state.year) >= 0 && !op.offPath && op.fate !== "healthy" && op.team !== "DRAFT" &&
+        (!op.injury || (op.injury.games || 0) < 82)) { op.injury = { type: "Out for the season", games: 999, real: true, season: state.year }; continue; }
       // Real seasons lost to injury (TARGETS out list, injury years only): the player sits out the whole
       // year, like he did in real life. Years he was out of the league or overseas (Greg Monroe in Russia)
       // do not bench him: if he is still good in this save, he plays.

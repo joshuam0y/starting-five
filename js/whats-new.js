@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 554, t: 'Real lost seasons in every era: Bird 1988-89, Walton 1978-79, Robinson 1996-97, Yao 2009-10 and 74 more sit out the season they really missed, on the team that held them.' },
   { v: 552, t: 'Light mode: ranked tier names (Silver, Gold, Bronze) and tier colored scores are readable now.' },
   { v: 550, t: 'Smoother SOLD card on phones. Head to Head and Tournaments default to best of 7, and only the computer can be called CPU.' },
   { v: 548, t: 'Snappier auctions: the SOLD card pops in right away and moves on faster, and the house thinks for less time.' },
