@@ -397,11 +397,11 @@
       <div class="auc-nm">${o.blind || ov == null ? '' : `<b class="ch-ovr auc-ovr ${UI.ovrClass(ov)}">${esc(ov)}</b>`}<h2>${esc(p.name || '')}</h2></div>
       <p class="auc-sold-to">${me ? 'YOU GOT HIM' : esc(nm) + ' GOT HIM'}</p><b class="auc-sold-p">${o.e.price ? '$' + esc(o.e.price) : 'FREE'}</b></div>`;
     let done = false;
-    const close = () => { if (done) return; done = true; clearTimeout(t); window.removeEventListener('hashchange', close); el.classList.add('out'); setTimeout(() => { el.remove(); o.onDone && o.onDone(); }, 220); };
-    const t = setTimeout(close, o.ms || 2000);
+    const close = () => { if (done) return; done = true; clearTimeout(t); window.removeEventListener('hashchange', close); el.classList.add('out'); setTimeout(() => { el.remove(); o.onDone && o.onDone(); }, 140); };
+    const t = setTimeout(close, o.ms || 1500);
     el.addEventListener('click', close); window.addEventListener('hashchange', close);
     document.body.appendChild(el);
-    if (window.SFX && o.sound !== false) { try { window.SFX.play(me ? 'land' : 'chime'); } catch (e) { /* no sound */ } }
+    if (window.SFX && o.sound !== false) requestAnimationFrame(() => setTimeout(() => { try { window.SFX.play(me ? 'land' : 'chime'); } catch (e) { /* no sound */ } }, 0));   // after the card has painted, so starting the sound never holds it up
   };
 
   // the auto-draft reveal: when a side has its five (or no money left), the rest of the pool goes to the other side as face-down cards that flip one by one
@@ -410,7 +410,7 @@
     const next = () => {
       const e = es.shift(); if (!e) { if (o.onDone) o.onDone(); return; }
       const p = o.byId[e.id] || {};
-      UI.aucSold({ e, p, name: o.name(e.side), me: mine >= 0 && e.side === mine, blind: o.blind, color: (o.color && o.color(p)) || null, ovr: o.ovr, ms: 1500, onDone: next });
+      UI.aucSold({ e, p, name: o.name(e.side), me: mine >= 0 && e.side === mine, blind: o.blind, color: (o.color && o.color(p)) || null, ovr: o.ovr, ms: 1100, onDone: next });
     };
     next();
   };
@@ -1044,7 +1044,7 @@
         const stage = UI.$('.auc-stage', app), note = document.createElement('p'); note.className = 'auc-think'; note.textContent = 'THE HOUSE IS THINKING...';
         app.querySelectorAll('.auc-go button, .auc-chips button, #aucDown, #aucUp').forEach(b => { b.disabled = true; });
         if (stage) stage.insertBefore(note, stage.firstChild);
-        setTimeout(after, 1100 + Math.random() * 1400);
+        setTimeout(after, 700 + Math.random() * 800);
         return;
       }
       after();

@@ -1488,10 +1488,10 @@ a.pr-i:hover { border-color: var(--gold); }
 .vs-auc-won li, .vs-compact .vs-auc-won li { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
 
 /* the SOLD card after every sale */
-.auc-sold { position: fixed; inset: 0; z-index: 480; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, .62); perspective: 900px; cursor: pointer; animation: aucSoldBg .2s ease-out; }
-.auc-sold.out { opacity: 0; transition: opacity .2s; }
-.auc-sold-b { width: min(340px, 100%); box-sizing: border-box; display: grid; justify-items: center; gap: 8px; text-align: center; padding: 18px 16px 20px; background: linear-gradient(180deg, color-mix(in srgb, var(--c1) 34%, var(--bg2)), var(--bg2) 60%); border: 2px solid var(--line2); border-top: 4px solid var(--c1); box-shadow: 0 18px 50px rgba(0, 0, 0, .5); animation: aucSoldSpin .75s cubic-bezier(.2, 1.1, .3, 1) both; }
-.auc-sold.me .auc-sold-b { border-color: var(--gold); box-shadow: 0 0 40px color-mix(in srgb, var(--gold) 40%, transparent), 0 18px 50px rgba(0, 0, 0, .5); }
+.auc-sold { position: fixed; inset: 0; z-index: 480; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, .62); perspective: 900px; cursor: pointer; }
+.auc-sold.out { opacity: 0; transition: opacity .14s; }
+.auc-sold-b { width: min(340px, 100%); box-sizing: border-box; display: grid; justify-items: center; gap: 8px; text-align: center; padding: 18px 16px 20px; background: linear-gradient(180deg, color-mix(in srgb, var(--c1) 34%, var(--bg2)), var(--bg2) 60%); border: 2px solid var(--line2); border-top: 4px solid var(--c1); animation: aucSoldSpin .5s cubic-bezier(.2, 1, .3, 1) both; will-change: transform, opacity; backface-visibility: hidden; }   /* no big blurred shadow: it repaints every frame of the spin on phones */
+.auc-sold.me .auc-sold-b { border-color: var(--gold); }
 .auc-sold-k { font-family: var(--display); font-size: 13px; letter-spacing: .3em; color: var(--muted); }
 .auc-sold.me .auc-sold-k { color: var(--gold2); }
 .auc-sold .auc-face { width: 112px; height: 112px; }
@@ -1500,8 +1500,7 @@ a.pr-i:hover { border-color: var(--gold); }
 .auc-sold-to { margin: 2px 0 0; font-family: var(--display); font-size: clamp(22px, 6.5vw, 28px); letter-spacing: .06em; color: var(--text); }
 .auc-sold.me .auc-sold-to { color: var(--gold2); }
 .auc-sold-p { font-family: var(--display); font-size: 40px; line-height: 1; color: var(--gold); }
-@keyframes aucSoldSpin { 0% { transform: rotateY(-540deg) scale(.35); opacity: 0; } 60% { opacity: 1; } 100% { transform: none; opacity: 1; } }
-@keyframes aucSoldBg { from { opacity: 0; } }
+@keyframes aucSoldSpin { 0% { transform: rotateY(-360deg) scale(.5); opacity: 0; } 40% { opacity: 1; } 100% { transform: rotateY(0) scale(1); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .auc-sold-b { animation: none; } }
 
 /* finish card ratings: the same box and size as in the auction */

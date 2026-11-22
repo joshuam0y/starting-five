@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 548, t: 'Snappier auctions: the SOLD card pops in right away and moves on faster, and the house thinks for less time.' },
   { v: 546, t: 'The SOLD card is in every auction now (Head to Head and Tournament say who got him), auto-drafted players get one too, and the Daily and squad boards refresh themselves every 10 seconds.' },
   { v: 544, t: 'Daily: every sale spins in a big SOLD card with the player, who got him and the price. Ratings on the finish card are bigger, like in the auction.' },
   { v: 542, t: 'The Daily finish card scrolls on short screens, so CLOSE is always in reach.' },
