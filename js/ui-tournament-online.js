@@ -33,7 +33,7 @@
   const mySeat = () => ((TN() || {}).seats || []).indexOf(CID);
   const flat = () => [].concat.apply([], TN().picks);
   const cleanName = (v, i) => String(v || '').trim().slice(0, 20) || 'PLAYER ' + (i + 1);
-  const fresh = (name) => ({ page: 'lobby', n: 4, humans: 0, ai: [], names: [name], seats: [CID], live: [true], opts: { timer: 24, cap: 0, bestOf: 1, seeding: 'random', ratings: true, order: 'turns', board: 0, dupes: 0, bench: 0, auction: 0, bans: 0 }, skip: [], cfg: null, teams: [], picks: [], seeds: [], rounds: [], cur: null, champ: -1, rating: null, watch: null, spins: [], respins: [], spun: [], clk: [], hnow: 0, epoch: 0, hostCid: CID });
+  const fresh = (name) => ({ page: 'lobby', n: 4, humans: 0, ai: [], names: [name], seats: [CID], live: [true], opts: { timer: 24, cap: 0, bestOf: 7, seeding: 'random', ratings: true, order: 'turns', board: 0, dupes: 0, bench: 0, auction: 0, bans: 0 }, skip: [], cfg: null, teams: [], picks: [], seeds: [], rounds: [], cur: null, champ: -1, rating: null, watch: null, spins: [], respins: [], spun: [], clk: [], hnow: 0, epoch: 0, hostCid: CID });
 
   // ---------- the relay ----------
   function loadMqtt() {

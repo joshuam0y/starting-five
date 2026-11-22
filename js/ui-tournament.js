@@ -16,11 +16,12 @@
   };
   const ALL_YEARS = C.SEASONS.map(s => s.year);
   const ERAS = [[2013, 'MODERN'], [2003, '2000S'], [1993, '1990S'], [1985, '1980S'], [1975, '1970S'], [1965, '1960S'], [1955, '1950S']];   // the rules a mixed-seasons game plays by: pace, the three-point line (none before 1979-80), shooting
-  const FRESH = () => ({ v: 1, page: 'setup', n: 4, humans: 0, ai: [], cpu: false, names: [], skip: [], opts: { timer: 24, cap: 0, bestOf: 1, seeding: 'random', ratings: true, board: 0, dupes: 0, bench: 0, auction: 0, bans: 0 },
+  const FRESH = () => ({ v: 1, page: 'setup', n: 4, humans: 0, ai: [], cpu: false, names: [], skip: [], opts: { timer: 24, cap: 0, bestOf: 7, seeding: 'random', ratings: true, board: 0, dupes: 0, bench: 0, auction: 0, bans: 0 },
     cfg: null, auc: null, teams: [], picks: [], who: 0, hand: false, spin: null, spun: [], respins: [], seeds: [], rounds: [], cur: null, champ: -1 });
   let TN = Object.assign(FRESH(), ls.get() || {});
   if (TN.page === 'setup') TN.skip = [];   // a new tournament starts with every season on, not the last one's picks
-  TN.opts = Object.assign({ timer: 24, cap: 0, bestOf: 1, seeding: 'random', ratings: true }, TN.opts || {});
+  TN.opts = Object.assign({ timer: 24, cap: 0, bestOf: 7, seeding: 'random', ratings: true }, TN.opts || {});
+  if (!TN.bo7 && TN.page === 'setup') { TN.opts.bestOf = 7; TN.bo7 = 1; }   // best of 7 is the default now (once for old saves)
   const HOOK = { pages: {} };   // filled in by the online tournament (js/ui-tournament-online.js)
   const save = () => { if (HOOK.on) { if (HOOK.save) HOOK.save(TN); } else ls.set(TN); };
   const ctl = () => !HOOK.on || !!HOOK.host;   // online, only the host runs the bracket
@@ -922,7 +923,7 @@
   window.TOURNAMENT.api = { hook: HOOK, get: () => TN, render, save, ensure, board, banUI, aucView, aucPending, rulesBox, RULES_BTN, bindRules, boardHtml, boardBind, TV, BGT, rosterOf, spinFor, aiChoose, ovrTag, startBracket, teamOf, tName, logo, lblC, short, lbl,
     ALL_YEARS, decOf, shuffle, CPU_NAMES, clearRuns: RUNS_CLEAR, nm, f1,
     nm2: nm, mount(app) { APP = app; render(); },
-    swap(obj) { TN = Object.assign(FRESH(), obj || ls.get() || {}); TN.opts = Object.assign({ timer: 24, cap: 0, bestOf: 1, seeding: 'random', ratings: true }, TN.opts || {}); RUNS_CLEAR(); WATCH = 0; AUTO = false; dropCourt(); },
+    swap(obj) { TN = Object.assign(FRESH(), obj || ls.get() || {}); TN.opts = Object.assign({ timer: 24, cap: 0, bestOf: 7, seeding: 'random', ratings: true }, TN.opts || {}); RUNS_CLEAR(); WATCH = 0; AUTO = false; dropCourt(); },
     setWatch(n) { WATCH = n; AUTO = true; }, court: () => courtCtl, watchN: () => WATCH };
 
   const prev = P.challenge;

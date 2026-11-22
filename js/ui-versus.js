@@ -14,10 +14,11 @@
     get() { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } },
     set(v) { if (typeof NET !== 'undefined' && NET.role === 'watch') return; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* private mode */ } }
   };
-  const FRESH = () => ({ year: 2008, teams: ['BOS', 'LAL'], names: ['', ''], tnames: ['', ''], opts: { bestOf: 5, blind: false, timer: 24, bench: 0, board: 0, dupes: 0, bans: 0, auction: 1, aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'stars', aTheme: '', aShow: 0, ranked: 0, pub: 0 }, cfg: null, auc: null, ready: [false, false], shown: 0, page: 'setup', spin: null, spun: [], respins: [1, 1], turn: null, pos: '', q: '', epoch: 0, hostSide: 0 });
+  const FRESH = () => ({ year: 2008, teams: ['BOS', 'LAL'], names: ['', ''], tnames: ['', ''], opts: { bestOf: 7, blind: false, timer: 24, bench: 0, board: 0, dupes: 0, bans: 0, auction: 1, aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'stars', aTheme: '', aShow: 0, ranked: 0, pub: 0 }, cfg: null, auc: null, ready: [false, false], shown: 0, page: 'setup', spin: null, spun: [], respins: [1, 1], turn: null, pos: '', q: '', epoch: 0, hostSide: 0 });
   let VS = Object.assign(FRESH(), ls.get() || {});
   if (!VS.cfg || VS.page === 'setup') { VS.names = ['', '']; VS.tnames = ['', '']; VS.skip = []; VS.year = 0; }   // a new game starts as Player 1 and Player 2 again, every season on
-  VS.opts = Object.assign({ bestOf: 5, blind: false, timer: 24, era: 2013, bench: 0, bans: 0, auction: 1, aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'stars', aShow: 0, ranked: 0, pub: 0 }, VS.opts || {});
+  VS.opts = Object.assign({ bestOf: 7, blind: false, timer: 24, era: 2013, bench: 0, bans: 0, auction: 1, aBudget: 20, aStart: 1, aRaise: 1, aPool: 10, aQ: 'stars', aShow: 0, ranked: 0, pub: 0 }, VS.opts || {});
+  if (!VS.bo7 && (!VS.cfg || VS.page === 'setup')) { VS.opts.bestOf = 7; VS.bo7 = 1; }   // best of 7 is the default now (once for old saves)
   if (!VS.aucDefault) { VS.opts.auction = 1; VS.aucDefault = 1; }   // Head to Head defaults to the auction (once for older saved setups; a later switch to the wheel sticks)
   if (VS.opts.timer) VS.opts.timer = 24;   // the pick clock is a shot clock: 24 seconds or off
   // the seasons in play: every season but the ones switched off (VS.skip). One season left is a one-season
@@ -54,6 +55,7 @@
     else { VS.names[i] = UI.profile.name(); uniqNames(); push(); if (VS.page === 'setup' && APP) setup(APP); }
   });
   (UI.rooms = UI.rooms || {}).vs = () => (NET.role && NET.code ? NET.code : '');   // for friend invites
+  const isCpuName = n => /^\s*cpu\b/i.test(String(n || ''));
   const who = i => VS.names[i] || (i === 1 && VS.cfg && VS.cfg.cpu && VS.cfg.cpuName) || ('PLAYER ' + (i + 1));   // the CPU keeps its name even if the setup redrew
   // ---------- the rivalry: every finished series between the same two names, kept on this phone ----------
   const RKEY = 'a13-vs-rivals';
@@ -237,7 +239,7 @@
           UI.toast(nm + ' is someone you already played in ranked. Each matchup counts once, so they were turned away.', 'error');
         });
       }
-      if (m.name) VS.names[1 - NET.side] = String(m.name).slice(0, 20); uniqNames(); seen(); push(); route(); return;
+      if (m.name) VS.names[1 - NET.side] = isCpuName(m.name) ? '' : String(m.name).slice(0, 20); uniqNames(); seen(); push(); route(); return;
     }
     if (m.t === 'ready' && NET.role === 'host') { VS.ready = (VS.ready || [false, false]).slice(); VS.ready[+m.i === 0 ? 0 : 1] = !!m.v; seen(); push(); route(); return; }
     if (m.t === 'rankedonly' && NET.role === 'guest' && m.why === 'played') { UI.toast('You already played that player in ranked. Each ranked matchup counts once, so pick another opponent.', 'error'); QUICK = 0; hangUp(); route(); return; }
@@ -716,7 +718,7 @@
         if (v !== 'local' && v !== 'cpu' && !UI.profile.canPlay()) { VS.wantNet = true; route(); UI.toast('Pick a guest name or sign in first.', 'error'); const bar = UI.$('.pf-bar', app); if (bar) bar.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
         VS.wantNet = v === 'host' || v === 'join';
         VS.practice = false;
-        if (v !== 'cpu') VS.cpu = false;
+        if (v !== 'cpu') { VS.cpu = false; VS.names = VS.names.map(n => (isCpuName(n) ? '' : n)); }   // leaving VS CPU: its name does not stay on a player
         if (v === 'cpu') { hangUp(); VS.cpu = true; VS.opts.auction = 1; VS.opts.bench = 0; { const L = (window.TOURNAMENT && window.TOURNAMENT.api && window.TOURNAMENT.api.CPU_NAMES) || ['CPU Shaq', 'CPU Curry', 'CPU Duncan', 'CPU Giannis']; VS.names[1] = L[Math.floor(Math.random() * L.length)]; } }   // a legend's name, like the tournament bots   // the computer: an auction, five each
         else if (v === 'local') hangUp();
         else if (v === 'host' && NET.role !== 'host') host();
@@ -760,7 +762,7 @@
       app.querySelectorAll('[data-timer]').forEach(b => b.addEventListener('click', () => { VS.opts.timer = +b.dataset.timer; redraw(); }));
       app.querySelectorAll('[data-side]').forEach(b => b.addEventListener('click', () => { VS.teams[+b.dataset.side] = b.dataset.team; redraw(); }));
       app.querySelectorAll('[data-tname]').forEach(inp => inp.addEventListener('change', () => { VS.tnames[+inp.dataset.tname] = inp.value.trim().slice(0, 24); push(); }));
-      app.querySelectorAll('[data-name]').forEach(inp => inp.addEventListener('change', () => { VS.names[+inp.dataset.name] = inp.value.trim().slice(0, 20); if (NET.role === 'guest') send({ t: 'hello', name: VS.names[me()] || '' }); else { uniqNames(); push(); redraw(); } }));
+      app.querySelectorAll('[data-name]').forEach(inp => inp.addEventListener('change', () => { if (isCpuName(inp.value)) { UI.toast('CPU names are for the computer. Pick another.', 'error'); inp.value = ''; } VS.names[+inp.dataset.name] = inp.value.trim().slice(0, 20); if (NET.role === 'guest') send({ t: 'hello', name: VS.names[me()] || '' }); else { uniqNames(); push(); redraw(); } }));
       UI.profile.wire(app, () => {
         if (!UI.profile.canPlay() && NET.role) { hangUp(); route(); return; }
         if (UI.profile.canPlay() && PEND) { const c = PEND; PEND = null; join(c); route(); return; }
@@ -774,6 +776,7 @@
       const st = UI.$('#vsStart', app);
       const begin = () => {
         VS.names = [0, 1].map(i => { const el = app.querySelector('[data-name="' + i + '"]'); return el && canAct(i) ? el.value.trim().slice(0, 20) : VS.names[i]; });
+        VS.names = VS.names.map((n, i) => (isCpuName(n) && !(VS.cpu && i === 1) ? '' : n));   // only the computer is called CPU
         if (VS.cpu) { const L = (window.TOURNAMENT && window.TOURNAMENT.api && window.TOURNAMENT.api.CPU_NAMES) || ['CPU Shaq']; if (!VS.names[1] || /^player/i.test(VS.names[1])) VS.names[1] = L[Math.floor(Math.random() * L.length)]; }
         if (VS.cpu && !VS.names[0]) VS.names[0] = ((UI.profile && UI.profile.name && UI.profile.name()) || 'You').slice(0, 20);   // you, not "Player 1", against the CPU
         uniqNames();
