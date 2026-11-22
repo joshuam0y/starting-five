@@ -31,3 +31,27 @@ Object.keys(WHERE).forEach(y => {
   });
   if (process.argv.includes('--write')) fs.writeFileSync(st.f, st.s.slice(0, st.a) + JSON.stringify(L) + ';' + st.s.slice(st.end));
 });
+
+// every start file: a player on a team with no contract gets one
+const files = []; for (let y = 1947; y <= 2027; y++) if (fs.existsSync('data/start-' + y + '.js')) files.push(y);
+const cache = {}; const get = y => (cache[y] = cache[y] || (fs.existsSync('data/start-' + y + '.js') ? load(y).obj : null));
+let fixed = 0, guessed = 0;
+files.forEach(y => {
+  const st = load(y), L = st.obj; let n = 0;
+  L.players.forEach(p => {
+    if (p.team === 'FA' || p.team === 'DRAFT' || p.retired || (p.salary > 0 && p.contractEnd >= y)) return;
+    const look = sameTeam => [y + 1, y - 1, y + 2, y - 2].map(z => { const o = get(z); return o && o.players.find(q => q.id === p.id && q.salary > 0 && (!sameTeam || q.team === p.team)); }).filter(Boolean);
+    const near = look(true).concat(look(false));   // his salary on this team first (the deal he was hurt on), then any team's
+    const nx = get(y + 1), nxt = nx && nx.players.find(q => q.id === p.id && q.team === p.team && q.contractEnd >= y + 1);
+    const amt = near.length ? near[0].salary : 0;
+    const min = Math.max(100000, Math.round(((L.players.filter(q => q.salary > 0).map(q => q.salary).sort((a, b) => a - b)[0]) || 500000)));
+    const a = amt || min; if (!amt) guessed++;
+    const end = nxt ? nxt.contractEnd : y;
+    p.salary = a; p.contractEnd = end; p.salaries = []; for (let z = y; z <= end; z++) p.salaries.push({ year: z, amount: a });
+    n++; fixed++;
+  });
+  if (n && process.argv.includes('--write')) fs.writeFileSync(st.f, st.s.slice(0, st.a) + JSON.stringify(L) + ';' + st.s.slice(st.end));
+  if (n) cache[y] = null;
+});
+console.log('contracts given', fixed, '| at the league minimum (no salary found)', guessed);
+
