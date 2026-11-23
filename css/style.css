@@ -1076,8 +1076,17 @@ body.no-assoc-nav .navmore-list a[data-nav="settings"], body.no-assoc-nav .navmo
 @media (max-width: 400px) {
   .tile-grid .mt-l, .hub-grid .mt-l { font-size: clamp(14px, 4.6vw, 22px); letter-spacing: .04em; }
 }
+/* Phones: the six league tabs (My Team, Schedule, Standings, Stats, League, Menu) share one row, no sideways scroll. */
+@media (max-width: 600px) {
+  .mainnav { gap: 0; padding: 0 4px; }
+  .mainnav > a, .navmore summary { flex: 1 1 auto; justify-content: center; padding: 0 5px; font-size: 12.5px; letter-spacing: .03em; }
+  .mainnav > .navmore { flex: 1 1 auto; display: flex; }
+  .mainnav > .navmore summary { flex: 1; }
+  .navmore summary::after { margin-left: 4px; }
+  .nl-my { display: none; }
+}
 @media (max-width: 360px) {
-  .mainnav > a, .navmore summary { padding: 0 7px; font-size: 13px; letter-spacing: .06em; }
+  .mainnav > a, .navmore summary { padding: 0 3px; font-size: 11.5px; letter-spacing: .02em; }
   .tc-team { font-size: 17px; }
 }
 

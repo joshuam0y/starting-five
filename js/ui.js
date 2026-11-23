@@ -19,7 +19,7 @@
   };
 
   // ---------- navigation ----------
-  // The top bar (index.html) holds seven links: Home, Season, Rosters, Free Agency, Standings, Stats, League.
+  // The top bar (index.html) holds five links: My Team, Schedule, Standings, Stats, League (plus Menu).
   // Every page is also in the grouped Menu (MENU below).
   const CORE = ['about', 'faq', 'contact', 'privacy', 'terms', 'disclaimer', 'home', 'new', 'continue', 'teams', 'team', 'player', 'season', 'game', 'standings', 'leaders', 'stats', 'league', 'playoffs', 'saves'];
   const MORE = [
