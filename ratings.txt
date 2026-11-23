@@ -1,7 +1,13 @@
-team moves: 2 Brooks Barnhizer FA>OKC, Koa Peat FA>PHX
-ESPN players 327 | league players 454 | matched 311 | qualified 258 | most games 15
-moves: 179 up 81 down 98
-UP   Tyrese Proctor 60>65 (14g), Derik Queen 70>75 (15g), Moritz Wagner 70>74 (13g), Cedric Coward 69>73 (13g), Nolan Traoré 66>69 (12g), Walter Clayton 62>65 (13g), Trevon Brazile 69>72 (12g), Yaxel Lendeborg 73>76 (14g), Quenton Jackson 68>71 (14g), Cam Spencer 73>76 (14g)
-DOWN Bub Carrington 77>74 (15g), Scoot Henderson 79>76 (13g), Dillon Brooks 81>78 (13g), Mikal Bridges 82>79 (13g), OG Anunoby 88>85 (13g), Bennedict Mathurin 79>76 (12g), Rudy Gobert 83>80 (13g), DeMar DeRozan 82>79 (11g), Aaron Gordon 82>79 (12g), Peyton Watson 79>76 (12g)
-Ty Jerome 79 > 80 (11 games, 25.363636 ppg)
-written: 191 ratings changed
+rosters: 30 of 30 teams loaded
+team moves: 0 
+ESPN players 319 | league players 469 | matched 306 | qualified 253 | most games 18
+moves: 176 up 80 down 96
+UP   Charles Bassey 60>65 (15g), Cedric Coward 69>74 (16g), Derik Queen 70>75 (18g), Moritz Wagner 70>74 (15g), Buddy Hield 64>68 (14g), Tyrese Proctor 60>64 (16g), Cam Spencer 73>77 (17g), Kasparas Jakučionis 63>67 (16g), Aaron Wiggins 71>74 (17g), Nolan Traoré 66>69 (14g)
+DOWN Scoot Henderson 79>75 (16g), Mikal Bridges 82>78 (17g), Rudy Gobert 83>79 (16g), DeMar DeRozan 82>78 (14g), Bub Carrington 77>74 (17g), Bilal Coulibaly 76>73 (17g), Alex Sarr 82>79 (17g), Trae Young 86>83 (18g), Toumani Camara 76>73 (16g), Dillon Brooks 81>78 (15g)
+Ty Jerome 79 > 81 (12 games, 24.75 ppg)
+ages set from birth dates: 0
+written: 101 ratings changed
+G League players 415
+overseas, removed: none
+G League adds 2: Alex Toohey 63, Caleb Swanigan 56
+written: free agents now 29
