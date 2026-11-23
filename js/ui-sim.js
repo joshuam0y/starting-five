@@ -104,7 +104,9 @@
     // ask about every key moment the sim would pass, in order (All-Star break, then the trade deadline, ...)
     // a moment the sim would carry you past, counting the day you are on: simming one day at a time from the deadline day
     // (or the day before it) used to slip by without the question
-    const passing = ms.filter(x => x.idx >= cur && x.idx < target && !skip[x.key]);
+    // the end of the regular season only counts while it is still ahead: from the playoffs on (the day sits on it
+    // or past it) there is nothing to sim past, and asking about it every playoff sim was a bug
+    const passing = ms.filter(x => (x.key === 'endRegular' ? x.idx > cur && (!g.season.phase || g.season.phase === 'regular') : x.idx >= cur) && x.idx < target && !skip[x.key]);
     for (const m of passing) {
       const name = m.name.replace(/^the /, '');
       const r = await UI.choose({
