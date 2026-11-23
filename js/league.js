@@ -603,6 +603,7 @@
       news(state, state.players[id].name + " injured", inj[id].type + ", expected to miss about " + inj[id].games + " games.", [id]);
     }
     safe("injuryReturns", function () { injuryReturns(state, injBefore, inj); });
+    safe("coverOut", function () { coverOut(state); });
     if (state.realLife && mod("REALLIFE")) safe("realLife", function () { var nd = currentDate(state); if (nd) W.REALLIFE.applyUntil(state, state.season.phase === "done" ? nd : W.REALLIFE.dayBefore(nd)); });
     if (mod("COACH") && W.COACH.realSync) safe("coachReal", function () { var cd = currentDate(state); if (cd) W.COACH.realSync(state, cd); });
     if (mod("JERSEY")) safe("jerseys", function () { W.JERSEY.assign(state); });   // a trade or a signing: his new number
@@ -691,7 +692,7 @@
     // roster popups (sign one, waive some, a free agent pitch) and contract decisions go to FA
     if (e.type === "roster" && mod("FA") && W.FA.resolveRosterEvent) e.result = safe("rosterEvent", function () { return W.FA.resolveRosterEvent(state, e, answer); }, null);
     if (e.type === "contractDecision" && mod("FA") && W.FA.applyDecision) e.result = safe("contractDecision", function () { return W.FA.applyDecision(state, e, answer); }, null);
-    if (e.type === "injury" || e.type === "injuryReturn") safe("injuryAnswer", function () { injuryAnswer(state, e, answer); });
+    if (e.type === "injury" || e.type === "injuryReturn") safe("injuryAnswer", function () { injuryAnswer(state, e, answer); coverOut(state); });
   }
 
   // ---------- injuries and the user's manual rotation ----------
@@ -794,6 +795,62 @@
     if (answer !== "restore" || !isManual(t) || state.players[id].team !== state.userTeam) return;
     var occ = t.rotation[sw.slot];
     if (occ && occ !== id && t.rotation.indexOf(id) >= 0) { swapSlots(t, occ, id); syncLineup(state, state.userTeam); }
+  }
+  // Anyone in a manual rotation who cannot play the next game (out hurt, or hurt and sat) is forced out of it:
+  // a starter swaps with the best healthy player at his position (injurySwaps, so he can get his spot back),
+  // a bench player's minutes go to the next healthy player behind him (injuryMins, handed back when he returns).
+  function playsNext(state, t, id) {
+    var e = state.season && state.season.injuries && state.season.injuries[id], p = state.players[id];
+    if (!(e && e.games > 0)) e = p && p.injury && p.injury.games > 0 ? p.injury : null;
+    return !e || !!(e.hurt && e.games < 900 && t.playHurt !== false);
+  }
+  function coverOut(state) {
+    var abbr = state.userTeam, t = state.teams[abbr];
+    if (!isManual(t) || !state.season) return false;
+    var changed = false, out = t.inactive || [], i, id;
+    var mine = function (q) { var p = state.players[q]; return !!(p && p.team === abbr && !p.retired && !p.gleague); };
+    var ok = function (q) { return mine(q) && out.indexOf(q) < 0 && playsNext(state, t, q); };
+    t.minutes = t.minutes || {};
+    // minutes lent while a bench player was out go back to him
+    var lent = t.injuryMins || {};
+    Object.keys(lent).forEach(function (q) {
+      if (mine(q) && !playsNext(state, t, q)) return;
+      if (mine(q)) {
+        var back = 0;
+        (lent[q].to || []).forEach(function (x) { var take = Math.min(x.add, +t.minutes[x.id] || 0); t.minutes[x.id] = (+t.minutes[x.id] || 0) - take; back += take; });
+        t.minutes[q] = Math.min(48, Math.max(+t.minutes[q] || 0, back));   // the 12 a returning starter gets until the user answers is not on top of it
+      }
+      delete lent[q]; changed = true;
+    });
+    for (i = 0; i < 5 && i < t.rotation.length; i++) {
+      id = t.rotation[i];
+      if (!mine(id) || playsNext(state, t, id)) continue;
+      var p = state.players[id], starters = t.rotation.slice(0, 5);
+      var cands = Object.keys(state.players).filter(function (q) { return starters.indexOf(q) < 0 && ok(q); })
+        .sort(function (a, b) { return (state.players[b].ovr || 0) - (state.players[a].ovr || 0); });
+      var rep = cands.filter(function (q) { return posGroup(state.players[q].pos) === posGroup(p.pos); })[0] || cands[0];
+      if (!rep) continue;
+      swapSlots(t, id, rep);
+      t.injurySwaps = t.injurySwaps || {};
+      if (!t.injurySwaps[id]) t.injurySwaps[id] = { slot: i, with: rep };
+      changed = true;
+    }
+    for (i = 5; i < t.rotation.length; i++) {
+      id = t.rotation[i];
+      var m = +t.minutes[id] || 0;
+      if (!(m > 0) || !mine(id) || playsNext(state, t, id)) continue;
+      var order = t.rotation.slice(i + 1).concat(t.rotation.slice(5, i)).filter(ok), to = [];
+      for (var k = 0; k < order.length && m > 0; k++) {
+        var add = Math.min(m, 48 - (+t.minutes[order[k]] || 0));
+        if (add > 0) { t.minutes[order[k]] = (+t.minutes[order[k]] || 0) + add; to.push({ id: order[k], add: add }); m -= add; }
+      }
+      t.injuryMins = lent;
+      lent[id] = { to: to };
+      t.minutes[id] = 0;
+      changed = true;
+    }
+    if (changed) syncLineup(state, abbr);
+    return changed;
   }
   function clearResolved(state) { state.events = state.events.filter(function (e) { return !e.resolved; }); }
 
@@ -1116,7 +1173,7 @@
 
   // a league that just got a new team (Expansion mode): the season and its schedule built again with it in
   function restartSeason(state) { startSeason(state); return state.season; }
-  var API = { KEY_DATES: KEY_DATES, restartSeason: restartSeason, newLeague: newLeague, summerStart: summerStart, chemParts: chemParts, advance: advance, nextPhase: nextPhase, leagueView: leagueView, resolveEvent: resolveEvent,
+  var API = { KEY_DATES: KEY_DATES, coverOut: coverOut, restartSeason: restartSeason, newLeague: newLeague, summerStart: summerStart, chemParts: chemParts, advance: advance, nextPhase: nextPhase, leagueView: leagueView, resolveEvent: resolveEvent,
     clearResolved: clearResolved, currentDate: currentDate, useStart: useStart, startData: startData, pendingEvents: pendingEvents, OFFSEASON: OFFSEASON,
     userPicksLeft: userPicksLeft, handlesContractDecisions: true, autoOn: autoOn, applyBrands: applyBrands, migrate: migrate, rosterRules: rosterRules, rosterOf: rosterOf, enforceRosters: enforceRosters, assignPicks: assignPicks };
   W.LEAGUE = API;

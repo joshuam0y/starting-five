@@ -321,6 +321,8 @@
   }
 
   function rotationTab(body, s, team) {
+    // players who cannot play the next game leave the lineup with 0 minutes (js/league.js coverOut)
+    try { if (window.LEAGUE && LEAGUE.coverOut && LEAGUE.coverOut(s)) fr.persist(); } catch (e) { console.warn('coverOut failed', e); }
     let rot = currentRotation(s, team);
     let picked = null;          // { list: 'active'|'inactive', i } waiting for a second click
     guard.body = body; guard.check = null; guard.autoFill = null;
@@ -342,7 +344,8 @@
       const sel = picked && picked.list === list && picked.i === i;
       const min = Math.round(rot.minutes[id] || 0);
       const cap = maxFor(id);
-      const minCell = list === 'inactive' ? '<span class="frr-dnp">INACTIVE</span>'
+      const tmOut = inj && !(inj.hurt && inj.games < 900 && team.playHurt !== false);   // out for the next game: no minutes to give
+      const minCell = list === 'inactive' ? '<span class="frr-dnp">INACTIVE</span>' : tmOut ? '<span class="frr-dnp">OUT | 0 MIN</span>'
         : `<span class="frr-min"><button type="button" class="frr-step" data-step="-2" data-id="${esc(id)}" aria-label="Fewer minutes for ${esc(p.name)}"${min <= 0 ? ' disabled' : ''}>&minus;</button>
             <input type="number" inputmode="numeric" min="0" max="${cap}" step="1" value="${min}" data-min="${esc(id)}" aria-label="Minutes for ${esc(p.name)}">
             <button type="button" class="frr-step" data-step="2" data-id="${esc(id)}" aria-label="More minutes for ${esc(p.name)}"${min >= cap ? ' disabled' : ''}>+</button></span>`;
@@ -458,6 +461,8 @@
       rot.auto = false;
       trimTo240();
       applyRotation(s, rot);
+      // a player who cannot play is forced back out (a hurt starter swaps with a healthy one, his minutes go to 0)
+      try { if (window.LEAGUE && LEAGUE.coverOut && LEAGUE.coverOut(s)) { fr.persist(); rot = currentRotation(s, team); } } catch (e) { console.warn('coverOut failed', e); }
       render();
       if (wasAuto && UI.toast) UI.toast('Manual rotation on. ' + (msg || ''));
     }
