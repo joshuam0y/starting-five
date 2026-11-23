@@ -1599,7 +1599,7 @@
     if (!mine) { body.innerHTML = squadMsg('Could not load squads. Try again in a minute.'); return; }
     body.innerHTML = `${mine.length ? `<h2 class="dy-h">YOUR SQUADS</h2><div class="pr-list">${mine.map(s => `<a class="pr-i" href="#/squad/${esc(s.code)}"><b>${esc(s.name)}</b><small>${s.members} ${s.members === 1 ? 'MEMBER' : 'MEMBERS'}</small></a>`).join('')}</div>` : ''}
       <h2 class="dy-h">MAKE A SQUAD</h2>
-      <form class="sq-new" id="sqNew">${sqNameField()}<label class="field"><span>SQUAD NAME</span><input id="sqName" maxlength="24" placeholder="Certified Chuckers" autocomplete="off"></label><button type="submit" class="btn btn-gold">MAKE IT</button></form>${sqSignIn()}`;
+      <form class="sq-new" id="sqNew">${sqNameField()}<label class="field"><span>SQUAD NAME</span><input id="sqName" maxlength="24" placeholder="Certified Chuckers" autocomplete="off"></label><button type="submit" class="btn btn-gold">MAKE IT</button></form><p class="muted rk-sub">A squad closes after 7 days with no Daily played.</p>${sqSignIn()}`;
     squadWire(app, () => squadList(app));
     UI.$('#sqNew', app).addEventListener('submit', async e => {
       e.preventDefault();
@@ -1621,7 +1621,7 @@
     let info = null; try { info = ((await UI.profile.rpc('squad_info', sqArgs({ p_code: code }))) || [])[0] || null; } catch (e) { info = undefined; }
     if (!app.isConnected || gen !== sqGen) return;
     if (info === undefined) { app.innerHTML = squadMsg('Could not load the squad. Try again in a minute.'); return; }
-    if (!info) { app.innerHTML = `<section class="ch-hero"><div class="ch-hero-k">SQUADS</div><h1 class="ch-hero-t">THAT LINK DOESN'T WORK.</h1><p class="ch-hero-p">The squad may have closed. Ask for a new link, or make your own.</p></section><div class="ch-go"><a class="btn btn-gold" href="#/squad">SQUADS</a></div>`; return; }
+    if (!info) { app.innerHTML = `<section class="ch-hero"><div class="ch-hero-k">SQUADS</div><h1 class="ch-hero-t">THAT LINK DOESN'T WORK.</h1><p class="ch-hero-p">The squad may have closed (squads close after 7 days with no Daily played). Ask for a new link, or make your own.</p></section><div class="ch-go"><a class="btn btn-gold" href="#/squad">SQUADS</a></div>`; return; }
     const head = sub => `<section class="ch-hero"><div class="ch-hero-k">SQUAD | ${info.members} ${info.members === 1 ? 'MEMBER' : 'MEMBERS'}</div><h1 class="ch-hero-t">${esc(info.name)}</h1>${sub}</section>`;
     if (!info.joined) {
       app.innerHTML = head(`<p class="ch-hero-p">You're invited. Join to see this squad's Daily board.</p>`) + `<form class="sq-new" id="sqJoinF">${sqNameField()}<button type="submit" class="btn btn-gold btn-big" id="sqJoin">JOIN SQUAD</button></form>${sqSignIn()}`;

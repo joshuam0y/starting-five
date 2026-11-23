@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 566, t: 'Squads stay as long as someone plays. A squad closes after 7 days with no Daily played.' },
   { v: 564, t: 'Your own rotation: a player who is out hurt leaves the lineup with 0 minutes. A healthy player takes his starting spot, and bench minutes go to the next man up until he is back.' },
   { v: 562, t: 'Fixed: simming in the playoffs no longer asks if you want to sim past the regular season.' },
   { v: 560, t: 'Stats and League are in the league top bar now, and every tab fits one row on phones.' },

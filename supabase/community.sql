@@ -617,12 +617,26 @@ language sql immutable as $$ select p_gid is not null and length(p_gid) between 
 create or replace function public.squad_name_ok(p_name text) returns boolean
 language sql immutable as $$ select p_name is not null and length(btrim(p_name)) between 2 and 24 $$;
 
+-- a squad closes after 7 days with no Daily played by any member (it gets a 7 day start first). Run by the squad functions
+-- below whenever anyone makes, joins, opens or lists a squad, so it needs no scheduled job.
+create or replace function public.prune_squads() returns void
+language sql security definer set search_path = public as $$
+  delete from public.squads s
+  where s.created_at < now() - interval '7 days'
+    and not exists (select 1 from public.squad_members m join public.daily_scores d on d.user_id = m.uid and d.era = 'ALL'
+      where m.code = s.code and d.day > (now() at time zone 'America/Los_Angeles')::date - 7)
+    and not exists (select 1 from public.squad_guests q join public.daily_guests g on g.gid = q.gid
+      where q.code = s.code and g.day > (now() at time zone 'America/Los_Angeles')::date - 7)
+$$;
+revoke execute on function public.prune_squads() from public, anon, authenticated;
+
 -- make a squad: returns its code ('' when the name is bad or you already made 10)
 drop function if exists public.create_squad(text);
 create or replace function public.create_squad(p_name text, p_gid text default null, p_guest text default null) returns text
 language plpgsql security definer set search_path = public as $$
 declare me uuid := auth.uid(); n text := btrim(coalesce(p_name, '')); c text; i int;
 begin
+  perform public.prune_squads();
   if not public.squad_name_ok(n) then return ''; end if;
   if me is null and (not public.squad_gid_ok(p_gid) or not public.squad_name_ok(p_guest)) then return ''; end if;
   if (select count(*) from public.squads where (me is not null and owner = me) or (me is null and owner_gid = p_gid)) >= 10 then return ''; end if;
@@ -642,6 +656,7 @@ grant execute on function public.create_squad(text, text, text) to authenticated
 drop function if exists public.squad_info(text);
 create or replace function public.squad_info(p_code text, p_gid text default null) returns table (name text, members int, joined boolean)
 language sql security definer set search_path = public as $$
+  select public.prune_squads();
   select s.name, (select count(*)::int from public.squad_members m where m.code = s.code) + (select count(*)::int from public.squad_guests g where g.code = s.code),
     public.squad_is_in(s.code, p_gid)
   from public.squads s where s.code = upper(btrim(p_code))
@@ -654,6 +669,7 @@ create or replace function public.join_squad(p_code text, p_gid text default nul
 language plpgsql security definer set search_path = public as $$
 declare me uuid := auth.uid(); c text := upper(btrim(coalesce(p_code, '')));
 begin
+  perform public.prune_squads();
   if not exists (select 1 from public.squads where code = c) then return false; end if;
   if public.squad_is_in(c, p_gid) then return true; end if;
   if (select count(*) from public.squad_members where code = c) + (select count(*) from public.squad_guests where code = c) >= 100 then return false; end if;
@@ -701,6 +717,7 @@ grant execute on function public.claim_guest_squads(text) to authenticated;
 drop function if exists public.my_squads();
 create or replace function public.my_squads(p_gid text default null) returns table (code text, name text, members int)
 language sql security definer set search_path = public as $$
+  select public.prune_squads();
   select s.code, s.name, (select count(*)::int from public.squad_members x where x.code = s.code) + (select count(*)::int from public.squad_guests y where y.code = s.code)
   from public.squads s where public.squad_is_in(s.code, p_gid)
   order by s.created_at
