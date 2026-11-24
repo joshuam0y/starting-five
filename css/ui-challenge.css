@@ -1515,3 +1515,9 @@ a.pr-i:hover { border-color: var(--gold); }
 @keyframes dyLive { 0% { opacity: 1; } 50% { opacity: .35; } 100% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .dy-live i { animation: none; } }
 .pr-i.lock small { color: var(--text2); }
+
+/* Season Mode team stats: the Association table, a name column that wraps on phones */
+.ch-tfilter { display: flex; gap: 10px; margin: 0 0 10px; }
+.ch-team-t td.sc-name { min-width: 120px; max-width: 170px; white-space: normal; line-height: 1.15; }
+.ch-team-t td.sc-name small { display: block; margin-top: 2px; }
+@media (max-width: 600px) { .ch-team-t td.sc-name { max-width: 138px; } .ch-team-t .sc-pn { font-size: 14px; } }

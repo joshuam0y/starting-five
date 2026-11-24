@@ -746,7 +746,7 @@
     })(start, 0);
     var order = best.order;
     var slots = [];
-    order.forEach(function (p, i) { slots.push(p ? { id: p.id, name: p.name, pos: primaryPos(p.pos), slot: SLOTS[i], k: i, pen: Math.round(slotPen(p, i) * 10) / 10 } : { id: null, slot: SLOTS[i], k: i, pen: 0 }); });
+    order.forEach(function (p, i) { slots.push(p ? { id: p.id, name: p.name, pos: primaryPos(p.pos), season: p.season || null, slot: SLOTS[i], k: i, pen: Math.round(slotPen(p, i) * 10) / 10 } : { id: null, slot: SLOTS[i], k: i, pen: 0 }); });
     var parts = [];
     if (five.length >= 5) {
       var max = function (fn) { return Math.max.apply(null, five.map(fn)); };
