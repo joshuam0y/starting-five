@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 570, t: 'The Daily gets its own big tile at the top of the menu.' },
   { v: 568, t: 'The site will show a few ads to stay free. Never during an auction or a game.' },
   { v: 566, t: 'Squads stay as long as someone plays. A squad closes after 7 days with no Daily played.' },
   { v: 564, t: 'Your own rotation: a player who is out hurt leaves the lineup with 0 minutes. A healthy player takes his starting spot, and bench minutes go to the next man up until he is back.' },
