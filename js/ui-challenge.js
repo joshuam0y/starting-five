@@ -326,8 +326,10 @@
   function fitHtml(fit, opts) {
     if (!fit) return '';
     opts = opts || {};
+    const nameN = {};
+    fit.slots.forEach(x => { if (x.id) nameN[x.name] = (nameN[x.name] || 0) + 1; });
     const slots = fit.slots.map(x => x.id
-      ? `<li class="${x.pen >= 1.5 ? 'off' : ''}" title="${esc(x.name)}"><i>${x.slot}</i><b>${esc(lastName(x.name))}</b>${x.pen >= 1.5 ? `<small>natural ${esc(x.pos)}</small>` : ''}</li>`
+      ? `<li class="${x.pen >= 1.5 ? 'off' : ''}" title="${esc(x.name)}"><i>${x.slot}</i><b>${esc(nameN[x.name] > 1 && x.season ? short(x.season) : lastName(x.name))}</b>${x.pen >= 1.5 ? `<small>natural ${esc(x.pos)}</small>` : ''}</li>`
       : `<li class="open"><i>${x.slot}</i><b class="muted">open</b></li>`).join('');
     const parts = fit.parts.map(x => `<li class="${FIT_CLS(x.v)}"><span>${esc(x.k)}</span><b>${esc(x.word)}</b></li>`).join('');
     return `<section class="ch-fit${opts.compact ? ' compact' : ''}"><div class="ch-fit-h"><span class="ch-fit-k">${esc(opts.title || 'LINEUP')}</span>${fit.word ? `<b class="ch-fit-w ${fit.team >= 0.5 && !/BAD|HOLES/.test(fit.word) ? 'up' : /BAD/.test(fit.word) ? 'down' : 'ok'}">${esc(fit.word)}</b>` : '<span class="muted ch-small">Pick five to see how they fit</span>'}</div>
@@ -1077,8 +1079,25 @@
     // a Build Any Team bench (picks 6 to 10): the same cards, then one table with everyone's season
     const myBench = (r.bench || []).filter(b => b.custom);
     const benchCards = myBench.map(b => card(Object.assign({ tags: [] }, b))).join('');
-    const statRow = x => { const L = x.line; return `<tr><td class="l">${esc(x.name)} <small class="muted">${x.label ? esc(short(x.season)) + ' ' : ''}${esc(C.primaryPos(x.pos))}</small></td><td>${x.ovr}</td>${L ? `<td>${L.g}</td><td>${pct(L.mpg)}</td><td><b>${pct(L.pts)}</b></td><td>${pct(L.reb)}</td><td>${pct(L.ast)}</td><td>${pct(L.stl)}</td><td>${pct(L.blk)}</td><td>${pct(L.fgp)}</td><td>${pct(L.tpp)}</td>` : '<td colspan="9" class="muted">Did not play</td>'}</tr>`; };
-    const teamTable = `<div class="tscroll"><table class="stats ch-team-t"><thead><tr><th class="l">PLAYER</th><th>OVR</th><th>G</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>FG%</th><th>3P%</th></tr></thead><tbody>${r.five.concat(myBench).map(statRow).join('')}</tbody></table></div>`;
+    const tRows = r.five.map(x => ({ x, role: 'start' })).concat(myBench.map(x => ({ x, role: 'bench' })), (r.bench || []).filter(b => !b.custom && b.line && b.line.g).map(x => ({ x, role: 'bench' })));
+    const TCOLS = [['ovr', 'OVR'], ['g', 'G'], ['mpg', 'MIN'], ['pts', 'PTS'], ['reb', 'REB'], ['ast', 'AST'], ['stl', 'STL'], ['blk', 'BLK'], ['fgp', 'FG%'], ['tpp', '3P%']];
+    const TS = { sort: 'pts', dir: -1, show: 'all' };
+    const tVal = (row, k) => k === 'name' ? row.x.name : k === 'ovr' ? row.x.ovr : row.x.line ? row.x.line[k] : null;
+    const tHead = k => { const on = TS.sort === k, l = k === 'name' ? 'PLAYER' : TCOLS.find(c => c[0] === k)[1];
+      return `<th class="sortable${k === 'name' ? ' l sc-name' : ''}${on ? ' on' : ''}"><button type="button" class="sc-sort" data-ch-sort="${k}">${l}${on ? `<i aria-hidden="true">${TS.dir < 0 ? '&#9660;' : '&#9650;'}</i>` : ''}</button></th>`; };
+    const teamTableHtml = () => {
+      const list = tRows.filter(row => TS.show === 'all' || row.role === TS.show).slice().sort((a, b) => {
+        const av = tVal(a, TS.sort), bv = tVal(b, TS.sort);
+        if (TS.sort === 'name') return String(av).localeCompare(String(bv)) * TS.dir;
+        if (av == null || bv == null) return av == null && bv == null ? 0 : av == null ? 1 : -1;
+        return (av - bv) * TS.dir;
+      });
+      const body = list.map((row, i) => { const x = row.x, L = x.line;
+        return `<tr class="${row.role === 'start' ? 'mine' : ''}"><td class="sc-rk">${i + 1}</td><td class="l sc-name"><span class="sc-pn">${esc(x.name)}</span> <small class="muted">${x.season ? esc(short(x.season)) + ' ' : ''}${esc(C.primaryPos(x.pos))}</small></td><td>${x.ovr}</td>${L ? `<td>${L.g}</td><td>${pct(L.mpg)}</td><td><b>${pct(L.pts)}</b></td><td>${pct(L.reb)}</td><td>${pct(L.ast)}</td><td>${pct(L.stl)}</td><td>${pct(L.blk)}</td><td>${pct(L.fgp)}</td><td>${pct(L.tpp)}</td>` : '<td colspan="9" class="muted">Did not play</td>'}</tr>`; }).join('');
+      return `<table class="stats sc-table ch-team-t"><thead><tr><th class="sc-rk">#</th>${tHead('name')}${TCOLS.map(c => tHead(c[0])).join('')}</tr></thead><tbody>${body || '<tr><td colspan="12" class="l muted">No players here.</td></tr>'}</tbody></table>`;
+    };
+    const hasBench = tRows.some(row => row.role === 'bench');
+    const teamTable = `${hasBench ? `<div class="sc-filters ch-tfilter"><label class="sc-f"><span>SHOW</span><select id="chTShow"><option value="all">Everyone</option><option value="start">Starters</option><option value="bench">Bench</option></select></label></div>` : ''}<div class="tscroll sc-scroll" id="chTeamT">${teamTableHtml()}</div>`;
     const series = r.series.map(s => { const t = teamOf(teams, s.opp); return `<li class="${s.won ? 'w' : 'l'}"><small>${esc(s.name.toUpperCase())}</small>${logo(t, 24)}<b>${s.won ? 'W' : 'L'} ${s.w}-${s.l}</b><span>${esc(t.name)}</span></li>`; }).join('');
     const aw = r.awards || {};
     const awardRow = (k, label) => { const a = aw[k]; if (!a) return ''; const t = teamOf(teams, a.team); return `<li class="${a.mine ? 'me' : ''}"><small>${label}</small>${logo(t, 22)}<b>${esc(a.name)}</b>${a.season ? `<span class="muted">${esc(short(a.season))}</span>` : ''}${a.line ? `<span class="muted">${a.line.pts} / ${a.line.reb} / ${a.line.ast}</span>` : ''}</li>`; };
@@ -1111,6 +1130,15 @@
       </div>
       ${UI.header('STANDINGS', r.mode === 'year' ? 'Gray number: the real record' : '')}<div class="ch-stands">${stand('East')}${stand('West')}</div>
       <details class="ch-logbox"><summary>GAME LOG (${r.log.length} GAMES) | TAP A GAME FOR THE BOX SCORE</summary><ol class="ch-log">${log}</ol></details>`;
+    const tBox = UI.$('#chTeamT');
+    if (tBox) tBox.addEventListener('click', e => {
+      const b = e.target.closest('[data-ch-sort]'); if (!b) return;
+      const k = b.getAttribute('data-ch-sort');
+      if (TS.sort === k) TS.dir = -TS.dir; else { TS.sort = k; TS.dir = k === 'name' ? 1 : -1; }
+      tBox.innerHTML = teamTableHtml();
+    });
+    const tShow = UI.$('#chTShow');
+    if (tShow) tShow.addEventListener('change', () => { TS.show = tShow.value; tBox.innerHTML = teamTableHtml(); });
     UI.$('#chAgain').addEventListener('click', () => rerun(r));
     UI.$('#chShare').addEventListener('click', () => share(r));
     slButton(r);
