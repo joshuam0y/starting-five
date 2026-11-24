@@ -8,7 +8,7 @@
   const P = UI.pages = UI.pages || {};
   const CONTACT_FORM = 'https://formsubmit.co/hello@playstartingfive.com';
   const REPO = 'https://github.com/joshuam0y/starting-five';
-  const UPDATED = 'November 12, 2026';
+  const UPDATED = 'November 24, 2026';
 
   const PAGES = {
     about: ['ABOUT', `
@@ -20,7 +20,7 @@
       <li><b>Tournament.</b> Four or eight friends draft on one device, or each on their own phone, and play a bracket.</li>
       <li><b>The Association.</b> A full franchise sim with trades, free agency, drafts and real history.</li></ul>
       <p>Ratings are estimates built from real stats and tuned to feel like the games. Nothing here is official.</p>
-      <p>It is a hobby project. It has no ads and no cost. You can play without an account; an account is only needed for ranked play, friends and your profile.</p>`],
+      <p>It is a hobby project. It is free, and ads keep it running. You can play without an account; an account is only needed for ranked play, friends and your profile.</p>`],
     contact: ['CONTACT', `
       <p>Found a bug, have an idea, or want something fixed? Tell me.</p>
       __FORM__
@@ -28,7 +28,7 @@
       <p><a class="btn btn-gold" href="${REPO}/issues/new" target="_blank" rel="noopener">REPORT AN ISSUE ON GITHUB</a></p>
       <p class="muted">Include the page you were on and what phone or browser you use. Please do not post personal information in a public issue.</p>`],
     faq: ['FAQ', `
-      <h3>Is it free?</h3><p>Yes. There are no ads and no payments. An account is optional.</p>
+      <h3>Is it free?</h3><p>Yes. Ads keep it free, and there are no payments. An account is optional.</p>
       <h3>Do I need an account?</h3><p>Only for ranked play, getting your daily score on the board, friends and your profile. The daily, practice and everything else work as a guest.</p>
       <h3>Where is my progress saved?</h3><p>Leagues, Season Mode runs and settings are saved on your own device, in your browser. Clearing site data or switching browsers or phones starts you fresh. Your Association leagues live under LOAD. If you have an account, your ranked results, rating, friends and profile are saved online with it.</p>
       <h3>How does online Head to Head work?</h3><p>One player makes a room and shares the code or link. The other opens it on their phone. Both phones stay in sync while you draft and watch.</p>
@@ -41,7 +41,7 @@
       <h3>Is it affiliated with the NBA or 2K?</h3><p>No. See the Disclaimer.</p>`],
     privacy: ['PRIVACY POLICY', `
       <p class="muted">Last updated ${UPDATED}.</p>
-      <h3>The short version</h3><p>There are no ads and no tracking tools. You can play without an account and I collect nothing. If you make an account, I store the details listed below so ranked play, friends and profiles work. I never read your location.</p>
+      <h3>The short version</h3><p>The site shows ads from Google AdSense, which uses cookies (see Ads below). Apart from that, you can play without an account and I collect nothing. If you make an account, I store the details listed below so ranked play, friends and profiles work. I never read your location.</p>
       <h3>What stays on your device</h3><p>Saved leagues, settings, your Head to Head rivalry record and your sound preference are stored in your browser on your own device. I never receive them. Clearing your browser data deletes them.</p>
       <h3>Accounts</h3><p>An account is optional. If you make one I keep: your <b>email</b> and a <b>password</b> (handled by the sign-in service, which stores the password only in scrambled form; I never see it), and your <b>username</b>. Your email is used only to sign in and reset your password, and is never shown to other players. You can also choose a <b>region</b> and a <b>team logo as a profile picture</b>.</p>
       <h3>What an account stores</h3><p>Your friends list, your ranked and Head to Head series (the opponent, the score, the date, and the five players you drafted), your ratings and rank, your rivalries, your daily auction scores, and a short timestamp that is refreshed while you are in a ranked game, which is only used to tell whether a player disconnected. Rooms that are waiting for a second player are listed for a couple of minutes and then removed.</p>
@@ -50,6 +50,7 @@
       <h3>Your data</h3><p>The account data is kept with Supabase, a hosted database service. To have your account and its data deleted, ask on the Contact page from the email you signed up with.</p>
       <h3>Online Head to Head, tournaments and ranked rooms</h3><p>Online rooms pass messages between the phones through public relay servers. The messages are encrypted with a key made from your room code, so the relay cannot read your picks. Anyone who has your room code can join, so share it only with your opponent. The relay servers can see your network address, as any website does.</p>
       <h3>Other services the site loads</h3><p>The site is hosted on GitHub Pages. Accounts and ranked results use Supabase. Player photos and team logos load from public servers such as the NBA's image server and Basketball-Reference, and a small library loads from a public code host. Those services can see your network address and the files you ask for, under their own policies.</p>
+      <h3>Ads</h3><p>Ads are served by Google AdSense. Google and its partners use cookies to show ads based on your visits to this and other sites. You can turn off personalized ads at <a href="https://adssettings.google.com" target="_blank" rel="noopener">adssettings.google.com</a>, and read how Google uses data at <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener">policies.google.com/technologies/partner-sites</a>. Visitors in Europe and the UK are asked for consent first.</p>
       <h3>Children</h3><p>The site is a general audience sports game and does not ask for personal information from anyone.</p>
       <h3>Changes and questions</h3><p>If this changes, the date above changes. Questions go through the Contact page.</p>`],
     terms: ['TERMS OF USE', `
