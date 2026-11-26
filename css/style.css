@@ -1128,3 +1128,7 @@ html.tg .mm-grid .mtile.mt-daily { border-color: #ff8a2b; box-shadow: 0 0 0 1px 
   background: radial-gradient(420px 260px at 85% 0%, rgba(255, 138, 43, .34), transparent 70%), linear-gradient(180deg, rgba(255, 138, 43, .12) 0%, rgba(255, 138, 43, .03) 100%); }
 html.tg .mm-grid .mtile.mt-daily .mt-l { color: #ffa24d; }
 html.tg[data-theme="light"] .mm-holiday, html.tg[data-theme="light"] .mm-brand .mm-a, html.tg[data-theme="light"] .mm-grid .mtile.mt-daily .mt-l { color: #c2560c; }
+.mm-leaves { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
+.mm-leaves i { position: absolute; top: -40px; left: var(--x); font-style: normal; font-size: 22px; opacity: .55; animation: mmLeaf var(--d) linear var(--w) infinite; }
+@keyframes mmLeaf { 0% { transform: translate(0, 0) rotate(0); } 50% { transform: translate(28px, 55vh) rotate(160deg); } 100% { transform: translate(-12px, 112vh) rotate(320deg); } }
+@media (prefers-reduced-motion: reduce) { .mm-leaves { display: none; } }

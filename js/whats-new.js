@@ -2,7 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
-  { v: 576, t: 'Happy Thanksgiving: a holiday look on the menu, for Thanksgiving Day only.' },
+  { v: 578, t: 'Happy Thanksgiving: a holiday look on the menu with falling leaves, for Thanksgiving Day only.' },
   { v: 574, t: 'Season Mode team stats work like the Association: tap any column to sort, show starters or bench, and names fit on phones. Repeats (10 Giannis) show each season in the lineup.' },
   { v: 572, t: 'The Daily gets its own big tile at the top of the menu.' },
   { v: 568, t: 'The site will show a few ads to stay free. Never during an auction or a game.' },

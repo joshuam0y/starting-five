@@ -65,7 +65,7 @@
     app.innerHTML = `
       <section class="mm">
         <div class="mm-brand"><span class="mm-2k">STARTING</span><span class="mm-a">FIVE</span></div>
-        ${holiday() ? `<div class="mm-holiday">${holiday()}</div>` : ''}
+        ${holiday() ? `<div class="mm-holiday">${holiday()}</div><div class="mm-leaves" aria-hidden="true">${['\u{1F342}', '\u{1F341}', '\u{1F342}', '\u{1F343}', '\u{1F341}', '\u{1F342}', '\u{1F341}'].map((l, i) => `<i style="--x:${[6, 22, 38, 55, 70, 84, 94][i]}%;--d:${[9, 12, 10, 13, 11, 9.5, 12.5][i]}s;--w:${[0, 3, 6, 1.5, 4.5, 7, 2.5][i]}s">${l}</i>`).join('')}</div>` : ''}
         <div class="mm-install" id="mmInstall">${UI.installButton ? UI.installButton() : ''}</div>
         <div class="mm-k">${m && m.year ? 'THE ' + esc(UI.seasonLabel(m.year)) + ' NBA SEASON' : 'EVERY SEASON FROM 1946-47 TO 2026-27'}</div>
         <div class="mm-grid">
