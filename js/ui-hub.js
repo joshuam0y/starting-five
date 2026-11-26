@@ -47,6 +47,14 @@
 
   // ---------- Main menu ----------
   // Five choices only: play a new Association, continue the last one, the Draft Challenge, load a save.
+  // One-day holiday looks, on the Pacific date (the Daily's day): a line under the logo and warm colors (css/style.css html.tg)
+  const HOLIDAYS = { '2026-11-26': ['tg', '\u{1F983} HAPPY THANKSGIVING \u{1F342}'] };
+  function holiday() {
+    let d = ''; try { d = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); } catch (e) { return ''; }
+    const h = HOLIDAYS[d];
+    Object.values(HOLIDAYS).forEach(x => document.documentElement.classList.toggle(x[0], !!h && h[0] === x[0]));
+    return h ? h[1] : '';
+  }
   P.home = function (app) {
     const latest = UI.saves.latest();
     const engineOk = UI.canPlay();
@@ -57,6 +65,7 @@
     app.innerHTML = `
       <section class="mm">
         <div class="mm-brand"><span class="mm-2k">STARTING</span><span class="mm-a">FIVE</span></div>
+        ${holiday() ? `<div class="mm-holiday">${holiday()}</div>` : ''}
         <div class="mm-install" id="mmInstall">${UI.installButton ? UI.installButton() : ''}</div>
         <div class="mm-k">${m && m.year ? 'THE ' + esc(UI.seasonLabel(m.year)) + ' NBA SEASON' : 'EVERY SEASON FROM 1946-47 TO 2026-27'}</div>
         <div class="mm-grid">

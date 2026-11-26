@@ -1120,3 +1120,11 @@ a.mtile:hover, a.mtile:focus-visible { background: linear-gradient(180deg, var(-
   box-shadow: 0 0 0 1px var(--gold), 0 6px 24px rgba(255, 200, 60, .22); }
 .mm-grid .mtile.mt-daily .mt-l { color: var(--gold2); font-size: clamp(34px, 5vw, 56px); }
 @media (max-width: 600px) { .mm-grid .mtile.mt-daily { min-height: 0; padding: 18px 14px; justify-content: center; } .mm-grid .mtile.mt-daily .mt-l { font-size: 38px; line-height: 1; } .mm-grid .mtile.mt-daily .mt-s { font-size: 13px; margin-top: 4px; } }
+
+/* Thanksgiving (one day, js/ui-hub.js HOLIDAYS): pumpkin orange on the logo and the Daily tile */
+.mm-holiday { font-family: var(--display); font-size: 16px; letter-spacing: .22em; color: #ff9a3c; margin: 8px 0 0; }
+html.tg .mm-brand .mm-a { color: #ff8a2b; }
+html.tg .mm-grid .mtile.mt-daily { border-color: #ff8a2b; box-shadow: 0 0 0 1px #ff8a2b, 0 6px 24px rgba(255, 138, 43, .28);
+  background: radial-gradient(420px 260px at 85% 0%, rgba(255, 138, 43, .34), transparent 70%), linear-gradient(180deg, rgba(255, 138, 43, .12) 0%, rgba(255, 138, 43, .03) 100%); }
+html.tg .mm-grid .mtile.mt-daily .mt-l { color: #ffa24d; }
+html.tg[data-theme="light"] .mm-holiday, html.tg[data-theme="light"] .mm-brand .mm-a, html.tg[data-theme="light"] .mm-grid .mtile.mt-daily .mt-l { color: #c2560c; }
