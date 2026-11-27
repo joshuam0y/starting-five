@@ -584,8 +584,8 @@
   // a casual auction can draw from a theme (a team, a class, a style): strictly only that, never today's daily until tomorrow
   function themeRow(o, dis) {
     const R = UI.ranked; if (!R || !R.themePast) return '';
-    const past = R.themePast(), kinds = [...new Set(past.map(t => t.kind))];
-    return `<div><span class="ts-start-k">THEME</span><select id="vsTheme" class="vs-theme"${dis}><option value="">NONE: THE USUAL POOL</option>${past.length ? `<option value="random"${o.aTheme === 'random' ? ' selected' : ''}>RANDOM PAST THEME</option>${kinds.map(k => `<optgroup label="${esc(k)}">${past.filter(t => t.kind === k).map(t => `<option value="${esc(t.key)}"${o.aTheme === t.key ? ' selected' : ''}>${esc(t.title)}</option>`).join('')}</optgroup>`).join('')}` : ''}</select><small class="muted">${o.aTheme ? 'The pool is only that theme.' : past.length ? 'Past dailies only. Pick one and the pool is only that theme.' : 'Themes unlock the day after they run as the daily.'}</small></div>`;
+    const seen = new Set(R.themePast().map(t => t.key)), past = R.themePast().concat(R.themeExtra ? R.themeExtra().filter(t => !seen.has(t.key)) : []), kinds = [...new Set(past.map(t => t.kind))];
+    return `<div><span class="ts-start-k">THEME</span><select id="vsTheme" class="vs-theme"${dis}><option value="">NONE: THE USUAL POOL</option>${past.length ? `<option value="random"${o.aTheme === 'random' ? ' selected' : ''}>RANDOM THEME</option>${kinds.map(k => `<optgroup label="${esc(k)}">${past.filter(t => t.kind === k).map(t => `<option value="${esc(t.key)}"${o.aTheme === t.key ? ' selected' : ''}>${esc(t.title)}</option>`).join('')}</optgroup>`).join('')}` : ''}</select><small class="muted">${o.aTheme ? 'The pool is only that theme.' : past.length ? 'Pick one and the pool is only that theme.' : 'Themes unlock the day after they run as the daily.'}</small></div>`;
   }
   function aucSetup(boss) {
     const o = VS.opts, per = 5 + (+o.bench > 0 ? +o.bench : 0), dis = boss ? '' : ' disabled';

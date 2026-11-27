@@ -617,6 +617,36 @@
   const T_U25 = () => mk('UNDER 25', 'THE YOUNG GUNS', 'Current players under 25', { t: 'u25' });
   const T_RING = () => mk('RINGLESS', 'NO RING', 'The best never to win it all', { t: 'ringless' });
   const themeCatalog = () => [].concat(MODERN.map(T_CURRENT), FAMOUS.map(T_FAMOUS), Object.keys(FRANCH).map(T_FRANCH), DECS.map(T_DECADE), STYLES.map(T_STYLE), DRAFTYRS.map(T_DRAFT), ROOKIES.map(T_ROOKIE), [T_U25(), T_RING()]);
+  // newer themes: both Finals teams of one season, and the best players from one part of the world. They sit outside
+  // themeCatalog so the base cycle (and every day already keyed or frozen) never moves; they join the daily from EXTRA_FROM.
+  const FINALS = [[2026, 'NYK', 'SAS', 'Brunson ends 53 years'], [2025, 'OKC', 'IND', 'Shai vs Haliburton'], [2024, 'BOS', 'DAL', 'Tatum vs Luka'], [2023, 'DEN', 'MIA', 'Jokic vs Jimmy'],
+    [2022, 'GSW', 'BOS', 'Curry gets his Finals MVP'], [2021, 'MIL', 'PHX', 'Giannis drops 50'], [2020, 'LAL', 'MIA', 'The bubble'], [2019, 'TOR', 'GSW', 'Kawhi vs the dynasty'],
+    [2016, 'CLE', 'GSW', 'The block'], [2014, 'SAS', 'MIA', 'The Spurs get revenge'], [2013, 'MIA', 'SAS', 'Ray Allen from the corner'], [2012, 'MIA', 'OKC', 'LeBron vs KD'],
+    [2011, 'DAL', 'MIA', "Dirk's revenge"], [2010, 'LAL', 'BOS', 'Kobe vs the Celtics'], [2008, 'BOS', 'LAL', 'Pierce in the wheelchair'], [2006, 'MIA', 'DAL', 'Wade takes over'],
+    [2004, 'DET', 'LAL', 'Five starters beat four stars'], [2001, 'LAL', 'PHI', 'AI steps over Lue'], [1998, 'CHI', 'UTA', 'The last shot'], [1996, 'CHI', 'SEA', '72 wins vs the Sonics'],
+    [1995, 'HOU', 'ORL', 'Dream vs Shaq'], [1993, 'CHI', 'PHX', 'MJ vs Barkley'], [1991, 'CHI', 'LAL', 'Jordan vs Magic'], [1987, 'LAL', 'BOS', 'Showtime vs Bird'], [1984, 'BOS', 'LAL', 'Bird vs Magic']];
+  // all-time pool players only (the best of each season), so a theme has to reach well past ten of them
+  const EUROPE = ['Tony Parker', 'Rudy Gobert', 'Victor Wembanyama', 'Nicolas Batum', 'Boris Diaw', 'Evan Fournier', 'Joakim Noah', 'Bilal Coulibaly', 'Alex Sarr', 'Zaccharie Risacher', 'Pau Gasol', 'Marc Gasol', 'Ricky Rubio', 'Jose Calderon', 'Serge Ibaka', 'Santi Aldama', 'Rudy Fernandez', 'Nikola Mirotic', 'Nikola Jokic', 'Luka Doncic', 'Drazen Petrovic', 'Toni Kukoc', 'Vlade Divac', 'Peja Stojakovic', 'Dino Radja', 'Nikola Vucevic', 'Bogdan Bogdanovic', 'Bojan Bogdanovic', 'Goran Dragic', 'Dario Saric', 'Jusuf Nurkic', 'Ivica Zubac', 'Nikola Pekovic', 'Mehmet Okur', 'Hedo Turkoglu', 'Alperen Sengun', 'Dirk Nowitzki', 'Detlef Schrempf', 'Dennis Schroder', 'Franz Wagner', 'Giannis Antetokounmpo', 'Arvydas Sabonis', 'Domantas Sabonis', 'Zydrunas Ilgauskas', 'Jonas Valanciunas', 'Sarunas Marciulionis', 'Danilo Gallinari', 'Andrea Bargnani', 'Kristaps Porzingis', 'Lauri Markkanen', 'Clint Capela', 'Jakob Poeltl', 'Andrei Kirilenko', 'Rik Smits'];
+  const COUNTRIES = [
+    ['BAL', 'THE BALKANS', 'Jokic, Luka and their neighbors', ['Nikola Jokic', 'Luka Doncic', 'Drazen Petrovic', 'Toni Kukoc', 'Vlade Divac', 'Peja Stojakovic', 'Dino Radja', 'Nikola Vucevic', 'Bogdan Bogdanovic', 'Bojan Bogdanovic', 'Goran Dragic', 'Dario Saric', 'Jusuf Nurkic', 'Ivica Zubac', 'Nikola Pekovic', 'Mehmet Okur', 'Hedo Turkoglu', 'Alperen Sengun']],
+    ['EUR', 'MADE IN EUROPE', 'Dirk, Giannis, Jokic and Luka', EUROPE],
+    ['AME', 'THE AMERICAS', 'Canada and Latin America', ['Steve Nash', 'Shai Gilgeous-Alexander', 'Jamal Murray', 'Andrew Wiggins', 'RJ Barrett', 'Tristan Thompson', 'Kelly Olynyk', 'Dillon Brooks', 'Luguentz Dort', 'Rick Fox', 'Bennedict Mathurin', 'Manu Ginobili', 'Nene', 'Al Horford', 'Luis Scola', 'Andres Nocioni', 'Leandro Barbosa', 'Anderson Varejao', 'Karl-Anthony Towns', 'Tiago Splitter', 'Rolando Blackman']],
+    ['WLD', 'BORN ABROAD', 'The best born outside the US', EUROPE.concat(['Steve Nash', 'Shai Gilgeous-Alexander', 'Jamal Murray', 'Andrew Wiggins', 'RJ Barrett', 'Tristan Thompson', 'Kelly Olynyk', 'Dillon Brooks', 'Luguentz Dort', 'Rick Fox', 'Bennedict Mathurin', 'Manu Ginobili', 'Nene', 'Al Horford', 'Luis Scola', 'Andres Nocioni', 'Leandro Barbosa', 'Anderson Varejao', 'Karl-Anthony Towns', 'Tiago Splitter', 'Rolando Blackman', 'Hakeem Olajuwon', 'Dikembe Mutombo', 'Joel Embiid', 'Pascal Siakam', 'Manute Bol', 'Luol Deng', 'Gorgui Dieng', 'Bismack Biyombo', 'Andrew Bogut', 'Ben Simmons', 'Patty Mills', 'Joe Ingles', 'Josh Giddey', 'Luc Longley', 'Steven Adams', 'Yao Ming', 'Rui Hachimura', 'Deni Avdija', 'Patrick Ewing', 'Kyrie Irving'])]
+  ];
+  const plainName = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z]/gi, '').toLowerCase();
+  const T_FINALS = f => mk('THE FINALS', 'THE ' + f[0] + ' FINALS', nickIn(f[1], f[0]) + ' vs ' + nickIn(f[2], f[0]) + '. ' + f[3], { t: 'finals', year: f[0], a: f[1], b: f[2] });
+  const T_COUNTRY = c => mk('AROUND THE WORLD', c[1], c[2], { t: 'country', k: c[0] });
+  const extraCatalog = () => [].concat(FINALS.map(T_FINALS), COUNTRIES.map(T_COUNTRY));
+  const allThemes = () => themeCatalog().concat(extraCatalog());
+  // from EXTRA_FROM (the day after the last frozen board), every third day is one of these, walked in a shuffled order
+  const EXTRA_FROM = '2027-01-24', EXC = {};
+  function extraOrder(c) {
+    if (EXC[c]) return EXC[c];
+    const list = extraCatalog().sort((a, b) => (a.key < b.key ? -1 : 1));
+    let s = hash('extra|' + c); const rnd = () => (s = hash('r' + s)) / 4294967296;
+    for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const t = list[i]; list[i] = list[j]; list[j] = t; }
+    return (EXC[c] = list);
+  }
   // what today is, from the date alone (no data needed): the kind rotates daily, the pick inside it comes from the date
   // From CYCLE_FROM on, the days walk a shuffled order of the whole catalog, so no theme repeats until every one has
   // been played (about four months), and two themes of the same kind never fall on back-to-back days. Days before it
@@ -645,7 +675,13 @@
   }
   function dailyThemeInfo(day) {
     if (day >= CYCLE_FROM) {
-      const n = Math.round((Date.parse(day + 'T00:00:00Z') - Date.parse(CYCLE_FROM + 'T00:00:00Z')) / 86400000), L = themeCatalog().length;
+      const span = (a, b) => Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000), L = themeCatalog().length;
+      let n = span(CYCLE_FROM, day);
+      if (day >= EXTRA_FROM) {
+        const m = span(EXTRA_FROM, day);
+        if (m % 3 === 2) { const k = Math.floor(m / 3), E = extraCatalog().length; return extraOrder(Math.floor(k / E))[k % E]; }
+        n = span(CYCLE_FROM, EXTRA_FROM) + m - Math.floor(m / 3);   // the base cycle carries on where it was, skipping the extra days
+      }
       return cycleOrder(Math.floor(n / L))[n % L];
     }
     return oldRotation(day);
@@ -701,16 +737,18 @@
     }
     else if (sp.t === 'u25') { await C.load(2027); pool = C.seasonData(2027).players.filter(x => x.age < 25).map(x => Object.assign({}, x, { season: 2027 })); }
     else if (sp.t === 'season') { await C.load(sp.year); pool = C.seasonData(sp.year).players.filter(x => x.team === sp.abbr).map(x => Object.assign({}, x, { season: sp.year })); }
+    else if (sp.t === 'finals') { await C.load(sp.year); pool = C.seasonData(sp.year).players.filter(x => x.team === sp.a || x.team === sp.b).map(x => Object.assign({}, x, { season: sp.year })); }
     else {
       await C.load('pool');
       if (sp.t === 'franchise') { const best = {}; C.allTimePool().filter(e => e.from === sp.abbr).forEach(e => { if (!best[e.base] || e.ovr > best[e.base].ovr) best[e.base] = e; }); pool = Object.keys(best).map(k => Object.assign({}, best[k], { id: best[k].key, team: best[k].from })); }
       else if (sp.t === 'decade') { const best = {}; C.allTimePool().filter(e => decKey(e.season) === sp.d).forEach(e => { if (!best[e.base] || e.ovr > best[e.base].ovr) best[e.base] = e; }); pool = Object.keys(best).map(k => Object.assign({}, best[k], { id: best[k].key, team: best[k].from })); }   // each player's best season inside the decade (his career best can fall outside it: Jordan's 1980s)
       else if (sp.t === 'draft') { const R = (window.DRAFT_RESULTS || {})[sp.y], D = (window.DRAFTS || {})[sp.y], ids = new Set(R ? R.map(r => r[1]) : (D || []).map(r => r.id)); pool = allTime().filter(e => ids.has(e.base)); }
       else if (sp.t === 'ringless') { const names = new Set(RINGLESS); pool = allTime().filter(e => names.has(e.name)); }
+      else if (sp.t === 'country') { const c = COUNTRIES.find(x => x[0] === sp.k), names = new Set((c ? c[3] : []).map(plainName)); pool = allTime().filter(e => names.has(plainName(e.name))); }
       else { const def = STYLES.find(x => x[0] === sp.k); pool = allTime().filter(def[3]).sort((a, b) => def[4](b) - def[4](a)).slice(0, 30); }
     }
     pool = sp.t === 'style' ? pool.slice(0, 12) : top(pool);
-    const years = sp.t === 'season' || sp.t === 'rookie' ? [sp.year] : sp.t === 'u25' ? [2027] : [];
+    const years = sp.t === 'season' || sp.t === 'rookie' || sp.t === 'finals' ? [sp.year] : sp.t === 'u25' ? [2027] : [];
     return (BUILT[info.key] = { info, pool, years });
   }
   async function dailyTheme(day) {
@@ -1352,7 +1390,7 @@
   UI.ranked.dailyTour = done => openTour(done, DSET);
   UI.ranked.theme = dailyTheme; UI.ranked.themeInfo = dailyThemeInfo;
   UI.ranked.dailyToday = () => Object.assign({ info: dailyThemeInfo(today()) }, streakNow());
-  UI.ranked.themePast = themePast; UI.ranked.themeCatalog = themeCatalog; UI.ranked.themeLocked = themeLocked; UI.ranked.themeBuild = key => buildTheme(themeCatalog().find(t => t.key === key));   // for the theme list and checks
+  UI.ranked.themePast = themePast; UI.ranked.themeCatalog = allThemes; UI.ranked.themeLocked = themeLocked; UI.ranked.themeExtra = () => extraCatalog().filter(t => !themeLocked(t.key)); UI.ranked.themeBuild = key => buildTheme(allThemes().find(t => t.key === key));   // for the theme list and checks
 
   // ---------- nudges: a friend or other players searching for a ranked match ----------
   const NOTE = 'a13-rk-notify';
@@ -1391,7 +1429,7 @@
       ${past.length ? '' : '<p class="muted">Nothing here yet. A theme shows up the day after it runs.</p>'}`;
   }
   async function practicePlay(app, key, n) {
-    const info = themePast().find(t => t.key === key) || (themeLocked(key) ? themeCatalog().find(t => t.key === key) : null);
+    const info = themePast().find(t => t.key === key) || (themeLocked(key) ? allThemes().find(t => t.key === key) : null);
     if (!info) { location.hash = '#/daily/practice'; return; }
     if (themeLocked(key)) { app.innerHTML = `<section class="ch-hero"><div class="ch-hero-k">PRACTICE</div><h1 class="ch-hero-t">OPENS TOMORROW.</h1><p class="ch-hero-p">This is today's daily. Play it there, then practice it tomorrow.</p></section><div class="ch-go"><a class="btn btn-gold" href="#/daily/play">PLAY THE DAILY</a><a class="btn" href="#/daily/practice">ARCHIVE</a></div>`; return; }
     if (!n) { location.hash = '#/daily/practice/' + key + '/' + Date.now(); return; }
