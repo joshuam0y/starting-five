@@ -775,6 +775,52 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Extensions: a player on the roster with this season or next as his last (an opt-out next year counts) can sign
+  // on for more years now, before he ever reaches free agency. No cap room needed; he asks a little more than his
+  // re-sign price for giving up free agency, and an unhappy player wants to test the market instead.
+  // ---------------------------------------------------------------------------
+  function extensionInfo(state, abbr, id) {
+    var p = state.players[id], c = p && p.contract;
+    if (!p || p.retired || p.team !== abbr || !c || !c.salaries || !c.salaries.length) return { ok: false, reason: 'He is not under contract with you' };
+    if (c.twoWay) return { ok: false, reason: 'Two-way players cannot be extended' };
+    if (isStashed(p)) return { ok: false, reason: 'He is playing overseas' };
+    if (state.fa && state.fa.year > state.year && state.fa.stage !== 'done') return { ok: false, reason: 'Extensions open again after free agency' };
+    var S = contractYear(state), end = lastYear(c);
+    if (c.extended === S) return { ok: false, reason: 'He already signed an extension this season' };
+    if (end > S + 1) return { ok: false, reason: 'Only a player with one or two seasons left can be extended' };
+    var start = S + 1;   // the new years start next season (they replace next season if it was still on his deal)
+    var ctx = buildCtx(state), d = demand(state, id, abbr, ctx), r0 = rules(S), r1 = rules(start);
+    var grow = r0.cap ? r1.cap / r0.cap : 1, max = maxSalary(state, p, start), min = minSalary(state, p, start);
+    var mood = typeof p.mood === 'number' ? p.mood : 55, t = pers(p);
+    var willing = !(mood < 35 && t.loyalty < 60);
+    var base = Math.min(max, Math.max(min, (d.required != null ? d.required : d.amount) * grow * 1.05));
+    var deals = [];
+    for (var n = Math.max(1, d.minYears); n <= Math.min(5, d.maxYears); n++) {
+      var q = requiredFor(p, { required: base, amount: base, min: min, years: d.years, minYears: d.minYears, maxYears: d.maxYears }, n, null).required;
+      deals.push({ years: n, amount: Math.min(max, Math.ceil(q / 10000) * 10000) });
+    }
+    return { ok: true, willing: willing, start: start, years: d.years, deals: deals, mood: mood,
+      reason: willing ? '' : p.name + ' is unhappy and wants to test free agency' };
+  }
+
+  function extend(state, abbr, id, years) {
+    var info = extensionInfo(state, abbr, id), p = state.players[id];
+    if (!info.ok) return { accepted: false, message: info.reason };
+    if (!info.willing) return { accepted: false, message: info.reason + '.' };
+    var deal = info.deals.find(function (x) { return x.years === +years; });
+    if (!deal) return { accepted: false, message: p.name + ' will not sign for ' + yrsText(+years) + '.' };
+    var c = p.contract, S = contractYear(state), sal = makeFirst(info.start, deal.amount, deal.years, 0);
+    c.salaries = c.salaries.filter(function (s) { return s.year < info.start; }).concat(sal);
+    setOptions(c, optionsOf(c).filter(function (o) { return o.year < info.start; }));
+    c.extended = S; c.rookie = false;
+    p.mood = Math.min(100, (typeof p.mood === 'number' ? p.mood : 55) + 5);
+    var total = sal.reduce(function (a, s) { return a + s.amount; }, 0);
+    log(state, 'signing', p.name + ' signs a ' + yrsText(deal.years) + ' extension with ' + abbr + ' (' + money(total) + ')', [id]);
+    if (p.ovr >= 78) news(state, p.name + ' signs an extension with ' + abbr, yrsText(deal.years) + ', ' + money(total) + '.', [id]);
+    return { accepted: true, message: p.name + ' signs on: ' + yrsText(deal.years) + ', ' + money(total) + ' from ' + (info.start - 1) + '-' + String(info.start).slice(2) + '.' };
+  }
+
+  // ---------------------------------------------------------------------------
   // Signing
   // ---------------------------------------------------------------------------
   function sign(state, abbr, p, salaries, via, opts, ctx) {
@@ -2052,7 +2098,7 @@
     setQualifyingOffer: setQualifyingOffer, renounce: renounce, matchOfferSheet: matchOfferSheet,
     offer: offer, simDay: simDay, finish: finishFreeAgency, release: release, freeAgents: freeAgents,
     setSimMode: setSimMode, isAuto: isAuto, flushSummary: flushSummary, userLog: userLog, resolveRosterEvent: resolveRosterEvent,
-    preseasonCheck: preseasonCheck, checkGroup: checkGroup, resignBoard: resignBoard, resignAtAsking: resignAtAsking, teamNeeds: teamNeeds, fitFor: fitFor, positionsOf: positionsOf, rosterSuggestions: rosterSuggestions, waiveCandidates: waiveCandidates, userCount: userCount
+    preseasonCheck: preseasonCheck, checkGroup: checkGroup, resignBoard: resignBoard, resignAtAsking: resignAtAsking, extensionInfo: extensionInfo, extend: extend, teamNeeds: teamNeeds, fitFor: fitFor, positionsOf: positionsOf, rosterSuggestions: rosterSuggestions, waiveCandidates: waiveCandidates, userCount: userCount
   };
 
   if (typeof window !== 'undefined') window.FA = FA;

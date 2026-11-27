@@ -2,6 +2,7 @@
 // Newest first. Add one plain, player-facing line on every push that changes something players see
 // (v = the sw.js cache number of that push; the page shows v / 100, e.g. 350 -> 3.50). The panel shows the latest 5.
 window.WHATS_NEW = [
+  { v: 582, t: 'Association: extend a player during the season. Free Agency, Team Salary, EXTEND on anyone with one or two seasons left. No cap room needed.' },
   { v: 580, t: 'New themes: 25 NBA Finals (2024 is Tatum and Luka in one pool) and four from around the world. Play them now in Head to Head, and in the Daily from January.' },
   { v: 578, t: 'Happy Thanksgiving: a holiday look on the menu with falling leaves, for Thanksgiving Day only.' },
   { v: 574, t: 'Season Mode team stats work like the Association: tap any column to sort, show starters or bench, and names fit on phones. Repeats (10 Giannis) show each season in the lineup.' },

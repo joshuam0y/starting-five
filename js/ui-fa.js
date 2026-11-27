@@ -394,22 +394,27 @@
     const deadSum = ((st.teams[user] && st.teams[user].deadMoney) || []).filter(d => d.year === Y).reduce((a, d) => a + d.amount, 0);
     const body = rows.map(r => {
       const p = r.p, cut = view.cut === p.id;
+      const ex = !r.stashed && FAX().extensionInfo ? F.try('FA.extensionInfo', () => FAX().extensionInfo(st, user, p.id), null) : null, exOpen = view.ext === p.id;
+      const extBtn = ex && ex.ok ? ` <button type="button" class="btn btn-small btn-gold" data-act="ext" data-id="${esc(p.id)}">${exOpen ? 'CLOSE' : 'EXTEND'}</button>` : '';
       const act = r.stashed ? '<span class="muted">Rights kept</span>'
-        : !phaseOpen ? '' : `<button type="button" class="btn btn-small btn-danger" data-act="cut" data-id="${esc(p.id)}">${cut ? 'CONFIRM: ' + money(r.guaranteed) + ' DEAD' : 'WAIVE'}</button>${cut ? ' <button type="button" class="btn btn-small" data-act="nocut">KEEP</button>' : ''}`;
+        : (!phaseOpen ? '' : `<button type="button" class="btn btn-small btn-danger" data-act="cut" data-id="${esc(p.id)}">${cut ? 'CONFIRM: ' + money(r.guaranteed) + ' DEAD' : 'WAIVE'}</button>${cut ? ' <button type="button" class="btn btn-small" data-act="nocut">KEEP</button>' : ''}`) + extBtn;
+      const extRow = exOpen && ex && ex.ok ? `<tr class="fa-ext"><td colspan="6">${ex.willing
+        ? `<b>EXTENSION</b> from ${esc(season(ex.start))}, no cap room needed. Pick a deal: ${ex.deals.map(d => `<button type="button" class="btn btn-small" data-act="extsign" data-id="${esc(p.id)}" data-v="${d.years}">${d.years} YR${d.years > 1 ? 'S' : ''} | ${money(d.amount)}/YR</button>`).join(' ')}`
+        : `<span class="bad">${esc(ex.reason)}. Raise his mood (wins, minutes) and try again.</span>`}</td></tr>` : '';
       return `<tr class="${r.stashed ? 'fa-stash' : ''}">
         <td class="fa-tl"><a href="#/player/${esc(p.id)}">${esc(p.name)}</a><small>${esc(p.pos || '')} | ${esc(p.age || '-')} yrs | <span class="${UI.ovrClass(p.ovr)}">${p.ovr}</span>${UI.mv(p)}</small></td>
         <td class="num">${r.stashed ? '<span class="muted">Overseas until ' + esc(p.stashedUntil) + '</span>' : r.now ? money(r.now) + (r.two ? ' <small>two-way</small>' : '') : '<span class="muted">-</span>'}</td>
         <td class="num">${r.stashed ? '-' : r.left}</td>
         <td>${r.thru ? esc(season(r.thru)) : '-'}${r.rookie ? ' <small>rookie</small>' : ''}</td>
         <td>${r.optT ? esc(r.optT) : '<span class="muted">None</span>'}</td>
-        <td class="fa-tact">${act}</td></tr>`;
+        <td class="fa-tact">${act}</td></tr>${extRow}`;
     }).join('');
     return `<div class="fa-tablewrap"><table class="stats fa-table">
       <thead><tr><th>PLAYER</th><th class="num">${esc(season(Y))}</th><th class="num">YEARS LEFT</th><th>THROUGH</th><th>OPTIONS</th><th></th></tr></thead>
       <tbody>${body}${deadSum ? `<tr class="fa-dead"><td>Dead money (waived players)</td><td class="num">${money(deadSum)}</td><td colspan="4"></td></tr>` : ''}</tbody>
       <tfoot><tr><td>TEAM PAYROLL</td><td class="num">${money(cs.payroll)}</td><td colspan="4">Cap ${money(cs.cap)} | ${cs.room > 0 ? 'Room ' + money(cs.room) : 'Over the cap by ' + money(cs.payroll - cs.cap)} | Tax line ${money(cs.tax)}</td></tr></tfoot>
     </table></div>
-    <p class="ft-hint">Waived players stay on the books as dead money. Draft picks playing overseas keep their rights, do not count against the roster and cannot be waived.</p>`;
+    <p class="ft-hint">EXTEND keeps a player with one or two seasons left before he reaches free agency. Waived players stay on the books as dead money. Draft picks playing overseas keep their rights, do not count against the roster and cannot be waived.</p>`;
   }
 
   // ---------- page ----------
@@ -541,6 +546,12 @@
         UI.toast(r.message, r.ok ? '' : 'error'); render(app, st);
       }
       else if (act === 'nocut') { view.cut = null; render(app, st); }
+      else if (act === 'ext') { view.ext = view.ext === id ? null : id; render(app, st); }
+      else if (act === 'extsign') {
+        const r = FAX().extend(st, st.userTeam, id, +b.getAttribute('data-v'));
+        if (r.accepted) { view.ext = null; await F.save(); }
+        UI.toast(r.message, r.accepted ? '' : 'error'); render(app, st);
+      }
     };
     app.oninput = ev => {
       const t = ev.target;
